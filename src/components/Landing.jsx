@@ -18,22 +18,29 @@ const ContentWrapper = styled.div`
   align-items: center;
   gap: 1.5rem;
   margin-top: 10vh;
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
 `;
 
 const MainTagline = styled(motion.h1)`
   font-family: 'Designer', sans-serif;
-  font-size: 2.2rem;
+  font-size: clamp(1.8rem, 5vw, 2.2rem);
   margin-bottom: 0.1rem;
   letter-spacing: 0.1em;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  position: relative;
 `;
 
 const SubTagline = styled(motion.h2)`
   font-family: 'Avenir Next Regular', sans-serif;
-  font-size: 0.9rem;
+  font-size: clamp(0.7rem, 2vw, 0.9rem);
   letter-spacing: 0.15em;
   margin: 0;
   margin-top: 0.1rem;
+  white-space: nowrap;
+  position: relative;
 `;
 
 const ShopButton = styled(motion.button)`
@@ -41,7 +48,7 @@ const ShopButton = styled(motion.button)`
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: white;
-  font-size: 1rem;
+  font-size: clamp(0.9rem, 2vw, 1rem);
   font-weight: bold;
   cursor: pointer;
   border-radius: 8px;

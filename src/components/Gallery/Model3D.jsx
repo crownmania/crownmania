@@ -1,19 +1,36 @@
+import React, { useState, useEffect } from 'react';
 import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
+import { useLoader } from '@react-three/fiber';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { getModelURL } from '../../utils/modelStorage';
 import { useScroll } from 'framer-motion';
 import * as THREE from 'three';
 
-const MODEL_PATH = '/models/durk-model.glb';
-
-export default function Model3D() {
+const Model3D = () => {
   const groupRef = useRef();
   const glowRef = useRef();
   const { scrollYProgress } = useScroll();
-  
-  // Load the GLTF model
-  const { scene, nodes, materials } = useGLTF(MODEL_PATH);
-  
+  const [modelUrl, setModelUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadModel = async () => {
+      try {
+        const url = await getModelURL('durk-model.glb');
+        setModelUrl(url);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error loading model:', error);
+        setIsLoading(false);
+      }
+    };
+
+    loadModel();
+  }, []);
+
+  const gltf = useLoader(GLTFLoader, modelUrl || '');
+
   useFrame((state, delta) => {
     if (groupRef.current) {
       // Rotate based on scroll position with smooth damping
@@ -25,9 +42,13 @@ export default function Model3D() {
     }
 
     // Animate materials
-    Object.values(materials).forEach(material => {
-      if (material.emissive) {
-        material.emissiveIntensity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.2;
+    Object.values(gltf.scene.children).forEach(child => {
+      if (child.isMesh) {
+        if (child.material) {
+          if (child.material.emissive) {
+            child.material.emissiveIntensity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.2;
+          }
+        }
       }
     });
 
@@ -40,8 +61,8 @@ export default function Model3D() {
 
   // Initial model setup
   useEffect(() => {
-    if (scene) {
-      scene.traverse((child) => {
+    if (gltf.scene) {
+      gltf.scene.traverse((child) => {
         if (child.isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
@@ -52,23 +73,26 @@ export default function Model3D() {
         }
       });
     }
-  }, [scene]);
+  }, [gltf]);
 
   // Clean up GLTF resources
   useEffect(() => {
     return () => {
-      Object.values(materials).forEach(material => material.dispose());
-      Object.values(nodes).forEach(node => {
+      Object.values(gltf.scene.children).forEach(node => {
         if (node.geometry) node.geometry.dispose();
       });
     };
-  }, []);
+  }, [gltf]);
+
+  if (isLoading || !modelUrl) {
+    return null;
+  }
 
   return (
     <group ref={groupRef}>
       {/* Main model */}
       <primitive 
-        object={scene} 
+        object={gltf.scene} 
         scale={0.005}
         position={[0, 0, 0]}
       />
@@ -95,7 +119,6 @@ export default function Model3D() {
       />
     </group>
   );
-}
+};
 
-// Pre-load the model
-useGLTF.preload(MODEL_PATH);
+export default Model3D;

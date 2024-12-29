@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, useAnimationFrame } from 'framer-motion';
+import ImageLoader from './Gallery/ImageLoader';
 
 const GallerySection = styled.section`
   min-height: 100vh;
@@ -30,127 +31,79 @@ const ProductsContainer = styled.div`
 
 const CarouselTrack = styled.div`
   display: flex;
-  gap: 2rem;
-  padding: 0 1rem;
-  will-change: transform;
-  transform: translateX(0);
-
-  @media (max-width: 768px) {
-    gap: 1rem;
-  }
+  gap: 4rem;
+  position: absolute;
 `;
 
-const ProductContainer = styled.div`
-  flex: 0 0 auto;
-  width: calc(33.333% - 2rem);
-  height: 500px;
-  border-radius: 12px;
+const ProductCard = styled(motion.div)`
+  flex: 0 0 300px;
+  height: 400px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
   overflow: hidden;
-  will-change: transform;
-  transform: translateZ(0);
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
   position: relative;
+  cursor: pointer;
+  transition: transform 0.3s ease;
 
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(
-      circle at bottom right,
-      rgba(0, 102, 255, 0.1),
-      transparent 70%
-    );
-    pointer-events: none;
-    animation: pulse 4s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0% { opacity: 0.3; }
-    50% { opacity: 0.6; }
-    100% { opacity: 0.3; }
-  }
-
-  @media (max-width: 768px) {
-    width: calc(100% - 2rem);
-    height: 400px;
+  &:hover {
+    transform: scale(1.05);
   }
 `;
 
-const ProductImage = styled.img`
+const ProductImage = styled(ImageLoader)`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 12px;
-  will-change: transform;
-  transform: translateZ(0);
-  filter: brightness(0.9) contrast(1.1);
-  transition: filter 0.3s ease;
-
-  &:hover {
-    filter: brightness(1) contrast(1);
-  }
 `;
 
 const products = [
-  '/images/product1.webp',
-  '/images/product2.webp',
-  '/images/product3.webp',
-  '/images/product4.webp',
-  '/images/product5.webp'
+  { id: 1, image: '/images/product1.jpg', alt: 'Product 1' },
+  { id: 2, image: '/images/product2.jpg', alt: 'Product 2' },
+  { id: 3, image: '/images/product3.jpg', alt: 'Product 3' },
+  { id: 4, image: '/images/product4.jpg', alt: 'Product 4' },
+  { id: 5, image: '/images/product5.jpg', alt: 'Product 5' },
+  // Duplicate products for infinite scroll
+  { id: 6, image: '/images/product1.jpg', alt: 'Product 1' },
+  { id: 7, image: '/images/product2.jpg', alt: 'Product 2' },
+  { id: 8, image: '/images/product3.jpg', alt: 'Product 3' },
+  { id: 9, image: '/images/product4.jpg', alt: 'Product 4' },
+  { id: 10, image: '/images/product5.jpg', alt: 'Product 5' },
 ];
 
-const tripledProducts = [...products, ...products, ...products];
-
-export default function Gallery() {
+const Gallery = () => {
   const trackRef = useRef(null);
-  const scrollRef = useRef(0);
+  const progressRef = useRef(0);
   const speedRef = useRef(0.5);
-  const [imagesLoaded, setImagesLoaded] = useState(0);
 
-  useEffect(() => {
-    // Preload images
-    products.forEach((src) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => setImagesLoaded(prev => prev + 1);
-    });
-  }, []);
+  useAnimationFrame((time) => {
+    if (!trackRef.current) return;
 
-  useAnimationFrame(() => {
-    if (!trackRef.current || imagesLoaded < products.length) return;
-
-    scrollRef.current -= speedRef.current;
-    const itemWidth = trackRef.current.children[0].offsetWidth + 32;
-    const totalWidth = itemWidth * products.length;
-
-    if (Math.abs(scrollRef.current) >= totalWidth) {
-      scrollRef.current = 0;
+    progressRef.current += speedRef.current;
+    
+    if (progressRef.current >= 100) {
+      progressRef.current = 0;
     }
 
-    trackRef.current.style.transform = `translateX(${scrollRef.current}px)`;
+    const x = -(progressRef.current * 1);
+    trackRef.current.style.transform = `translateX(${x}px)`;
   });
 
   return (
-    <GallerySection id="gallery">
+    <GallerySection>
       <ProductsContainer>
         <CarouselTrack ref={trackRef}>
-          {tripledProducts.map((src, index) => (
-            <ProductContainer key={`${src}-${index}`}>
+          {products.map((product) => (
+            <ProductCard key={product.id}>
               <ProductImage
-                src={src}
-                alt={`Product ${(index % products.length) + 1}`}
-                loading={index < 6 ? "eager" : "lazy"}
-                decoding="async"
+                src={product.image}
+                alt={product.alt}
               />
-            </ProductContainer>
+            </ProductCard>
           ))}
         </CarouselTrack>
       </ProductsContainer>
     </GallerySection>
   );
-}
+};
+
+export default Gallery;
