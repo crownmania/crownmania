@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import ModelViewer from './ModelViewer';
 
 const LandingSection = styled.section`
   height: 100vh;
@@ -43,86 +44,37 @@ const SubTagline = styled(motion.h2)`
   position: relative;
 `;
 
-const ShopButton = styled(motion.button)`
-  padding: 1rem 2rem;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: white;
-  font-size: clamp(0.9rem, 2vw, 1rem);
-  font-weight: bold;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  margin-bottom: 15vh;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-  position: relative;
-  overflow: hidden;
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(
-      circle at bottom right,
-      rgba(0, 102, 255, 0.1),
-      transparent 70%
-    );
-    pointer-events: none;
-    animation: pulse 4s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0% { opacity: 0.3; }
-    50% { opacity: 0.6; }
-    100% { opacity: 0.3; }
-  }
-
-  &:hover {
-    border-color: var(--light-blue);
-    color: var(--light-blue);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 25px rgba(0, 102, 255, 0.2);
-  }
+const ModelWrapper = styled(motion.div)`
+  margin: 2rem 0;
+  transform-origin: center center;
 `;
 
 export default function Landing() {
-  const handleShopClick = () => {
-    document.getElementById('shop').scrollIntoView({ behavior: 'smooth' });
-  };
-
   return (
     <LandingSection className="blueprint-bg">
       <ContentWrapper>
         <MainTagline
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          INNOVATE · COLLECT · CONNECT
+          CROWN MANIA
         </MainTagline>
         <SubTagline
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
         >
-          REVOLUTIONIZING COLLECTIBLES TO CONNECT THE WORLD
+          DIGITAL COLLECTIBLES
         </SubTagline>
+        <ModelWrapper
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+        >
+          <ModelViewer />
+        </ModelWrapper>
       </ContentWrapper>
-
-      <ShopButton
-        onClick={handleShopClick}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        Shop Now
-      </ShopButton>
     </LandingSection>
   );
 }
