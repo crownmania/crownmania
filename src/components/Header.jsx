@@ -141,208 +141,138 @@ const MenuOverlay = styled(motion.div)`
   position: fixed;
   top: 0;
   right: 0;
-  width: 250px;
-  height: 100vh;
+  width: auto;
+  height: auto;
   background: transparent;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   z-index: 101;
-  padding: 6rem 1rem 2rem;
-  opacity: ${props => (props.$isOpen ? 1 : 0)};
-  transform: translateY(${props => (props.$isOpen ? '0' : '-10px')});
-  pointer-events: ${props => (props.$isOpen ? 'auto' : 'none')};
-  transition: all 0.3s ease;
+  padding: 5rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 `;
 
 const MenuItem = styled(motion.a)`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 8px;
   color: white;
   text-decoration: none;
-  font-size: 1.1rem;
-  padding: 1rem;
+  font-family: 'Avenir Next', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.5rem;
   position: relative;
   z-index: 2;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   cursor: pointer;
+  opacity: 0.8;
 
   svg {
-    font-size: 1.2rem;
+    font-size: 0.8rem;
   }
 
   &:hover {
     color: var(--light-blue);
-    background-color: transparent;
+    opacity: 1;
+    transform: translateX(-2px);
   }
 `;
 
 const MenuItemText = styled.span`
   display: inline-block;
+  letter-spacing: 0.05em;
 `;
 
 const menuVariants = {
   closed: {
-    x: "100%",
+    x: 20,
+    opacity: 0,
     transition: {
-      type: "spring",
-      stiffness: 400,
-      damping: 40
+      type: "tween",
+      duration: 0.2
     }
   },
   open: {
     x: 0,
+    opacity: 1,
     transition: {
-      type: "spring",
-      stiffness: 400,
-      damping: 40
+      type: "tween",
+      duration: 0.2
     }
   }
 };
 
 const menuItemVariants = {
   closed: {
-    x: 50,
+    x: 20,
     opacity: 0
   },
   open: (i) => ({
     x: 0,
     opacity: 1,
     transition: {
-      delay: i * 0.1
+      delay: i * 0.05,
+      type: "tween",
+      duration: 0.2
     }
   })
 };
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const { scrollY } = useScroll();
-  const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.8]);
-  const menuRef = useRef(null);
-  const buttonRef = useRef(null);
+  const menuRef = useRef();
 
   const menuItems = [
-    { icon: <FaHome />, text: 'Home', link: '/' },
-    { icon: <FaShoppingBag />, text: 'Shop', link: '/#shop' },
-    { icon: <FaInfoCircle />, text: 'About', link: '/#about' },
-    { icon: <FaLock />, text: 'Vault', link: '/#vault' },
-    { icon: <FaComments />, text: 'Forum', link: '/forum' },
-    { icon: <FaEnvelope />, text: 'Contact', link: '/contact' }
+    { text: 'Home', link: '/', icon: <FaHome size={12} /> },
+    { text: 'Shop', link: '/shop', icon: <FaShoppingBag size={12} /> },
+    { text: 'Vault', link: '/vault', icon: <FaLock size={12} /> },
+    { text: 'About', link: '/about', icon: <FaInfoCircle size={12} /> },
+    { text: 'Forum', link: '/forum', icon: <FaComments size={12} /> },
+    { text: 'Contact', link: '/contact', icon: <FaEnvelope size={12} /> }
   ];
-
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY < lastScrollY || currentScrollY < 50) {
-        // Scrolling up or at the top
-        setShowHeader(true);
-      } else {
-        // Scrolling down
-        setShowHeader(false);
-      }
-      
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [lastScrollY]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        isMenuOpen &&
-        menuRef.current &&
-        !menuRef.current.contains(event.target) &&
-        !buttonRef.current.contains(event.target)
-      ) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
         setIsMenuOpen(false);
       }
     };
 
-    const handleScroll = () => {
-      if (isMenuOpen) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    const handleTouchStart = (event) => {
-      if (
-        isMenuOpen &&
-        menuRef.current &&
-        !menuRef.current.contains(event.target) &&
-        !buttonRef.current.contains(event.target)
-      ) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event) => {
-      if (event.key === 'Escape' && isMenuOpen) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    // Add event listeners
     document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('scroll', handleScroll);
-    document.addEventListener('touchstart', handleTouchStart);
-    document.addEventListener('keydown', handleEscape);
-
-    // Clean up event listeners
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('scroll', handleScroll);
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isMenuOpen]);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
-    <>
-      <BackgroundBeams />
-      <HeaderContainer style={{ opacity: headerOpacity }} $show={showHeader}>
-        <LogoLink href="#" onClick={(e) => {
-          e.preventDefault();
-          scrollToTop();
-        }}>
-          <LogoIcon src={crownLogo} alt="Crownmania Logo" />
-          <Logo>CROWNMANIA</Logo>
-        </LogoLink>
-        
-        <HamburgerButton 
-          onClick={toggleMenu}
-          ref={buttonRef}
-        >
-          <HamburgerLine 
-            animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }} 
-          />
-          <HamburgerLine 
-            animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
-          />
-          <HamburgerLine 
-            animate={isMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
-          />
-        </HamburgerButton>
-      </HeaderContainer>
+    <HeaderContainer>
+      <LogoLink href="/">
+        <LogoIcon src={crownLogo} alt="Crown Logo" />
+        <Logo>Crown</Logo>
+      </LogoLink>
 
-      <HalftoneOverlay />
+      <HamburgerButton
+        onClick={() => setIsMenuOpen(!isMenuOpen)}
+        aria-label="Toggle Menu"
+      >
+        <HamburgerLine
+          animate={{
+            rotate: isMenuOpen ? 45 : 0,
+            y: isMenuOpen ? 6 : 0
+          }}
+        />
+        <HamburgerLine
+          animate={{
+            opacity: isMenuOpen ? 0 : 1
+          }}
+        />
+        <HamburgerLine
+          animate={{
+            rotate: isMenuOpen ? -45 : 0,
+            y: isMenuOpen ? -6 : 0
+          }}
+        />
+      </HamburgerButton>
 
       <AnimatePresence>
         {isMenuOpen && (
@@ -356,7 +286,6 @@ export default function Header() {
             />
             <MenuOverlay
               ref={menuRef}
-              $isOpen={isMenuOpen}
               initial="closed"
               animate="open"
               exit="closed"
@@ -366,18 +295,18 @@ export default function Header() {
                 <MenuItem
                   key={item.text}
                   href={item.link}
-                  custom={i}
                   variants={menuItemVariants}
+                  custom={i}
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  {item.icon}
                   <MenuItemText>{item.text}</MenuItemText>
+                  {item.icon}
                 </MenuItem>
               ))}
             </MenuOverlay>
           </>
         )}
       </AnimatePresence>
-    </>
+    </HeaderContainer>
   );
 }
