@@ -60,8 +60,18 @@ const BlurOverlay = styled(motion.div)`
   left: 0;
   right: 0;
   bottom: 0;
+  background: rgba(2, 6, 23, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
   pointer-events: none;
-  z-index: 90;
+  z-index: 100;
+  transition: opacity 0.3s ease;
+
+  &.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
 `;
 
 const HalftoneOverlay = styled.div`
@@ -133,8 +143,8 @@ const MenuOverlay = styled(motion.div)`
   right: 0;
   width: 250px;
   height: 100vh;
-  background: rgba(2, 6, 23, 0.95);
-  border-radius: 8px;
+  background: transparent;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   z-index: 101;
   padding: 6rem 1rem 2rem;
@@ -336,37 +346,36 @@ export default function Header() {
 
       <AnimatePresence>
         {isMenuOpen && (
-          <MenuOverlay
-            ref={menuRef}
-            $isOpen={isMenuOpen}
-            initial="closed"
-            animate="open"
-            exit="closed"
-            variants={menuVariants}
-          >
-            {menuItems.map((item, i) => (
-              <MenuItem
-                key={item.text}
-                href={item.link}
-                custom={i}
-                variants={menuItemVariants}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {item.icon}
-                <MenuItemText>{item.text}</MenuItemText>
-              </MenuItem>
-            ))}
-          </MenuOverlay>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {isMenuOpen && (
-          <BlurOverlay
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          />
+          <>
+            <BlurOverlay
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMenuOpen(false)}
+              className={isMenuOpen ? 'active' : ''}
+            />
+            <MenuOverlay
+              ref={menuRef}
+              $isOpen={isMenuOpen}
+              initial="closed"
+              animate="open"
+              exit="closed"
+              variants={menuVariants}
+            >
+              {menuItems.map((item, i) => (
+                <MenuItem
+                  key={item.text}
+                  href={item.link}
+                  custom={i}
+                  variants={menuItemVariants}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.icon}
+                  <MenuItemText>{item.text}</MenuItemText>
+                </MenuItem>
+              ))}
+            </MenuOverlay>
+          </>
         )}
       </AnimatePresence>
     </>
