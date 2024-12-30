@@ -141,65 +141,67 @@ const MenuOverlay = styled(motion.div)`
   position: fixed;
   top: 0;
   right: 0;
-  width: auto;
-  height: auto;
+  width: 200px;
+  height: 100vh;
   background: transparent;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   z-index: 101;
-  padding: 5rem 2rem 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  padding: 5rem 0.5rem 2rem;
+  opacity: ${props => (props.$isOpen ? 1 : 0)};
+  transform: translateY(${props => (props.$isOpen ? '0' : '-10px')});
+  pointer-events: ${props => (props.$isOpen ? 'auto' : 'none')};
+  transition: all 0.3s ease;
 `;
 
 const MenuItem = styled(motion.a)`
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 8px;
   color: white;
   text-decoration: none;
   font-family: 'Avenir Next', sans-serif;
   font-size: 0.9rem;
   font-weight: 500;
-  padding: 0.5rem;
+  padding: 0.6rem 1rem;
   position: relative;
   z-index: 2;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   cursor: pointer;
-  opacity: 0.8;
 
   svg {
-    font-size: 0.8rem;
+    font-size: 1rem;
+    min-width: 16px;
   }
 
   &:hover {
     color: var(--light-blue);
-    opacity: 1;
-    transform: translateX(-2px);
+    background-color: rgba(255, 255, 255, 0.05);
   }
 `;
 
 const MenuItemText = styled.span`
   display: inline-block;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
 `;
 
 const menuVariants = {
   closed: {
-    x: 20,
-    opacity: 0,
+    x: "100%",
     transition: {
-      type: "tween",
-      duration: 0.2
+      type: "spring",
+      stiffness: 300,
+      damping: 30
     }
   },
   open: {
     x: 0,
-    opacity: 1,
     transition: {
-      type: "tween",
-      duration: 0.2
+      type: "spring",
+      stiffness: 300,
+      damping: 30,
+      staggerChildren: 0.04,
+      delayChildren: 0.1
     }
   }
 };
@@ -209,70 +211,145 @@ const menuItemVariants = {
     x: 20,
     opacity: 0
   },
-  open: (i) => ({
+  open: {
     x: 0,
     opacity: 1,
     transition: {
-      delay: i * 0.05,
-      type: "tween",
-      duration: 0.2
+      type: "spring",
+      stiffness: 300,
+      damping: 30
     }
-  })
+  }
 };
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef();
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const { scrollY } = useScroll();
+  const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.8]);
+  const menuRef = useRef(null);
+  const buttonRef = useRef(null);
 
   const menuItems = [
-    { text: 'Home', link: '/', icon: <FaHome size={12} /> },
-    { text: 'Shop', link: '/shop', icon: <FaShoppingBag size={12} /> },
-    { text: 'Vault', link: '/vault', icon: <FaLock size={12} /> },
-    { text: 'About', link: '/about', icon: <FaInfoCircle size={12} /> },
-    { text: 'Forum', link: '/forum', icon: <FaComments size={12} /> },
-    { text: 'Contact', link: '/contact', icon: <FaEnvelope size={12} /> }
+    { text: 'Home', icon: <FaHome size={16} />, link: '/' },
+    { text: 'Shop', icon: <FaShoppingBag size={16} />, link: '/#shop' },
+    { text: 'Vault', icon: <FaLock size={16} />, link: '/#vault' },
+    { text: 'About', icon: <FaInfoCircle size={16} />, link: '/#about' },
+    { text: 'Forum', icon: <FaComments size={16} />, link: '/forum' },
+    { text: 'Contact', icon: <FaEnvelope size={16} />, link: '/contact' }
   ];
+
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY < lastScrollY || currentScrollY < 50) {
+        // Scrolling up or at the top
+        setShowHeader(true);
+      } else {
+        // Scrolling down
+        setShowHeader(false);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [lastScrollY]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+      if (
+        isMenuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target) &&
+        !buttonRef.current.contains(event.target)
+      ) {
         setIsMenuOpen(false);
       }
     };
 
+    const handleScroll = () => {
+      if (isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleTouchStart = (event) => {
+      if (
+        isMenuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target) &&
+        !buttonRef.current.contains(event.target)
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    // Add event listeners
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('scroll', handleScroll);
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('keydown', handleEscape);
+
+    // Clean up event listeners
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isMenuOpen]);
 
   return (
-    <HeaderContainer>
-      <LogoLink href="/">
-        <LogoIcon src={crownLogo} alt="Crown Logo" />
-        <Logo>Crown</Logo>
-      </LogoLink>
+    <>
+      <BackgroundBeams />
+      <HeaderContainer style={{ opacity: headerOpacity }} $show={showHeader}>
+        <LogoLink href="#" onClick={(e) => {
+          e.preventDefault();
+          scrollToTop();
+        }}>
+          <LogoIcon src={crownLogo} alt="Crownmania Logo" />
+          <Logo>CROWNMANIA</Logo>
+        </LogoLink>
+        
+        <HamburgerButton 
+          onClick={toggleMenu}
+          ref={buttonRef}
+        >
+          <HamburgerLine 
+            animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }} 
+          />
+          <HamburgerLine 
+            animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
+          />
+          <HamburgerLine 
+            animate={isMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
+          />
+        </HamburgerButton>
+      </HeaderContainer>
 
-      <HamburgerButton
-        onClick={() => setIsMenuOpen(!isMenuOpen)}
-        aria-label="Toggle Menu"
-      >
-        <HamburgerLine
-          animate={{
-            rotate: isMenuOpen ? 45 : 0,
-            y: isMenuOpen ? 6 : 0
-          }}
-        />
-        <HamburgerLine
-          animate={{
-            opacity: isMenuOpen ? 0 : 1
-          }}
-        />
-        <HamburgerLine
-          animate={{
-            rotate: isMenuOpen ? -45 : 0,
-            y: isMenuOpen ? -6 : 0
-          }}
-        />
-      </HamburgerButton>
+      <HalftoneOverlay />
 
       <AnimatePresence>
         {isMenuOpen && (
@@ -286,6 +363,7 @@ export default function Header() {
             />
             <MenuOverlay
               ref={menuRef}
+              $isOpen={isMenuOpen}
               initial="closed"
               animate="open"
               exit="closed"
@@ -295,18 +373,18 @@ export default function Header() {
                 <MenuItem
                   key={item.text}
                   href={item.link}
-                  variants={menuItemVariants}
                   custom={i}
+                  variants={menuItemVariants}
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <MenuItemText>{item.text}</MenuItemText>
                   {item.icon}
+                  <MenuItemText>{item.text}</MenuItemText>
                 </MenuItem>
               ))}
             </MenuOverlay>
           </>
         )}
       </AnimatePresence>
-    </HeaderContainer>
+    </>
   );
 }
