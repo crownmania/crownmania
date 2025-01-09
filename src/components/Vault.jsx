@@ -1,423 +1,368 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 import styled from 'styled-components';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, Environment } from '@react-three/drei';
 import QrReader from 'react-qr-scanner';
-import CollectibleModel from './3d/CollectibleModel';
-import NFTModel from './3d/NFTModel';
+import { DurkModel } from './3d/DurkModel';
 import GlowButton from './GlowButton';
+import { FaQrcode, FaCheck, FaTimes, FaSpinner, FaChevronDown } from 'react-icons/fa';
 
 const VaultSection = styled.section`
-  min-height: 100vh;
-  padding: 6rem 2rem;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2rem;
-`;
-
-const VaultContainer = styled(motion.div)`
   min-height: 100vh;
   background: var(--dark-blue);
   color: white;
   padding: 2rem;
   position: relative;
-  overflow: hidden;
-  filter: ${props => props.isLocked ? 'saturate(0.7)' : 'saturate(1)'};
-  transition: filter 0.5s ease;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at center, 
-      ${props => props.isLocked ? 
-        'rgba(var(--light-blue-rgb), 0.05) 0%, rgba(var(--dark-blue-rgb), 0.02) 50%, transparent 100%' :
-        'rgba(0, 255, 255, 0.1) 0%, rgba(15, 76, 129, 0.05) 50%, transparent 100%'
-      });
-    pointer-events: none;
-  }
+  display: grid;
+  gap: 2rem;
 `;
 
-const Header = styled(motion.header)`
+const TopBar = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.1);
-  background: rgba(15, 76, 129, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
+  width: 100%;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const MainTitle = styled.div`
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2rem;
   margin-bottom: 2rem;
-`;
+  text-align: center;
 
-const Title = styled.h1`
-  font-family: 'Designer', sans-serif;
-  font-size: 1.8rem;
-  color: #00ffff;
-  text-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-  margin: 0;
-  background: linear-gradient(135deg, #E2CBFF, #393BB2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-`;
-
-const HeaderButtons = styled.div`
-  display: flex;
-  gap: 1rem;
-`;
-
-const Button = styled(motion.button)`
-  padding: 0.75rem 1.5rem;
-  background: transparent;
-  border: 1px solid #0066FF;
-  color: #0066FF;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: rgba(0, 102, 255, 0.1);
+  h1 {
+    font-size: 3rem;
+    font-family: 'Designer', sans-serif;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
   }
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .subtitle {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    letter-spacing: 0.1em;
+    font-family: 'Avenir Next', sans-serif;
+    text-transform: uppercase;
+  }
+
+  .social-icons {
+    display: none;
   }
 `;
 
-const MainContent = styled.main`
+const GridLayout = styled.div`
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto 1fr auto;
   gap: 2rem;
-  height: calc(100vh - 200px);
-  margin-top: 2rem;
+  padding: 2rem;
 `;
 
-const Panel = styled(motion.div)`
-  background: rgba(var(--dark-blue-rgb), 0.3);
-  border: 1px solid ${props => props.isVerified ? 
-    'rgba(0, 255, 255, 0.2)' : 
-    'rgba(var(--light-blue-rgb), 0.1)'
-  };
+const Window = styled.div`
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 1.5rem;
   backdrop-filter: blur(10px);
-  height: fit-content;
+
+  h3 {
+    font-family: 'Designer', sans-serif;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+  }
+`;
+
+const ModelWindow = styled(Window)`
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  .model-container {
+    width: 100%;
+    height: 400px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+`;
+
+const VerificationWindow = styled(Window)`
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const SerialInput = styled.input`
+  width: 100%;
+  padding: 0.8rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-family: 'Designer', sans-serif;
+`;
+
+const QRIconButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  width: 100%;
+  cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: ${props => props.isVerified ? 
-      'rgba(0, 255, 255, 0.3)' : 
-      'rgba(var(--light-blue-rgb), 0.2)'
-    };
-    box-shadow: 0 0 30px ${props => props.isVerified ? 
-      'rgba(0, 255, 255, 0.1)' : 
-      'rgba(var(--light-blue-rgb), 0.1)'
-    };
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 12px;
-    padding: 1px;
-    background: linear-gradient(
-      135deg,
-      rgba(226, 203, 255, 0.2),
-      rgba(57, 59, 178, 0.2)
-    );
-    -webkit-mask: 
-      linear-gradient(#fff 0 0) content-box, 
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-  }
-
-  &:hover::before {
-    transform: translateY(-2px);
-    box-shadow: 
-      0 0 30px rgba(57, 59, 178, 0.2),
-      inset 0 0 30px rgba(226, 203, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1);
   }
 `;
 
-const ModelDisplay = styled(Panel)`
-  height: 100%;
+const CollectibleSelector = styled.div`
   display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-    height: 2px;
-    background: linear-gradient(90deg, 
-      transparent 0%, 
-      #00ffff 50%, 
-      transparent 100%
-    );
-    box-shadow: 0 0 20px #00ffff;
-    opacity: ${props => props.isLocked ? 0.3 : 1};
-    transition: opacity 0.5s ease;
-  }
-`;
-
-const NFTDisplay = styled(Panel)`
-  height: 300px;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin: 0 auto;
   margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 0.5rem 1rem;
+  height: 50px;
+  width: 500px;
   position: relative;
-  overflow: hidden;
+
+  select {
+    background: transparent;
+    border: none;
+    color: white;
+    font-family: 'Designer', sans-serif;
+    font-size: 1.2rem;
+    width: calc(100% - 30px);
+    cursor: pointer;
+    appearance: none;
+    outline: none;
+
+    option {
+      background: var(--dark-blue);
+      color: white;
+    }
+  }
+
+  .dropdown-icon {
+    position: absolute;
+    right: 1rem;
+    color: rgba(255, 255, 255, 0.5);
+  }
 `;
 
-const LockOverlay = styled(motion.div)`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(26, 26, 46, 0.9);
+const AuthButtons = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #00ffff;
-  text-shadow: 0 0 10px #00ffff;
-  font-size: 1.1rem;
-  backdrop-filter: blur(5px);
+  gap: 1rem;
+  margin-bottom: 1rem;
 `;
 
-const VerificationSection = styled(Panel)`
+const StatusWindow = styled(Window)`
+  padding: 1rem;
+  margin-top: 1rem;
+  text-align: center;
+  background: ${props => {
+    if (props.status === 'verified') return 'rgba(0, 255, 0, 0.1)';
+    if (props.status === 'failed') return 'rgba(255, 0, 0, 0.1)';
+    return 'rgba(0, 0, 0, 0.3)';
+  }};
+  border: 1px solid ${props => {
+    if (props.status === 'verified') return 'rgba(0, 255, 0, 0.3)';
+    if (props.status === 'failed') return 'rgba(255, 0, 0, 0.3)';
+    return 'rgba(255, 255, 255, 0.1)';
+  }};
+`;
+
+const ClaimWindow = styled(Window)`
+  margin-top: 1rem;
+  text-align: center;
+`;
+
+const DigitalComponentsWindow = styled(Window)`
+  grid-column: 1;
+  grid-row: 3;
+  min-height: 400px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-`;
 
-const Input = styled.input`
-  padding: 1rem;
-  background: rgba(26, 26, 46, 0.5);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  border-radius: 8px;
-  color: #00ffff;
-  width: 100%;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-
-  &:focus {
-    outline: none;
-    border-color: #00ffff;
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  .model-preview {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
   }
 `;
 
-const VerifyButton = styled(GlowButton)`
-  width: 100%;
-  margin-top: 1rem;
-  background: rgba(0, 255, 255, 0.1);
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const LoadingBar = styled(motion.div)`
-  height: 2px;
-  background: #00ffff;
-  box-shadow: 0 0 10px #00ffff;
-  margin-top: 1rem;
-`;
-
-const StatusPanel = styled(Panel)`
-  margin-top: 1rem;
-`;
-
-const VerificationStatus = styled(motion.div)`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  margin-top: 1rem;
-
-  h4 {
-    margin: 0;
-    font-size: 1rem;
-  }
+const CollectibleInfoWindow = styled(Window)`
+  grid-column: 2;
+  grid-row: 3;
 `;
 
 export default function Vault() {
-  const [isLocked, setIsLocked] = useState(true);
+  const [isScanning, setIsScanning] = useState(false);
   const [serialNumber, setSerialNumber] = useState('');
-  const [verificationStatus, setVerificationStatus] = useState(null);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationStep, setVerificationStep] = useState(0);
+  const [verificationStatus, setVerificationStatus] = useState('');
+  const [selectedModel, setSelectedModel] = useState('');
 
   const handleVerification = () => {
-    if (!serialNumber || isVerifying) return;
-    
-    setIsVerifying(true);
-    setVerificationStep(1);
-    
-    // Simulate verification process
+    if (!serialNumber) return;
+    setVerificationStatus('verifying');
     setTimeout(() => {
-      setVerificationStep(2);
-      const isValid = serialNumber === '123456';
-      setVerificationStatus(isValid ? 'verified' : 'invalid');
-      setIsVerifying(false);
-      setIsLocked(!isValid);
+      setVerificationStatus(Math.random() > 0.5 ? 'verified' : 'failed');
     }, 2000);
   };
 
   return (
-    <VaultSection id="vault">
-      <VaultContainer isLocked={isLocked}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Header
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Title>The Vault - Authenticate, Verify, and Claim Your Digital Ownership</Title>
-          <HeaderButtons>
-            <GlowButton>Sign In</GlowButton>
-            <GlowButton>Connect Wallet</GlowButton>
-          </HeaderButtons>
-        </Header>
+    <VaultSection>
+      <TopBar>
+        <div>AUTHENTICATE • AUTHENTICATE • VERIFY • CONNECT • CONNECT</div>
+        <div className="auth-status">0 / 71</div>
+      </TopBar>
 
-        <MainContent>
+      <MainTitle>
+        <h1>THE VAULT</h1>
+        <div className="subtitle">AUTHENTICATE VECTOR MODEL</div>
+      </MainTitle>
+
+      <GridLayout>
+        <Window style={{ gridColumn: 1, gridRow: '1 / span 2' }}>
+          <h3>COLLECTIBLE INFORMATION</h3>
           <div>
-            <Panel>
-              <h3>Collectible Details</h3>
-              {verificationStatus === 'verified' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <p>Collection: Crown Series 1</p>
-                  <p>Edition: #45 of 500</p>
-                  <p>Minted: December 13, 2024</p>
-                </motion.div>
-              )}
-            </Panel>
-            
-            <NFTDisplay>
-              {verificationStatus === 'verified' ? (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  style={{ width: '100%', height: '100%' }}
-                >
-                  <Canvas>
-                    <PerspectiveCamera makeDefault position={[0, 0, 3]} />
-                    <ambientLight intensity={0.3} />
-                    <NFTModel />
-                  </Canvas>
-                </motion.div>
-              ) : (
-                <LockOverlay
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  <span>🔒 Verify to Unlock Digital Token</span>
-                </LockOverlay>
-              )}
-            </NFTDisplay>
+            <p>Collection: Crown Series</p>
+            <p>Edition: Limited</p>
+            <p>Release Date: 2025</p>
           </div>
+        </Window>
 
-          <ModelDisplay isLocked={isLocked}>
+        <div style={{ gridColumn: 2, gridRow: '1 / span 2' }}>
+          <CollectibleSelector>
+            <select 
+              value={selectedModel} 
+              onChange={(e) => setSelectedModel(e.target.value)}
+            >
+              <option value="">Collectible Name</option>
+              <option value="durk">Durk Model</option>
+              <option value="model2">Vector Model 2</option>
+              <option value="model3">Vector Model 3</option>
+            </select>
+            <FaChevronDown className="dropdown-icon" />
+          </CollectibleSelector>
+
+          <ModelWindow>
+            <div className="model-container">
+              <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
+                <ambientLight intensity={0.5} />
+                <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
+                <pointLight position={[-10, -10, -10]} />
+                <DurkModel />
+                <OrbitControls enableZoom={true} />
+                <Environment preset="city" />
+              </Canvas>
+            </div>
+            <h2>AUTHENTITE 3D MODEL</h2>
+            <p>View and verify your digital authentite model</p>
+          </ModelWindow>
+        </div>
+
+        <div style={{ gridColumn: 3, gridRow: '1 / span 2' }}>
+          <AuthButtons>
+            <GlowButton>SIGN IN</GlowButton>
+            <GlowButton>CONNECT WALLET</GlowButton>
+          </AuthButtons>
+
+          <VerificationWindow>
+            <h3>VERIFY COLLECTIBLE</h3>
+            <QRIconButton onClick={() => setIsScanning(!isScanning)}>
+              <FaQrcode /> {isScanning ? 'Cancel Scan' : 'Scan QR Code'}
+            </QRIconButton>
+            {isScanning && (
+              <QrReader
+                delay={300}
+                onError={(err) => console.error(err)}
+                onScan={(data) => {
+                  if (data) {
+                    setSerialNumber(data);
+                    setIsScanning(false);
+                  }
+                }}
+                style={{ width: '100%' }}
+              />
+            )}
+            <SerialInput
+              type="text"
+              placeholder="Input Serial Number"
+              value={serialNumber}
+              onChange={(e) => setSerialNumber(e.target.value)}
+            />
+            <GlowButton onClick={handleVerification}>
+              Begin Verification
+            </GlowButton>
+
+            <StatusWindow status={verificationStatus}>
+              <h3>VERIFICATION STATUS</h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                {verificationStatus === 'verifying' && <FaSpinner />}
+                {verificationStatus === 'verified' && <FaCheck />}
+                {verificationStatus === 'failed' && <FaTimes />}
+                {verificationStatus === 'verifying' && 'Verifying...'}
+                {verificationStatus === 'verified' && 'Verification Successful'}
+                {verificationStatus === 'failed' && 'Verification Failed'}
+              </div>
+            </StatusWindow>
+
+            <ClaimWindow>
+              <h3>CLAIM DIGITAL COLLECTIBLE</h3>
+              {verificationStatus === 'verified' && (
+                <GlowButton>
+                  Claim Collectible
+                </GlowButton>
+              )}
+            </ClaimWindow>
+          </VerificationWindow>
+        </div>
+
+        <DigitalComponentsWindow>
+          <h3>DIGITAL COMPONENTS</h3>
+          <div className="model-preview">
             <Canvas>
-              <PerspectiveCamera makeDefault position={[0, 0, 5]} />
               <ambientLight intensity={0.5} />
               <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
-              <CollectibleModel isLocked={isLocked} />
-              <OrbitControls 
-                enableZoom={false}
-                enablePan={false}
-                minPolarAngle={Math.PI / 2}
-                maxPolarAngle={Math.PI / 2}
-              />
+              <pointLight position={[-10, -10, -10]} />
+              <DurkModel />
+              <OrbitControls enableZoom={true} />
+              <Environment preset="city" />
             </Canvas>
-          </ModelDisplay>
-
-          <div>
-            <VerificationSection>
-              <h3>Verify Your Collectible</h3>
-              <Input
-                type="text"
-                placeholder="Enter Serial Number"
-                value={serialNumber}
-                onChange={(e) => setSerialNumber(e.target.value)}
-              />
-              <VerifyButton
-                onClick={handleVerification}
-                disabled={!serialNumber || isVerifying}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                Begin Verification
-              </VerifyButton>
-              {isVerifying && (
-                <LoadingBar
-                  initial={{ width: 0 }}
-                  animate={{ width: '100%' }}
-                  transition={{ duration: 2 }}
-                />
-              )}
-            </VerificationSection>
-
-            <StatusPanel>
-              <VerificationStatus
-                status={verificationStatus}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <h4>
-                  {verificationStatus === 'verified' ? '✓ Verified Authentic' :
-                   verificationStatus === 'invalid' ? '✗ Invalid Serial Number' :
-                   '⋯ Awaiting Verification'}
-                </h4>
-              </VerificationStatus>
-            </StatusPanel>
-
-            {verificationStatus === 'verified' && (
-              <VerifyButton
-                as={motion.button}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                Claim Digital Collectible
-              </VerifyButton>
-            )}
           </div>
-        </MainContent>
-      </VaultContainer>
+        </DigitalComponentsWindow>
+
+        <CollectibleInfoWindow>
+          <h3>COLLECTIBLE DETAILS</h3>
+          {/* Add collectible information here */}
+        </CollectibleInfoWindow>
+      </GridLayout>
     </VaultSection>
   );
 }

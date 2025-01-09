@@ -1,15 +1,43 @@
 import React from 'react';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 import BlockchainMatrix from './BlockchainMatrix';
 import CobeGlobe from './CobeGlobe';
 
 const AboutSection = styled.section`
   min-height: 100vh;
-  padding: 6rem 2rem;
+  background: var(--dark-blue);
+  color: white;
+  padding: 2rem;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const MainTitle = styled.div`
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+
+  h1 {
+    font-size: 3rem;
+    font-family: 'Designer', sans-serif;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    letter-spacing: 0.1em;
+    font-family: 'Avenir Next', sans-serif;
+    text-transform: uppercase;
+  }
 `;
 
 const WindowsContainer = styled.div`
@@ -57,22 +85,33 @@ const GlobeWindow = styled(Window)`
   }
 `;
 
+const ContentContainer = styled.div`
+  /* Add styles for ContentContainer if needed */
+`;
+
 export default function About() {
   return (
     <AboutSection id="about">
-      <WindowsContainer>
-        <Window>
-          {/* First window content */}
-        </Window>
-        
-        <Window>
-          <BlockchainMatrix />
-        </Window>
-        
-        <GlobeWindow>
-          <CobeGlobe />
-        </GlobeWindow>
-      </WindowsContainer>
+      <MainTitle>
+        <h1>THE STORY</h1>
+        <div className="subtitle">DISCOVER • LEARN • UNDERSTAND</div>
+      </MainTitle>
+
+      <ContentContainer style={{ marginTop: "120px" }}>
+        <WindowsContainer>
+          <Window>
+            {/* First window content */}
+          </Window>
+          
+          <Window>
+            <BlockchainMatrix />
+          </Window>
+          
+          <GlobeWindow>
+            <CobeGlobe />
+          </GlobeWindow>
+        </WindowsContainer>
+      </ContentContainer>
     </AboutSection>
   );
 }

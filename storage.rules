@@ -1,0 +1,14 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      // Allow anyone to read/view the models and images
+      allow read: if true;
+      
+      // Only allow writes from your admin account
+      allow write: if request.auth != null 
+                  && request.auth.uid == 'f3iUutQoRhb8koa4RymKYmlT1Oz1';
+    }
+  }
+}

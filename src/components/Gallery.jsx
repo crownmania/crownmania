@@ -1,7 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion, useAnimationFrame } from 'framer-motion';
-import ImageLoader from './Gallery/ImageLoader';
+import { getStorageURL } from '../utils/storageUtils';
+import LoadingSpinner from './common/LoadingSpinner';
 
 const GallerySection = styled.section`
   min-height: 100vh;
@@ -50,56 +51,73 @@ const ProductCard = styled(motion.div)`
   }
 `;
 
-const ProductImage = styled(ImageLoader)`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-`;
-
-const products = [
-  { id: 1, image: '/images/product1.jpg', alt: 'Product 1' },
-  { id: 2, image: '/images/product2.jpg', alt: 'Product 2' },
-  { id: 3, image: '/images/product3.jpg', alt: 'Product 3' },
-  { id: 4, image: '/images/product4.jpg', alt: 'Product 4' },
-  { id: 5, image: '/images/product5.jpg', alt: 'Product 5' },
-  // Duplicate products for infinite scroll
-  { id: 6, image: '/images/product1.jpg', alt: 'Product 1' },
-  { id: 7, image: '/images/product2.jpg', alt: 'Product 2' },
-  { id: 8, image: '/images/product3.jpg', alt: 'Product 3' },
-  { id: 9, image: '/images/product4.jpg', alt: 'Product 4' },
-  { id: 10, image: '/images/product5.jpg', alt: 'Product 5' },
-];
-
 const Gallery = () => {
+  const [images, setImages] = useState({});
+  const [loading, setLoading] = useState(true);
   const trackRef = useRef(null);
   const progressRef = useRef(0);
-  const speedRef = useRef(0.5);
+
+  useEffect(() => {
+    const loadImages = async () => {
+      setLoading(true);
+      const imageUrls = {};
+      try {
+        for (let i = 1; i <= 5; i++) {
+          try {
+            // Try loading .webp first
+            console.log(`Attempting to load product${i}.webp for gallery`);
+            let url = await getStorageURL(`images/product${i}.webp`);
+            
+            if (!url) {
+              // Fallback to .jpg
+              console.log(`Falling back to product${i}.jpg for gallery`);
+              url = await getStorageURL(`images/product${i}.jpg`);
+            }
+
+            if (url) {
+              imageUrls[i] = url;
+              console.log(`Successfully loaded gallery image ${i}:`, url);
+            }
+          } catch (error) {
+            console.error(`Error loading gallery image ${i}:`, error);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+      setImages(imageUrls);
+    };
+
+    loadImages();
+  }, []);
 
   useAnimationFrame((time) => {
     if (!trackRef.current) return;
-
-    progressRef.current += speedRef.current;
-    
-    if (progressRef.current >= 100) {
-      progressRef.current = 0;
-    }
-
-    const x = -(progressRef.current * 1);
-    trackRef.current.style.transform = `translateX(${x}px)`;
+    progressRef.current = (time * 0.05) % (trackRef.current.scrollWidth - window.innerWidth);
+    trackRef.current.style.transform = `translateX(-${progressRef.current}px)`;
   });
 
   return (
-    <GallerySection>
+    <GallerySection id="gallery">
       <ProductsContainer>
         <CarouselTrack ref={trackRef}>
-          {products.map((product) => (
-            <ProductCard key={product.id}>
-              <ProductImage
-                src={product.image}
-                alt={product.alt}
-              />
-            </ProductCard>
-          ))}
+          {loading ? (
+            <LoadingSpinner />
+          ) : (
+            Object.entries(images).map(([id, url]) => (
+              <ProductCard key={id}>
+                <img 
+                  src={url} 
+                  alt={`Product ${id}`}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover' 
+                  }}
+                />
+              </ProductCard>
+            ))
+          )}
         </CarouselTrack>
       </ProductsContainer>
     </GallerySection>

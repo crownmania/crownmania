@@ -15,8 +15,8 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   body {
-    background-color: var(--dark-blue);
     color: var(--text-color);
+    background-color: var(--dark-blue);
     font-family: 'Avenir Next Regular', sans-serif;
     text-transform: uppercase;
     font-size: 0.9rem;

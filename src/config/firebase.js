@@ -1,17 +1,44 @@
 import { initializeApp } from 'firebase/app';
-import { getStorage } from 'firebase/storage';
+import { getStorage, ref, listAll } from 'firebase/storage';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "REDACTED_FIREBASE_API_KEY_OLD",
-  authDomain: "sonorous-crane-440603-s6.firebaseapp.com",
-  projectId: "sonorous-crane-440603-s6",
-  storageBucket: "sonorous-crane-440603-s6.appspot.com",
-  messagingSenderId: "515434599532",
-  appId: "1:515434599532:web:8b9b9b9b9b9b9b9b9b9b9b"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const storage = getStorage(app);
-export const db = getFirestore(app);
+
+// Initialize Storage with custom settings
+const storage = getStorage(app);
+
+// Initialize Firestore
+const db = getFirestore(app);
+
+// Debug logging
+console.log('Firebase Storage bucket:', storage.app.options.storageBucket);
+
+// Test storage connection
+const testStorage = async () => {
+  try {
+    const storageRef = ref(storage);
+    console.log('Storage reference created:', storageRef.fullPath);
+    
+    const modelsDirRef = ref(storage, 'models');
+    console.log('Models directory reference:', modelsDirRef.fullPath);
+    
+    const list = await listAll(modelsDirRef);
+    console.log('Models directory contents:', list.items.map(item => item.fullPath));
+  } catch (error) {
+    console.error('Storage test failed:', error);
+  }
+};
+
+testStorage();
+
+export { storage, db };

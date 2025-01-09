@@ -1,79 +1,108 @@
-import { motion } from 'framer-motion';
+import React, { useEffect } from 'react';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 import ModelViewer from './ModelViewer';
 
 const LandingSection = styled.section`
   height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   align-items: center;
-  text-align: center;
+  justify-content: center;
   position: relative;
-  padding: 15vh 2rem 5vh;
+  background: transparent;
+  overflow: hidden;
+  background-image: url('/blueprint.svg');
+  background-size: cover;
+  background-position: center;
+`;
+
+const ModelContainer = styled.div`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 1;
 `;
 
 const ContentWrapper = styled.div`
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
-  margin-top: 10vh;
-  position: relative;
-  width: 100%;
-  max-width: 1200px;
+  gap: 1rem;
+  text-align: center;
+  padding: 2rem;
+  margin-top: -15vh; /* Move content up by 15% of viewport height */
+  position: relative; /* Add position relative for better control */
 `;
 
 const MainTagline = styled(motion.h1)`
+  font-size: clamp(1.5rem, 3vw, 3rem);
   font-family: 'Designer', sans-serif;
-  font-size: clamp(1.8rem, 5vw, 2.2rem);
-  margin-bottom: 0.1rem;
+  font-style: italic;
+  color: white;
+  text-transform: uppercase;
   letter-spacing: 0.1em;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.5rem;
   white-space: nowrap;
-  position: relative;
 `;
 
 const SubTagline = styled(motion.h2)`
-  font-family: 'Avenir Next Regular', sans-serif;
-  font-size: clamp(0.7rem, 2vw, 0.9rem);
-  letter-spacing: 0.15em;
-  margin: 0;
-  margin-top: 0.1rem;
-  white-space: nowrap;
-  position: relative;
-`;
-
-const ModelWrapper = styled(motion.div)`
-  margin: 2rem 0;
-  transform-origin: center center;
+  font-size: clamp(0.6rem, 1vw, 0.8rem);
+  font-family: 'Avenir Next', sans-serif;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  opacity: 0.9;
+  max-width: 800px;
+  line-height: 1.4;
 `;
 
 export default function Landing() {
+  useEffect(() => {
+    async function checkStorage() {
+      try {
+        const result = await testStorageAccess();
+        console.log('Storage test results:', result);
+        
+        if (result.error) {
+          console.error('Storage test error:', result.error);
+        } else {
+          console.log('Models found:', result.models);
+          console.log('Images found:', result.images);
+        }
+      } catch (error) {
+        console.error('Storage test failed:', error);
+      }
+    }
+    
+    checkStorage();
+  }, []);
+
   return (
-    <LandingSection className="blueprint-bg">
+    <LandingSection>
+      <ModelContainer>
+        <ModelViewer />
+      </ModelContainer>
       <ContentWrapper>
         <MainTagline
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          CROWN MANIA
+          INNOVATE • COLLECT • CONNECT
         </MainTagline>
         <SubTagline
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
         >
-          DIGITAL COLLECTIBLES
+          REVOLUTIONIZING COLLECTIBLES TO CONNECT THE WORLD
         </SubTagline>
-        <ModelWrapper
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-        >
-          <ModelViewer />
-        </ModelWrapper>
       </ContentWrapper>
     </LandingSection>
   );
