@@ -1,0 +1,78 @@
+import '@testing-library/jest-dom';
+import { vi } from 'vitest';
+
+// Mock Firebase
+vi.mock('firebase/app', () => ({
+  initializeApp: vi.fn(),
+  getApps: vi.fn(() => []),
+  getApp: vi.fn()
+}));
+
+vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn(),
+  signInWithEmailAndPassword: vi.fn(),
+  createUserWithEmailAndPassword: vi.fn(),
+  signOut: vi.fn()
+}));
+
+vi.mock('firebase/firestore', () => ({
+  getFirestore: vi.fn(),
+  collection: vi.fn(),
+  doc: vi.fn(),
+  getDoc: vi.fn(),
+  setDoc: vi.fn(),
+  updateDoc: vi.fn(),
+  deleteDoc: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  getDocs: vi.fn()
+}));
+
+// Mock Web3Auth
+vi.mock('@web3auth/modal', () => ({
+  Web3Auth: vi.fn().mockImplementation(() => ({
+    initModal: vi.fn(),
+    connect: vi.fn(),
+    logout: vi.fn(),
+    provider: {
+      request: vi.fn()
+    }
+  }))
+}));
+
+// Mock Stripe
+vi.mock('@stripe/stripe-js', () => ({
+  loadStripe: vi.fn().mockResolvedValue({
+    createPaymentMethod: vi.fn(),
+    confirmPayment: vi.fn()
+  })
+}));
+
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+// Mock ResizeObserver
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
+// Mock IntersectionObserver
+global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));

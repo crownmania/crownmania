@@ -10,7 +10,7 @@ const BackgroundContainer = styled.div`
   height: 100vh;
   z-index: -1;
   overflow: hidden;
-  background-color: #000;
+  background-color: #001324;
 `;
 
 const Background = styled.div`
@@ -20,13 +20,14 @@ const Background = styled.div`
   width: 100%;
   height: 100vh;
   background-image: url(${blueprintSvg});
-  background-size: 40%;
+  background-size: 33%;
   background-position: center;
   background-repeat: repeat;
-  opacity: 0.3;
+  opacity: 0.06;
   pointer-events: none;
-  background-color: #007CAD;
+  background-color: #001324;
   mix-blend-mode: screen;
+  transform: none;
 `;
 
 const BackgroundBeams = () => {

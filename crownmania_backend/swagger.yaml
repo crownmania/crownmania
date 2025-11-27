@@ -1,0 +1,328 @@
+openapi: 3.0.0
+info:
+  title: Crownmania API
+  version: 1.0.0
+  description: API documentation for the Crownmania backend services
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.crownmania.com/api
+    description: Production server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    Collectible:
+      type: object
+      properties:
+        id:
+          type: string
+        serialNumber:
+          type: string
+        status:
+          type: string
+          enum: [unclaimed, claimed, minted]
+        ownerId:
+          type: string
+        metadata:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              quantity:
+                type: integer
+              price:
+                type: number
+        total:
+          type: number
+        status:
+          type: string
+          enum: [pending, paid, shipped, delivered]
+        shippingAddress:
+          type: object
+          properties:
+            name:
+              type: string
+            street:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            zip:
+              type: string
+            country:
+              type: string
+            phone:
+              type: string
+
+paths:
+  /collectibles/verify:
+    post:
+      summary: Verify a collectible serial number
+      tags:
+        - Collectibles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                serialNumber:
+                  type: string
+                recaptchaToken:
+                  type: string
+              required:
+                - serialNumber
+                - recaptchaToken
+      responses:
+        '200':
+          description: Serial number verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  status:
+                    type: string
+                  metadata:
+                    type: object
+        '404':
+          description: Invalid serial number
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /collectibles/claim:
+    post:
+      summary: Claim a collectible
+      security:
+        - BearerAuth: []
+      tags:
+        - Collectibles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                serialNumber:
+                  type: string
+              required:
+                - serialNumber
+      responses:
+        '200':
+          description: Collectible claimed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collectible'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /collectibles/mint:
+    post:
+      summary: Mint a collectible as NFT
+      security:
+        - BearerAuth: []
+      tags:
+        - Collectibles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                serialNumber:
+                  type: string
+                recipientAddress:
+                  type: string
+                metadata:
+                  type: object
+              required:
+                - serialNumber
+                - recipientAddress
+      responses:
+        '200':
+          description: NFT minted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tokenId:
+                    type: string
+                  transactionHash:
+                    type: string
+
+  /orders:
+    post:
+      summary: Create a new order
+      security:
+        - BearerAuth: []
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+      responses:
+        '200':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId:
+                    type: string
+                  clientSecret:
+                    type: string
+
+    get:
+      summary: Get user's orders
+      security:
+        - BearerAuth: []
+      tags:
+        - Orders
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: Filter orders by status
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: Number of orders to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: Number of orders to skip
+      responses:
+        '200':
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  total:
+                    type: integer
+                  hasMore:
+                    type: boolean
+
+  /orders/{orderId}/confirm:
+    post:
+      summary: Confirm order payment
+      security:
+        - BearerAuth: []
+      tags:
+        - Orders
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order confirmed successfully
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/{orderId}/shipping:
+    patch:
+      summary: Update order shipping information
+      security:
+        - BearerAuth: []
+      tags:
+        - Orders
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trackingNumber:
+                  type: string
+                carrier:
+                  type: string
+                  enum: [USPS, UPS, FedEx, DHL]
+                estimatedDeliveryDate:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Shipping information updated successfully
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

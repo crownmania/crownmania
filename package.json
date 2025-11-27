@@ -1,29 +1,42 @@
 {
-  "name": "crownmania_main",
+  "name": "crownmania",
   "version": "1.0.0",
-  "type": "module",
-  "description": "Crownmania Main Website",
-  "main": "src/cli/mcpCLI.js",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+  "private": true,
+  "workspaces": [
+    "crownmania_frontend",
+    "crownmania_backend"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   },
-  "dependencies": {
-    "@react-three/drei": "^9.88.17",
-    "@react-three/fiber": "^8.15.11",
-    "firebase": "^10.7.0",
-    "framer-motion": "^10.16.12",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0",
-    "styled-components": "^6.1.1",
-    "three": "^0.158.0"
+  "scripts": {
+    "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
+    "start:frontend": "npm run start --workspace=crownmania_frontend",
+    "start:backend": "npm run start --workspace=crownmania_backend",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "npm run dev --workspace=crownmania_frontend",
+    "dev:backend": "npm run dev --workspace=crownmania_backend",
+    "test": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "npm run test --workspace=crownmania_frontend",
+    "test:backend": "npm run test --workspace=crownmania_backend",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "npm run lint --workspace=crownmania_frontend",
+    "lint:backend": "npm run lint --workspace=crownmania_backend",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "npm run build --workspace=crownmania_frontend",
+    "build:backend": "npm run build --workspace=crownmania_backend",
+    "install:all": "npm install && cd crownmania_backend && npm install && cd ../crownmania_frontend && npm install",
+    "deploy": "firebase deploy"
   },
   "devDependencies": {
-    "@types/react": "^18.2.37",
-    "@types/react-dom": "^18.2.15",
-    "@vitejs/plugin-react": "^4.2.0",
-    "vite": "^5.0.0"
+    "concurrently": "^8.2.0"
+  },
+  "dependencies": {
+    "glob": "^9.3.5"
+  },
+  "overrides": {
+    "glob": "^9.3.5",
+    "rimraf": "^5.0.0"
   }
 }

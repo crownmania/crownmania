@@ -1,0 +1,6 @@
+runtime: nodejs20
+env: standard
+service: default
+
+env_variables:
+  REGION: us-east1

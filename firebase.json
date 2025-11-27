@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "dist",
+    "public": "crownmania_frontend/dist",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -8,12 +8,27 @@
     ],
     "rewrites": [
       {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "crownmania-backend",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=31536000"
+          }
+        ]
+      }
     ]
-  },
-  "storage": {
-    "rules": "storage.rules"
   }
 }
