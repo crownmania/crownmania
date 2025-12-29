@@ -12,6 +12,10 @@ import Footer from './components/Footer';
 import ForumPage from './pages/ForumPage';
 import ContactPage from './pages/ContactPage';
 import ProductPage from './components/ProductPage';
+import VerifyPage from './pages/VerifyPage';
+import MintNFTPage from './pages/MintNFTPage';
+import SuccessPage from './pages/SuccessPage';
+import CancelPage from './pages/CancelPage';
 import { verifyStorageSetup } from './utils/storageUtils';
 // Password protection removed
 
@@ -40,36 +44,51 @@ const HomePage = () => (
 function App() {
   useEffect(() => {
     async function checkStorage() {
-      const result = await verifyStorageSetup();
-      console.log('Storage verification result:', result);
-      
-      if (!result.modelsFound?.includes('models/durk-model.glb')) {
-        console.error('Warning: durk-model.glb not found in Firebase Storage');
-      }
-      
-      if (!result.imagesFound?.length) {
-        console.error('Warning: No product images found in Firebase Storage');
+      try {
+        const result = await verifyStorageSetup();
+        if (import.meta.env.DEV) {
+          console.log('Storage verification result:', result);
+        }
+
+        if (result.error) {
+          console.warn('Storage verification skipped:', result.error);
+          return;
+        }
+
+        if (!result.modelsFound?.includes('models/durk-model.glb')) {
+          console.warn('Note: durk-model.glb not found in Firebase Storage');
+        }
+
+        if (!result.imagesFound?.length) {
+          console.warn('Note: No product images found in Firebase Storage');
+        }
+      } catch (err) {
+        console.warn('Storage verification failed (this is OK in development):', err.message);
       }
     }
-    
+
     checkStorage();
   }, []);
 
   return (
-      <AppContainer>
-        <GlobalStyles />
-        <Router>
-          <Header />
-          <MainContent>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/forum" element={<ForumPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/product/:id" element={<ProductPage />} />
-            </Routes>
-          </MainContent>
-        </Router>
-      </AppContainer>
+    <AppContainer>
+      <GlobalStyles />
+      <Router>
+        <Header />
+        <MainContent>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/forum" element={<ForumPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/product/:id" element={<ProductPage />} />
+            <Route path="/verify/:serial" element={<VerifyPage />} />
+            <Route path="/mintNFT" element={<MintNFTPage />} />
+            <Route path="/success" element={<SuccessPage />} />
+            <Route path="/cancel" element={<CancelPage />} />
+          </Routes>
+        </MainContent>
+      </Router>
+    </AppContainer>
   );
 }
 

@@ -10,7 +10,7 @@ const BackgroundContainer = styled.div`
   height: 100vh;
   z-index: -1;
   overflow: hidden;
-  background-color: #001324;
+  background: radial-gradient(circle at center, #0f172a 0%, #000000 100%);
 `;
 
 const Background = styled.div`
@@ -23,10 +23,9 @@ const Background = styled.div`
   background-size: 33%;
   background-position: center;
   background-repeat: repeat;
-  opacity: 0.06;
+  opacity: 0.05;
   pointer-events: none;
-  background-color: #001324;
-  mix-blend-mode: screen;
+  background-color: transparent;
   transform: none;
 `;
 

@@ -93,12 +93,12 @@ export default function Gallery() {
     const loadImages = async () => {
       try {
         // Load your images here
-        const imageUrls = await Promise.all([
-          getStorageURL('gallery/image1.jpg'),
-          getStorageURL('gallery/image2.jpg'),
-          getStorageURL('gallery/image3.jpg'),
-          // Add more images as needed
-        ]);
+        // Load your images here
+        const imageUrls = [
+          '/images/product1.webp',
+          '/images/product2.webp',
+          '/images/product3.webp',
+        ];
         setImages(imageUrls);
       } catch (error) {
         console.error('Error loading gallery images:', error);
@@ -147,7 +147,7 @@ export default function Gallery() {
       >
         ←
       </NavigationButton>
-      
+
       <NavigationButton
         className="next"
         onClick={() => paginate(1)}

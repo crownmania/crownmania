@@ -1,11 +1,11 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment } from "@react-three/drei";
-import { DurkModel } from "./3d/DurkModel";
+
+import { useNavigate } from 'react-router-dom';
 import { getStorageURL, preloadFiles } from "../utils/storageUtils";
 import LoadingSpinner from "./common/LoadingSpinner";
+import { PRODUCTS } from '../data/productData';
 
 const ShopSection = styled.section`
   min-height: 100vh;
@@ -36,7 +36,7 @@ const MainTitle = styled.div`
     font-size: 0.8rem;
     opacity: 0.8;
     letter-spacing: 0.1em;
-    font-family: 'Avenir Next', sans-serif;
+    font-family: 'Designer', sans-serif;
     text-transform: uppercase;
   }
 `;
@@ -156,21 +156,23 @@ const ProductInfo = styled(motion.div)`
 `;
 
 const ProductTitle = styled.h3`
-  font-family: 'Designer', sans-serif;
+  font-family: var(--font-secondary);
   font-size: 1rem;
+  font-weight: 500;
   color: white;
   margin: 0.5rem 0;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   text-align: center;
 `;
 
 const ProductPrice = styled.div`
-  font-family: 'Designer', sans-serif;
-  font-size: 1.2rem;
+  font-family: var(--font-secondary);
+  font-size: 1.3rem;
+  font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
   margin-bottom: 1rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.02em;
   text-align: center;
 `;
 
@@ -296,65 +298,32 @@ const ModelPreview = styled.div`
 `;
 
 export default function Shop() {
+  const navigate = useNavigate();
   const [selectedWindow, setSelectedWindow] = useState(null);
-  const [productImages, setProductImages] = useState({});
   const [loadingImages, setLoadingImages] = useState(true);
 
   useEffect(() => {
-    const loadImages = async () => {
-      setLoadingImages(true);
-      const imageUrls = {};
-      
-      try {
-        for (let i = 1; i <= 5; i++) {
-          try {
-            // Try loading .webp first
-            console.log(`Attempting to load product${i}.webp`);
-            let url = await getStorageURL(`images/product${i}.webp`);
-            
-            if (!url) {
-              // Fallback to .jpg
-              console.log(`Falling back to product${i}.jpg`);
-              url = await getStorageURL(`images/product${i}.jpg`);
-            }
-
-            if (url) {
-              imageUrls[i] = url;
-              console.log(`Successfully loaded product${i} image:`, url);
-            } else {
-              console.error(`Failed to load product${i} image in any format`);
-            }
-          } catch (error) {
-            console.error(`Error loading product${i}:`, error);
-          }
-        }
-      } finally {
-        setLoadingImages(false);
-      }
-      setProductImages(imageUrls);
-    };
-
-    loadImages();
+    setLoadingImages(false);
   }, []);
 
   const windows = [
-    { 
-      id: 'durk', 
-      type: 'crown', 
-      title: 'Limited Edition: Lil Durk Collectible Figure', 
-      price: '$299.99' 
+    {
+      id: 'durk',
+      type: 'crown',
+      title: 'Limited Edition: Lil Durk Collectible Figure',
+      price: '$299.99'
     },
-    { 
-      id: 2, 
-      type: 'coming-soon', 
-      title: 'Coming Soon', 
-      price: '' 
+    {
+      id: 2,
+      type: 'coming-soon',
+      title: 'Coming Soon',
+      price: ''
     },
-    { 
-      id: 3, 
-      type: 'coming-soon', 
-      title: 'Coming Soon', 
-      price: '' 
+    {
+      id: 3,
+      type: 'coming-soon',
+      title: 'Coming Soon',
+      price: ''
     }
   ];
 
@@ -366,7 +335,7 @@ export default function Shop() {
     useEffect(() => {
       const loadImage = async () => {
         if (!imageId) return;
-        
+
         setIsLoading(true);
         setImageError(false);
 
@@ -403,18 +372,13 @@ export default function Shop() {
 
     if (type === 'crown') {
       return (
-        <ModelContainer>
-          <Canvas
-            camera={{ position: [0, 0, 5], fov: 45 }}
-            style={{ background: 'transparent' }}
-          >
-            <ambientLight intensity={0.5} />
-            <pointLight position={[10, 10, 10]} />
-            <Suspense fallback={<LoadingSpinner />}>
-              <DurkModel />
-            </Suspense>
-          </Canvas>
-        </ModelContainer>
+        <ImageContainer>
+          <img
+            src="/images/product1.webp"
+            alt="Lil Durk Collectible Figure"
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+        </ImageContainer>
       );
     }
 
@@ -436,16 +400,16 @@ export default function Shop() {
           <img
             src={imageUrl}
             alt={`Product ${imageId}`}
-            style={{ 
-              width: '100%', 
-              height: '100%', 
+            style={{
+              width: '100%',
+              height: '100%',
               objectFit: 'cover'
             }}
           />
         )}
         {(imageError || (!isLoading && !imageUrl)) && (
-          <div style={{ 
-            color: 'red', 
+          <div style={{
+            color: 'red',
             textAlign: 'center',
             padding: '20px'
           }}>
@@ -456,10 +420,9 @@ export default function Shop() {
     );
   };
 
-  const handleBuyClick = (e, window) => {
+  const handleBuyClick = (e, product) => {
     e.stopPropagation();
-    // Navigate to product page
-    window.location.href = '/product/durk-figure';
+    navigate(`/product/${product.id}`);
   };
 
   return (
@@ -470,53 +433,42 @@ export default function Shop() {
       </MainTitle>
 
       <WindowsContainer>
-        {windows.map((window, index) => (
-          window.id === 'durk' ? (
-            <ShopWindow
-              key={window.id}
-              $isFirst={index === 0}
-              layoutId={`window-${window.id}`}
-              onClick={() => setSelectedWindow(window)}
-              initial={{ scale: 1 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ModelPreview>
-                <Canvas camera={{ position: [0, 0, 15], fov: 25 }}>
-                  <Suspense fallback={null}>
-                    <ambientLight intensity={0.5} />
-                    <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
-                    <pointLight position={[-10, -10, -10]} />
-                    <DurkModel />
-                    <Environment preset="city" />
-                    <OrbitControls enableZoom={false} />
-                  </Suspense>
-                </Canvas>
-              </ModelPreview>
-              <ProductTitle>Limited Edition: Lil Durk Collectible Figure</ProductTitle>
-              <ProductPrice>$299.99</ProductPrice>
+        {PRODUCTS.map((product, index) => (
+          <ShopWindow
+            key={product.id}
+            layoutId={`window-${product.id}`}
+            onClick={() => setSelectedWindow(product)}
+            initial={{ scale: 1, opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
+          >
+            <ModelPreview>
+              <img
+                src={product.mainImage}
+                alt={product.name}
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                onError={(e) => {
+                  e.target.src = '/images/Placeholder-product.png';
+                }}
+              />
+              {product.comingSoon && <ComingSoonText>Coming Soon</ComingSoonText>}
+            </ModelPreview>
+            <ProductTitle>{product.name}</ProductTitle>
+            <ProductPrice>
+              {product.comingSoon ? '' : `$${product.price}`}
+            </ProductPrice>
+            {!product.comingSoon && (
               <BuyButton
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={(e) => handleBuyClick(e, window)}
+                onClick={(e) => handleBuyClick(e, product)}
               >
                 BUY NOW
               </BuyButton>
-            </ShopWindow>
-          ) : (
-            <ShopWindow
-              key={window.id}
-              $isFirst={index === 0}
-              layoutId={`window-${window.id}`}
-              initial={{ scale: 1 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ComingSoonText>Coming Soon</ComingSoonText>
-            </ShopWindow>
-          )
+            )}
+          </ShopWindow>
         ))}
       </WindowsContainer>
 
@@ -528,7 +480,7 @@ export default function Shop() {
             exit={{ opacity: 0 }}
           >
             <CloseButton onClick={() => setSelectedWindow(null)}>×</CloseButton>
-            
+
             <motion.div layoutId={`window-${selectedWindow.id}`} style={{ width: '80%', height: '70%' }}>
               <ProductWindow type={selectedWindow.type} imageId={selectedWindow.imageId} />
             </motion.div>
@@ -538,22 +490,20 @@ export default function Shop() {
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
-              {selectedWindow.type === 'crown' ? (
-                <>
-                  <div>
-                    <ProductTitle>{selectedWindow.title}</ProductTitle>
-                    <ProductPrice>{selectedWindow.price}</ProductPrice>
-                  </div>
-                  <BuyButton
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={(e) => handleBuyClick(e, selectedWindow)}
-                  >
-                    Buy Now
-                  </BuyButton>
-                </>
-              ) : (
-                <ComingSoonText>Coming Soon</ComingSoonText>
+              <div>
+                <ProductTitle>{selectedWindow.name}</ProductTitle>
+                <ProductPrice>
+                  {selectedWindow.comingSoon ? 'Coming Soon' : `$${selectedWindow.price}`}
+                </ProductPrice>
+              </div>
+              {!selectedWindow.comingSoon && (
+                <BuyButton
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => handleBuyClick(e, selectedWindow)}
+                >
+                  Buy Now
+                </BuyButton>
               )}
             </ProductInfo>
           </ExpandedWindow>

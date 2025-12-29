@@ -1,19 +1,12 @@
 {
   "hosting": {
-    "public": "crownmania_frontend/dist",
+    "public": "crownmania_frontend/dist2",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
     "rewrites": [
-      {
-        "source": "/api/**",
-        "run": {
-          "serviceId": "crownmania-backend",
-          "region": "us-central1"
-        }
-      },
       {
         "source": "**",
         "destination": "/index.html"
