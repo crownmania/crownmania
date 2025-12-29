@@ -3,15 +3,38 @@
 
 # misc
 .DS_Store
+
+# Environment files - NEVER commit!
 .env
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
+.env*.local
 
+# Firebase Service Account Keys - CRITICAL SECURITY
+src/config/serviceAccountKey.json
+**/serviceAccountKey*.json
+**/*-serviceaccount*.json
+**/*-firebase-adminsdk*.json
+
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+logs/
+*.log
 
 # Firebase
 firebase-debug.log
+.firebase/
+
+# Coverage
+coverage/
+
+# Build
+dist/
+build/
