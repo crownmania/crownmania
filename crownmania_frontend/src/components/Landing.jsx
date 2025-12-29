@@ -1,9 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Canvas } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
-import { DurkModel } from './3d/DurkModel';
+
+import blueprint from '../assets/crownmania_blueprint.svg';
 
 const LandingSection = styled.section`
   height: 100vh;
@@ -15,9 +14,7 @@ const LandingSection = styled.section`
   position: relative;
   background: transparent;
   overflow: hidden;
-  background-image: url('/blueprint.svg');
-  background-size: cover;
-  background-position: center;
+  overflow: hidden;
 `;
 
 const ContentWrapper = styled.div`
@@ -27,12 +24,12 @@ const ContentWrapper = styled.div`
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  margin-top: 15vh;
+  margin-top: 0;
   text-align: center;
 `;
 
 const MainTagline = styled(motion.h1)`
-  font-size: clamp(1.5rem, 3vw, 3rem);
+  font-size: clamp(1.2rem, 2.5vw, 2.5rem);
   font-family: 'Designer', sans-serif;
   font-style: italic;
   color: white;
@@ -45,7 +42,7 @@ const MainTagline = styled(motion.h1)`
 
 const SubTagline = styled(motion.h2)`
   font-size: clamp(0.6rem, 1vw, 0.8rem);
-  font-family: 'Avenir Next', sans-serif;
+  font-family: 'Designer', sans-serif;
   color: white;
   text-transform: uppercase;
   letter-spacing: 0.2em;
@@ -102,23 +99,6 @@ const BuyButton = styled.button`
 `;
 
 export default function Landing() {
-  const modelRef = useRef();
-  const [scrollRotation, setScrollRotation] = useState(0);
-  const containerRef = useRef();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      // Simple rotation based on window scroll position
-      const scrolled = window.scrollY;
-      const rotation = (scrolled * 0.005) % (Math.PI * 2); // Adjust 0.005 to control rotation speed
-      setScrollRotation(rotation);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Initial position
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <LandingSection id="landing">
       <ContentWrapper>
@@ -136,34 +116,8 @@ export default function Landing() {
         >
           REVOLUTIONIZING COLLECTIBLES TO CONNECT THE WORLD
         </SubTagline>
+        <BuyButton style={{ marginTop: '2rem' }}>BUY NOW</BuyButton>
       </ContentWrapper>
-      
-      <ModelContainer ref={containerRef}>
-        <ModelWrapper>
-          <Canvas 
-            camera={{ 
-              position: [0, 0, 15],
-              fov: 25,
-              near: 0.1,
-              far: 1000
-            }}
-            style={{ 
-              overflow: 'visible',
-              height: '100%',
-              maxHeight: 'none'
-            }}
-          >
-            <ambientLight intensity={0.5} />
-            <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
-            <pointLight position={[-10, -10, -10]} />
-            <group ref={modelRef} rotation={[0, scrollRotation, 0]}>
-              <DurkModel />
-            </group>
-            <Environment preset="city" />
-          </Canvas>
-        </ModelWrapper>
-        <BuyButton>BUY NOW</BuyButton>
-      </ModelContainer>
     </LandingSection>
   );
 }

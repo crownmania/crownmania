@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crownmania Claim Codes Import</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: white;
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #ffd700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: white;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        button {
+            background: linear-gradient(135deg, #4f46e5, #3b82f6);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .progress {
+            background: #1e293b;
+            border-radius: 8px;
+            height: 24px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .log {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        .log-entry {
+            margin-bottom: 0.25rem;
+        }
+
+        .log-entry.success {
+            color: #10b981;
+        }
+
+        .log-entry.error {
+            color: #ef4444;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 1rem;
+            background: #1e293b;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔒 Claim Codes Import</h1>
+        <p class="subtitle">Import your serial numbers to Firestore</p>
+
+        <div class="card">
+            <label>Paste your claim codes (one per line):</label>
+            <textarea id="codesInput" placeholder="d1933d38167b4686857b5c2cf7ded774
+34c8fde0f73d436c9da9923c56f6b1a6
+61e8096768c14d1398631aa3bed35c98
+..."></textarea>
+            <button id="importBtn" onclick="startImport()">🚀 Import to Firestore</button>
+        </div>
+
+        <div class="card" id="progressCard" style="display: none;">
+            <label>Import Progress:</label>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar">0%</div>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="importedCount">0</div>
+                    <div class="stat-label">Imported</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="skippedCount">0</div>
+                    <div class="stat-label">Skipped</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="totalCount">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+            </div>
+            <div class="log" id="log"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getFirestore, doc, setDoc, writeBatch, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCWUFvCqGeCTYPZ5RNTE5JRdg8044lay94",
+            authDomain: "sonorous-crane-440603-s6.firebaseapp.com",
+            projectId: "sonorous-crane-440603-s6",
+            storageBucket: "sonorous-crane-440603-s6.firebasestorage.app",
+            messagingSenderId: "515434599532",
+            appId: "1:515434599532:web:c803494515474ffa053449"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        // Use the 'crownmania' database instead of default
+        const db = getFirestore(app, 'crownmania');
+
+        const PRODUCT_ID = 'lil-durk-figure';
+        const BATCH_SIZE = 500;
+
+        window.startImport = async function () {
+            const codesInput = document.getElementById('codesInput').value;
+            const codes = codesInput.split('\n')
+                .map(c => c.trim().toLowerCase())
+                .filter(c => /^[a-f0-9]{32}$/.test(c));
+
+            // Remove duplicates
+            const uniqueCodes = [...new Set(codes)];
+
+            document.getElementById('totalCount').textContent = uniqueCodes.length;
+            document.getElementById('progressCard').style.display = 'block';
+            document.getElementById('importBtn').disabled = true;
+
+            log(`Found ${uniqueCodes.length} valid codes (${codes.length - uniqueCodes.length} duplicates removed)`);
+
+            let imported = 0;
+            let skipped = 0;
+
+            for (let i = 0; i < uniqueCodes.length; i += BATCH_SIZE) {
+                const batch = writeBatch(db);
+                const chunk = uniqueCodes.slice(i, Math.min(i + BATCH_SIZE, uniqueCodes.length));
+
+                for (const code of chunk) {
+                    const docRef = doc(db, 'claimCodes', code);
+                    batch.set(docRef, {
+                        productId: PRODUCT_ID,
+                        claimed: false,
+                        claimedBy: null,
+                        claimedAt: null,
+                        tokenId: null,
+                        createdAt: new Date()
+                    }, { merge: true });
+                    imported++;
+                }
+
+                try {
+                    await batch.commit();
+                    log(`✅ Batch ${Math.floor(i / BATCH_SIZE) + 1}: Imported ${chunk.length} codes`, 'success');
+                } catch (error) {
+                    log(`❌ Batch ${Math.floor(i / BATCH_SIZE) + 1} failed: ${error.message}`, 'error');
+                    skipped += chunk.length;
+                    imported -= chunk.length;
+                }
+
+                // Update progress
+                const progress = Math.round((i + chunk.length) / uniqueCodes.length * 100);
+                document.getElementById('progressBar').style.width = progress + '%';
+                document.getElementById('progressBar').textContent = progress + '%';
+                document.getElementById('importedCount').textContent = imported;
+                document.getElementById('skippedCount').textContent = skipped;
+
+                // Small delay between batches
+                await new Promise(r => setTimeout(r, 100));
+            }
+
+            log(`🎉 Import complete! ${imported} codes imported.`, 'success');
+            document.getElementById('importBtn').disabled = false;
+        };
+
+        function log(message, type = '') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+    </script>
+</body>
+
+</html>

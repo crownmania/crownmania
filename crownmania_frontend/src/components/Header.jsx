@@ -104,13 +104,13 @@ const LogoLink = styled.a`
 `;
 
 const LogoIcon = styled.img`
-  height: 32px;
-  width: 32px;
+  height: 40px;
+  width: 40px;
 `;
 
 const Logo = styled.div`
   font-family: 'Designer', sans-serif;
-  font-size: 1.5rem;
+  font-size: 2.2rem;
   font-weight: normal;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -160,7 +160,7 @@ const MenuItem = styled(motion.a)`
   gap: 8px;
   color: white;
   text-decoration: none;
-  font-family: 'Avenir Next', sans-serif;
+  font-family: 'Designer', sans-serif;
   font-size: 0.9rem;
   font-weight: 500;
   padding: 0.6rem 1rem;
@@ -252,7 +252,7 @@ export default function Header() {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
+
       if (currentScrollY < lastScrollY || currentScrollY < 50) {
         // Scrolling up or at the top
         setShowHeader(true);
@@ -260,7 +260,7 @@ export default function Header() {
         // Scrolling down
         setShowHeader(false);
       }
-      
+
       setLastScrollY(currentScrollY);
     };
 
@@ -332,18 +332,18 @@ export default function Header() {
           <LogoIcon src={crownLogo} alt="Crownmania Logo" />
           <Logo>CROWNMANIA</Logo>
         </LogoLink>
-        
-        <HamburgerButton 
+
+        <HamburgerButton
           onClick={toggleMenu}
           ref={buttonRef}
         >
-          <HamburgerLine 
-            animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }} 
+          <HamburgerLine
+            animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
           />
-          <HamburgerLine 
+          <HamburgerLine
             animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
           />
-          <HamburgerLine 
+          <HamburgerLine
             animate={isMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
           />
         </HamburgerButton>

@@ -15,11 +15,22 @@ dist-ssr
 # Misc
 .DS_Store
 
+# Environment variables - NEVER commit these!
+.env
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
 .env*.local
+
+# Firebase Service Account Keys - CRITICAL SECURITY
+**/serviceAccountKey.json
+**/serviceAccountKey*.json
+**/*-serviceaccount*.json
+**/*-firebase-adminsdk*.json
 
 # Logs
 npm-debug.log*

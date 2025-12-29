@@ -1,5 +1,6 @@
 import express from 'express';
 import { verificationService } from '../services/verificationService.js';
+import { authenticateWallet } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -11,16 +12,59 @@ const router = express.Router();
 router.post('/verify-serial', async (req, res) => {
   try {
     const { serialNumber } = req.body;
-    
+
     if (!serialNumber) {
       return res.status(400).json({ error: 'Serial number is required' });
     }
-    
+
     const result = await verificationService.verifySerialNumber(serialNumber);
     res.json(result);
   } catch (error) {
     console.error('Error verifying serial number:', error);
     res.status(500).json({ error: error.message || 'Server error during verification' });
+  }
+});
+
+/**
+ * @route GET /api/verification/verify-product/:id
+ * @desc Verify a product by its ID (for QR code scanning)
+ * @access Public
+ */
+router.get('/verify-product/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.query;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Product ID is required' });
+    }
+
+    const result = await verificationService.verifyProductById(id, type);
+    res.json(result);
+  } catch (error) {
+    console.error('Error verifying product:', error);
+    res.status(500).json({ error: error.message || 'Server error during verification' });
+  }
+});
+
+/**
+ * @route POST /api/verification/claim
+ * @desc Claim a product to a wallet address
+ * @access Private (authenticated wallet)
+ */
+router.post('/claim', authenticateWallet, async (req, res) => {
+  try {
+    const { productId, walletAddress, signature, message } = req.body;
+
+    if (!productId || !walletAddress) {
+      return res.status(400).json({ error: 'Product ID and wallet address are required' });
+    }
+
+    const result = await verificationService.claimProduct(productId, walletAddress, signature, message);
+    res.json(result);
+  } catch (error) {
+    console.error('Error claiming product:', error);
+    res.status(500).json({ error: error.message || 'Server error during claim' });
   }
 });
 
@@ -32,11 +76,11 @@ router.post('/verify-serial', async (req, res) => {
 router.post('/request-email-verification', async (req, res) => {
   try {
     const { serialNumber, email } = req.body;
-    
+
     if (!serialNumber || !email) {
       return res.status(400).json({ error: 'Serial number and email are required' });
     }
-    
+
     const result = await verificationService.generateEmailVerification(serialNumber, email);
     res.json(result);
   } catch (error) {
@@ -53,11 +97,11 @@ router.post('/request-email-verification', async (req, res) => {
 router.post('/verify-token', async (req, res) => {
   try {
     const { token } = req.body;
-    
+
     if (!token) {
       return res.status(400).json({ error: 'Token is required' });
     }
-    
+
     const result = await verificationService.verifyToken(token);
     res.json(result);
   } catch (error) {
@@ -74,11 +118,11 @@ router.post('/verify-token', async (req, res) => {
 router.post('/issue-token', async (req, res) => {
   try {
     const { serialNumber, walletAddress } = req.body;
-    
+
     if (!serialNumber || !walletAddress) {
       return res.status(400).json({ error: 'Serial number and wallet address are required' });
     }
-    
+
     const result = await verificationService.issueToken(serialNumber, walletAddress);
     res.json(result);
   } catch (error) {
@@ -95,11 +139,11 @@ router.post('/issue-token', async (req, res) => {
 router.get('/wallet-tokens/:walletAddress', async (req, res) => {
   try {
     const { walletAddress } = req.params;
-    
+
     if (!walletAddress) {
       return res.status(400).json({ error: 'Wallet address is required' });
     }
-    
+
     const tokens = await verificationService.getWalletTokens(walletAddress);
     res.json({ tokens });
   } catch (error) {
