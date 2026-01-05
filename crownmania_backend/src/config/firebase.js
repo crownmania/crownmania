@@ -2,6 +2,7 @@ import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFunctions } from 'firebase-admin/functions';
 import { getMessaging } from 'firebase-admin/messaging';
+import { getStorage } from 'firebase-admin/storage';
 import { readFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -84,10 +85,11 @@ try {
 const db = getFirestore(admin.app(), 'crownmania');
 const functions = getFunctions();
 const messaging = getMessaging();
+const storage = getStorage();
 
 console.log('📊 Using Firestore database: crownmania');
 
 // Configure Firestore settings
 db.settings({ ignoreUndefinedProperties: true });
 
-export { admin, db, functions, messaging };
+export { admin, db, functions, messaging, storage };

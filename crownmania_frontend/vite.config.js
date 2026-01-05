@@ -1,16 +1,35 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { Buffer } from 'buffer';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    nodePolyfills({
+      // Enable comprehensive polyfills for Web3Auth
+      include: ['buffer', 'stream', 'events', 'util', 'process', 'crypto', 'string_decoder', 'path', 'os', 'fs'],
+      globals: {
+        Buffer: true,
+        global: true,
+        process: true,
+      },
+      protocolImports: true,
+    }),
+  ],
   define: {
-    global: 'globalThis',
     'process.env': {},
+    'global': 'globalThis',
   },
   resolve: {
     alias: {
-      buffer: 'buffer',
+      stream: 'stream-browserify',
+      crypto: 'crypto-browserify',
+      assert: 'assert',
+      http: 'stream-http',
+      https: 'https-browserify',
+      os: 'os-browserify/browser',
+      url: 'url',
+      zlib: 'browserify-zlib',
     },
   },
   optimizeDeps: {
@@ -19,7 +38,27 @@ export default defineConfig({
         global: 'globalThis',
       },
     },
-    include: ['buffer'],
+    include: [
+      'buffer',
+      'process',
+      'events',
+      'util',
+    ],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+        },
+      },
+    },
+    outDir: 'dist',
+    sourcemap: false,
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
   },
   server: {
     port: 5173,
@@ -28,18 +67,6 @@ export default defineConfig({
         target: 'http://localhost:5001',
         changeOrigin: true,
         secure: false,
-      },
-    },
-  },
-  build: {
-    outDir: 'dist',
-    sourcemap: false,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
-        },
       },
     },
   },

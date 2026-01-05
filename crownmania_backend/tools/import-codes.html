@@ -205,8 +205,7 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        // Use the 'crownmania' database instead of default
-        const db = getFirestore(app, 'crownmania');
+        const db = getFirestore(app);
 
         const PRODUCT_ID = 'lil-durk-figure';
         const BATCH_SIZE = 500;

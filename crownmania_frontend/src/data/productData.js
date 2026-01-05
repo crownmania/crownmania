@@ -9,7 +9,7 @@
 export const PRODUCTS = [
     {
         id: 'lil-durk-figure',
-        name: 'Lil Durk 10-inch Resin Figure',
+        name: 'Lil Durk Collectible Figure',
         type: 1,
         price: 249.99,
         description: `The Lil Durk 10-inch Resin Figure is a premium collectible made for true fans. Crafted from high-quality resin, this figure features detailed sculpting and a solid, display-ready build.
@@ -20,11 +20,9 @@ Designed to capture Lil Durk's signature style and presence, it's the perfect pi
 • High-quality, durable build
 • Detailed design and finish
 • Limited edition collectible`,
-        mainImage: '/images/product1.webp', // Local fallback
+        mainImage: '/images/product3.webp', // Local fallback
         images: [
-            '/images/product1.webp',
-            '/images/product1-alt1.jpg',
-            '/images/product1-alt2.jpg'
+            '/images/product.webp',
         ],
         modelId: 'durk-model',
         active: true,
@@ -33,21 +31,21 @@ Designed to capture Lil Durk's signature style and presence, it's the perfect pi
     },
     {
         id: 'crown-collectible',
-        name: 'Crownmania Limited Crown',
+        name: '',
         type: 2,
         price: 499.99,
-        description: 'Exclusive Crownmania wearable collectible.',
-        mainImage: '/images/Placeholder-product.png',
+        description: '',
+        mainImage: null,
         comingSoon: true,
         active: false
     },
     {
         id: 'vip-pass',
-        name: 'VIP Access Pass',
+        name: '',
         type: 3,
         price: 99.99,
-        description: 'Unlock exclusive content and early access.',
-        mainImage: '/images/Placeholder-product.png',
+        description: '',
+        mainImage: null,
         comingSoon: true,
         active: false
     }

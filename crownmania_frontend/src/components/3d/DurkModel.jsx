@@ -41,6 +41,25 @@ function Model({ url }) {
     loader.setDRACOLoader(dracoLoader);
   });
 
+  // Apply premium material to all meshes
+  useEffect(() => {
+    if (gltf.scene) {
+      gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+          // Create a premium metallic material
+          child.material = new THREE.MeshStandardMaterial({
+            color: new THREE.Color('#B8860B'), // Medium dark gold
+            metalness: 0.6,
+            roughness: 0.25,
+            envMapIntensity: 1.2,
+          });
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+    }
+  }, [gltf.scene]);
+
   return (
     <primitive
       object={gltf.scene}
@@ -52,14 +71,72 @@ function Model({ url }) {
 }
 
 // Stylized placeholder figure when no model is available
-function PlaceholderFigure() {
+function PlaceholderFigure({ isUnlocked = false }) {
   const groupRef = useRef();
+  const [unlockProgress, setUnlockProgress] = useState(isUnlocked ? 1 : 0);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Handle unlock animation
+  useEffect(() => {
+    if (isUnlocked && !isAnimating) {
+      setIsAnimating(true);
+      // Animate from grayscale to color over 2 seconds
+      const startTime = Date.now();
+      const duration = 2000;
+
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        setUnlockProgress(progress);
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setIsAnimating(false);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    }
+  }, [isUnlocked, isAnimating]);
 
   useFrame((state) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.elapsedTime * 0.5;
+      // Slower rotation when locked, faster when unlocked
+      const rotationSpeed = isUnlocked ? 1.0 : 0.5;
+      groupRef.current.rotation.y = state.clock.elapsedTime * rotationSpeed;
+
+      // Add slight floating animation when unlocked
+      if (isUnlocked) {
+        groupRef.current.position.y = -0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
+      } else {
+        groupRef.current.position.y = -0.5;
+      }
     }
   });
+
+  // Calculate grayscale and color interpolation
+  const getMaterialProps = (baseColor, emissiveColor = null, emissiveIntensity = 0) => {
+    // Convert base color to HSL for interpolation
+    const baseColorObj = new THREE.Color(baseColor);
+    const baseHSL = baseColorObj.getHSL({ h: 0, s: 0, l: 0 });
+
+    // Grayscale version (saturation = 0)
+    const grayscaleHSL = { h: baseHSL.h, s: 0, l: baseHSL.l };
+
+    // Interpolate between grayscale and full color
+    const currentH = grayscaleHSL.h + (baseHSL.h - grayscaleHSL.h) * unlockProgress;
+    const currentS = grayscaleHSL.s + (baseHSL.s - grayscaleHSL.s) * unlockProgress;
+    const currentL = grayscaleHSL.l + (baseHSL.l - grayscaleHSL.l) * unlockProgress;
+
+    const interpolatedColor = new THREE.Color().setHSL(currentH, currentS, currentL);
+
+    return {
+      color: interpolatedColor,
+      emissive: emissiveColor ? new THREE.Color(emissiveColor).multiplyScalar(unlockProgress) : undefined,
+      emissiveIntensity: emissiveIntensity * unlockProgress
+    };
+  };
 
   // Create a stylized silhouette figure
   return (
@@ -68,11 +145,9 @@ function PlaceholderFigure() {
       <mesh position={[0, -1.5, 0]}>
         <cylinderGeometry args={[0.8, 1, 0.3, 32]} />
         <meshStandardMaterial
-          color="#1a1a2e"
+          {...getMaterialProps("#1a1a2e", "#00ff88", 0.1)}
           metalness={0.8}
           roughness={0.2}
-          emissive="#00ff88"
-          emissiveIntensity={0.1}
         />
       </mesh>
 
@@ -80,7 +155,7 @@ function PlaceholderFigure() {
       <mesh position={[0, 0, 0]}>
         <capsuleGeometry args={[0.4, 1.2, 8, 16]} />
         <meshStandardMaterial
-          color="#0f0f23"
+          {...getMaterialProps("#0f0f23")}
           metalness={0.6}
           roughness={0.4}
           transparent
@@ -92,7 +167,7 @@ function PlaceholderFigure() {
       <mesh position={[0, 1.1, 0]}>
         <sphereGeometry args={[0.35, 32, 32]} />
         <meshStandardMaterial
-          color="#0f0f23"
+          {...getMaterialProps("#0f0f23")}
           metalness={0.7}
           roughness={0.3}
         />
@@ -102,11 +177,9 @@ function PlaceholderFigure() {
       <mesh position={[0, 1.5, 0]}>
         <torusGeometry args={[0.25, 0.05, 16, 32]} />
         <meshStandardMaterial
-          color="#ffd700"
+          {...getMaterialProps("#ffd700", "#ffa500", 0.3)}
           metalness={1}
           roughness={0.2}
-          emissive="#ffa500"
-          emissiveIntensity={0.3}
         />
       </mesh>
 
@@ -119,11 +192,9 @@ function PlaceholderFigure() {
           <mesh key={i} position={[x, 1.6, z]} rotation={[0, 0, 0]}>
             <coneGeometry args={[0.05, 0.2, 8]} />
             <meshStandardMaterial
-              color="#ffd700"
+              {...getMaterialProps("#ffd700", "#ffa500", 0.3)}
               metalness={1}
               roughness={0.2}
-              emissive="#ffa500"
-              emissiveIntensity={0.3}
             />
           </mesh>
         );
@@ -133,18 +204,44 @@ function PlaceholderFigure() {
       <mesh position={[0, -1.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[1, 0.03, 16, 64]} />
         <meshStandardMaterial
-          color="#00c8ff"
-          emissive="#00c8ff"
-          emissiveIntensity={0.8}
+          {...getMaterialProps("#00c8ff", "#00c8ff", 0.8)}
           transparent
           opacity={0.7}
         />
       </mesh>
+
+      {/* Unlock particle effects */}
+      {isAnimating && (
+        <group>
+          {[...Array(20)].map((_, i) => {
+            const angle = (i / 20) * Math.PI * 2;
+            const radius = 2;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            const delay = i * 0.1;
+
+            return (
+              <mesh
+                key={i}
+                position={[x, Math.sin(Date.now() * 0.01 + delay) * 0.5, z]}
+                scale={[0.05, 0.05, 0.05]}
+              >
+                <sphereGeometry args={[1, 8, 8]} />
+                <meshBasicMaterial
+                  color="#00ff88"
+                  transparent
+                  opacity={0.8 - (i * 0.04)}
+                />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
     </group>
   );
 }
 
-export function DurkModel({ usePlaceholder = false }) {
+export function DurkModel({ usePlaceholder = false, isUnlocked = false }) {
   const [modelUrl, setModelUrl] = useState(null);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -174,23 +271,36 @@ export function DurkModel({ usePlaceholder = false }) {
           console.log('Local model not found, trying Firebase...');
         }
 
-        // Try Firebase Storage with timeout
+        // Try Firebase Storage with multiple path variations
         if (storage) {
           console.log('Attempting to fetch model from Firebase Storage...');
-          const modelRef = ref(storage, 'models/durk-model.glb');
 
-          // Set a 5-second timeout for the Firebase URL fetch
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Firebase load timeout')), 5000)
-          );
+          // Common path variations to try
+          const modelPaths = [
+            'models/durk-model.glb',
+            'models/Durk_Model.glb',
+            'models/durk.glb',
+            'models/LilDurk.glb',
+            '3d-models/durk-model.glb',
+            'durk-model.glb',
+            'models/lil-durk-figure.glb'
+          ];
 
-          const url = await Promise.race([
-            getDownloadURL(modelRef),
-            timeoutPromise
-          ]);
+          for (const path of modelPaths) {
+            try {
+              console.log(`Trying Firebase path: ${path}`);
+              const modelRef = ref(storage, path);
+              const url = await getDownloadURL(modelRef);
+              console.log(`Successfully loaded model from: ${path}`);
+              setModelUrl(url);
+              setIsLoading(false);
+              return;
+            } catch (pathErr) {
+              console.log(`Path not found: ${path}`);
+            }
+          }
 
-          console.log('Successfully got model URL from Firebase');
-          setModelUrl(url);
+          throw new Error('Model not found in any Firebase Storage path');
         } else {
           throw new Error('Firebase storage not available');
         }
@@ -211,7 +321,7 @@ export function DurkModel({ usePlaceholder = false }) {
 
   // If loading failed or using placeholder, show the stylized figure
   if (error || usePlaceholder || !modelUrl) {
-    return <PlaceholderFigure />;
+    return <PlaceholderFigure isUnlocked={isUnlocked} />;
   }
 
   return (

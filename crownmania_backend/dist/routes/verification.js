@@ -1,6 +1,14 @@
 import express from 'express';
 import { verificationService } from '../services/verificationService.js';
+import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
 const router = express.Router();
+
+/**
+ * @route GET /api/verification/nonce
+ * @desc Get a nonce for secure message signing
+ * @access Public
+ */
+router.get('/nonce', getNonceHandler);
 
 /**
  * @route POST /api/verification/verify-serial
@@ -23,6 +31,62 @@ router.post('/verify-serial', async (req, res) => {
     console.error('Error verifying serial number:', error);
     res.status(500).json({
       error: error.message || 'Server error during verification'
+    });
+  }
+});
+
+/**
+ * @route GET /api/verification/verify-product/:id
+ * @desc Verify a product by its ID (for QR code scanning)
+ * @access Public
+ */
+router.get('/verify-product/:id', async (req, res) => {
+  try {
+    const {
+      id
+    } = req.params;
+    const {
+      type
+    } = req.query;
+    if (!id) {
+      return res.status(400).json({
+        error: 'Product ID is required'
+      });
+    }
+    const result = await verificationService.verifyProductById(id, type);
+    res.json(result);
+  } catch (error) {
+    console.error('Error verifying product:', error);
+    res.status(500).json({
+      error: error.message || 'Server error during verification'
+    });
+  }
+});
+
+/**
+ * @route POST /api/verification/claim
+ * @desc Claim a product to a wallet address
+ * @access Private (authenticated wallet)
+ */
+router.post('/claim', authenticateWallet, async (req, res) => {
+  try {
+    const {
+      productId,
+      walletAddress,
+      signature,
+      message
+    } = req.body;
+    if (!productId || !walletAddress) {
+      return res.status(400).json({
+        error: 'Product ID and wallet address are required'
+      });
+    }
+    const result = await verificationService.claimProduct(productId, walletAddress, signature, message);
+    res.json(result);
+  } catch (error) {
+    console.error('Error claiming product:', error);
+    res.status(500).json({
+      error: error.message || 'Server error during claim'
     });
   }
 });

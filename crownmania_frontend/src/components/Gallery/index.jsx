@@ -5,25 +5,46 @@ import { getStorageURL } from '../../utils/storageUtils';
 
 const GallerySection = styled.section`
   width: 100%;
-  height: 100vh;
+  min-height: 60vh;
   position: relative;
   overflow: hidden;
-  background: black;
-`;
-
-const SlideContainer = styled(motion.div)`
-  width: 100%;
-  height: 100%;
-  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  
+  @media (max-width: 768px) {
+    min-height: auto;
+  }
 `;
 
-const SlideImage = styled(motion.img)`
+const ImagesContainer = styled.div`
   width: 100%;
-  height: 100%;
+  max-width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  overflow: hidden;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+`;
+
+const GalleryImage = styled.img`
+  flex: 1;
+  min-width: 0;
+  max-width: 33.33%;
+  height: 500px;
   object-fit: cover;
+  filter: brightness(0.95);
+  
+  @media (max-width: 768px) {
+    max-width: 100%;
+    width: 100%;
+    height: 250px;
+  }
 `;
 
 const NavigationButton = styled.button`
@@ -85,80 +106,22 @@ const slideVariants = {
 };
 
 export default function Gallery() {
-  const [images, setImages] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [[page, direction], setPage] = useState([0, 0]);
-
-  useEffect(() => {
-    const loadImages = async () => {
-      try {
-        // Load your images here
-        // Load your images here
-        const imageUrls = [
-          '/images/product1.webp',
-          '/images/product2.webp',
-          '/images/product3.webp',
-        ];
-        setImages(imageUrls);
-      } catch (error) {
-        console.error('Error loading gallery images:', error);
-      }
-    };
-    loadImages();
-  }, []);
-
-  const paginate = (newDirection) => {
-    const newIndex = currentIndex + newDirection;
-    if (newIndex >= 0 && newIndex < images.length) {
-      setPage([page + newDirection, newDirection]);
-      setCurrentIndex(newIndex);
-    }
-  };
-
   return (
     <GallerySection id="gallery">
-      <AnimatePresence initial={false} custom={direction}>
-        {images.length > 0 && (
-          <SlideContainer
-            key={page}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              x: { type: "spring", stiffness: 300, damping: 30 },
-              opacity: { duration: 0.2 }
-            }}
-          >
-            <SlideImage
-              src={images[currentIndex]}
-              alt={`Gallery image ${currentIndex + 1}`}
-              draggable="false"
-            />
-          </SlideContainer>
-        )}
-      </AnimatePresence>
-
-      <NavigationButton
-        className="prev"
-        onClick={() => paginate(-1)}
-        disabled={currentIndex === 0}
-      >
-        ←
-      </NavigationButton>
-
-      <NavigationButton
-        className="next"
-        onClick={() => paginate(1)}
-        disabled={currentIndex === images.length - 1}
-      >
-        →
-      </NavigationButton>
-
-      <SlideCounter>
-        {currentIndex + 1} / {images.length}
-      </SlideCounter>
+      <ImagesContainer>
+        <GalleryImage
+          src="/images/product3.webp"
+          alt="Standing full-body figure"
+        />
+        <GalleryImage
+          src="/images/product2.webp"
+          alt="Back tattoo"
+        />
+        <GalleryImage
+          src="/images/product1.webp"
+          alt="Face"
+        />
+      </ImagesContainer>
     </GallerySection>
   );
 }

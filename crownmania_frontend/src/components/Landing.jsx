@@ -26,29 +26,47 @@ const ContentWrapper = styled.div`
   padding: 2rem;
   margin-top: 0;
   text-align: center;
+  width: 100%;
+  
+  @media (max-width: 480px) {
+    transform: scale(0.85);
+  }
+  
+  @media (max-width: 375px) {
+    transform: scale(0.75);
+  }
 `;
 
+
+
 const MainTagline = styled(motion.h1)`
-  font-size: clamp(1.2rem, 2.5vw, 2.5rem);
+  font-size: clamp(0.7rem, 3.5vw, 2.5rem);
   font-family: 'Designer', sans-serif;
   font-style: italic;
   color: white;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.02em;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
   margin-bottom: 0.5rem;
+  text-align: center;
   white-space: nowrap;
 `;
 
 const SubTagline = styled(motion.h2)`
-  font-size: clamp(0.6rem, 1vw, 0.8rem);
+  font-size: 2vw;
   font-family: 'Designer', sans-serif;
   color: white;
   text-transform: uppercase;
-  letter-spacing: 0.2em;
-  opacity: 0.9;
-  max-width: 800px;
+  letter-spacing: 0;
+  opacity: 0.8;
   line-height: 1.4;
+  text-align: center;
+  white-space: nowrap;
+  
+  @media (min-width: 768px) {
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+  }
 `;
 
 const ModelContainer = styled.div`
@@ -105,7 +123,7 @@ export default function Landing() {
         <MainTagline
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
         >
           INNOVATE • COLLECT • CONNECT
         </MainTagline>

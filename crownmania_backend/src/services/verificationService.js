@@ -1,6 +1,7 @@
 import { db } from '../config/firebase.js';
 import { sendVerificationEmail } from '../config/email.js';
 import crypto from 'crypto';
+import { contentSecurity } from '../utils/contentSecurity.js';
 
 /**
  * Service for managing collectible verification and token claiming
@@ -84,15 +85,33 @@ export const verificationService = {
    * Verify a claim code from QR scan (looks up claimCodes collection, then gets product)
    * @param {string} claimCodeId - The unique claim code ID from the QR sticker
    * @param {string} productType - The product type (optional validation)
+   * @param {string} clientIP - Client IP address for audit logging
    * @returns {Promise<{verified: boolean, product: object|null, message: string}>}
    */
-  verifyProductById: async (claimCodeId, productType) => {
+  verifyProductById: async (claimCodeId, productType, clientIP = '') => {
     try {
+      // Sanitize input
+      const sanitizedCodeId = contentSecurity.sanitizeInput(claimCodeId);
+
+      // Log verification attempt
+      contentSecurity.logSecurityEvent('serial_verification_attempt', {
+        claimCodeId: sanitizedCodeId?.substring(0, 8) + '...', // Only log first 8 chars
+        productType,
+        method: 'qr_scan'
+      }, clientIP);
+
       // First, look up the claim code
-      const claimCodeRef = db.collection('claimCodes').doc(claimCodeId);
+      const claimCodeRef = db.collection('claimCodes').doc(sanitizedCodeId);
       const claimCodeDoc = await claimCodeRef.get();
 
       if (!claimCodeDoc.exists) {
+        // Log failed verification
+        contentSecurity.logSecurityEvent('serial_verification_failed', {
+          claimCodeId: sanitizedCodeId?.substring(0, 8) + '...',
+          reason: 'code_not_found',
+          productType
+        }, clientIP);
+
         return {
           verified: false,
           product: null,
@@ -119,6 +138,8 @@ export const verificationService = {
             type: productData.type,
             description: productData.description,
             imageUrl: productData.imageUrl || productData.images?.[0],
+            edition: claimCodeData.edition,
+            totalEditions: 500,
             claimedBy: claimCodeData.claimedBy,
             claimedAt: claimCodeData.claimedAt
           },
@@ -175,15 +196,35 @@ export const verificationService = {
    * @param {string} walletAddress - The wallet address to claim to
    * @param {string} signature - Signed proof of ownership
    * @param {string} message - The signed message
+   * @param {string} clientIP - Client IP address for audit logging
    * @returns {Promise<{success: boolean, tokenId: string|null, message: string}>}
    */
-  claimProduct: async (claimCodeId, walletAddress, signature, message) => {
+  claimProduct: async (claimCodeId, walletAddress, signature, message, clientIP = '') => {
     try {
+      // Sanitize inputs
+      const sanitizedCodeId = contentSecurity.sanitizeInput(claimCodeId);
+      const sanitizedWallet = contentSecurity.sanitizeInput(walletAddress);
+
+      // Log claim attempt
+      contentSecurity.logSecurityEvent('nft_claim_attempt', {
+        claimCodeId: sanitizedCodeId?.substring(0, 8) + '...',
+        walletAddress: sanitizedWallet?.substring(0, 10) + '...',
+        hasSignature: !!signature,
+        hasMessage: !!message
+      }, clientIP, sanitizedWallet);
+
       // Look up the claim code
-      const claimCodeRef = db.collection('claimCodes').doc(claimCodeId);
+      const claimCodeRef = db.collection('claimCodes').doc(sanitizedCodeId);
       const claimCodeDoc = await claimCodeRef.get();
 
       if (!claimCodeDoc.exists) {
+        // Log failed claim
+        contentSecurity.logSecurityEvent('nft_claim_failed', {
+          claimCodeId: sanitizedCodeId?.substring(0, 8) + '...',
+          walletAddress: sanitizedWallet?.substring(0, 10) + '...',
+          reason: 'invalid_claim_code'
+        }, clientIP, sanitizedWallet);
+
         return {
           success: false,
           tokenId: null,
@@ -207,6 +248,21 @@ export const verificationService = {
       const productDoc = await productRef.get();
       const productData = productDoc.exists ? productDoc.data() : {};
 
+      // Get next edition number using atomic counter
+      const counterRef = db.collection('counters').doc(claimCodeData.productId);
+      let editionNumber;
+
+      await db.runTransaction(async (transaction) => {
+        const counterDoc = await transaction.get(counterRef);
+        if (counterDoc.exists) {
+          editionNumber = (counterDoc.data().currentEdition || 0) + 1;
+          transaction.update(counterRef, { currentEdition: editionNumber });
+        } else {
+          editionNumber = 1;
+          transaction.set(counterRef, { currentEdition: 1, totalEditions: 500 });
+        }
+      });
+
       // Create Collectible record (source of truth for owned items)
       const tokenId = `NFT-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
       const collectibleRef = db.collection('collectibles').doc();
@@ -216,12 +272,14 @@ export const verificationService = {
         ownerId: walletAddress,
         status: 'claimed',
         tokenId: tokenId,
+        edition: editionNumber,
+        totalEditions: 500,
         productName: productData.name,
         productType: productData.type,
         signature: signature || null,
         message: message || null,
         metadata: {
-          name: `${productData.name || 'Crownmania Collectible'} #${claimCodeId.slice(-6).toUpperCase()}`,
+          name: `${productData.name || 'Crownmania Collectible'} #${editionNumber}`,
           description: productData.description,
           image: productData.imageUrl || productData.images?.[0],
           modelUrl: productData.modelUrl
@@ -230,10 +288,11 @@ export const verificationService = {
         updatedAt: new Date()
       });
 
-      // Mark claim code as claimed
+      // Mark claim code as claimed with edition number
       await claimCodeRef.update({
         claimed: true,
         tokenId: tokenId,
+        edition: editionNumber,
         claimedBy: walletAddress,
         claimedAt: new Date()
       });
@@ -241,8 +300,10 @@ export const verificationService = {
       return {
         success: true,
         tokenId: tokenId,
+        edition: editionNumber,
+        totalEditions: 500,
         productName: productData.name,
-        message: 'NFT minted successfully! Your Digital Twin is now in your vault.'
+        message: `NFT minted successfully! You own Edition #${editionNumber} of 500.`
       };
     } catch (error) {
       console.error('Error claiming product:', error);
