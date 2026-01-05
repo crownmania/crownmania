@@ -1,8 +1,15 @@
 import express from 'express';
 import { verificationService } from '../services/verificationService.js';
-import { authenticateWallet } from '../middleware/auth.js';
+import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
 
 const router = express.Router();
+
+/**
+ * @route GET /api/verification/nonce
+ * @desc Get a nonce for secure message signing
+ * @access Public
+ */
+router.get('/nonce', getNonceHandler);
 
 /**
  * @route POST /api/verification/verify-serial

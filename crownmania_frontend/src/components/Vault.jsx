@@ -8,8 +8,9 @@ import { OrbitControls, Environment } from '@react-three/drei';
 import useWeb3Auth from '../hooks/useWeb3Auth';
 import { verificationAPI } from '../services/api';
 import GlowButton from './GlowButton';
+import ContentViewer from './ContentViewer';
 import { DurkModel } from './3d/DurkModel';
-import { FaLock, FaQuestion, FaCheck, FaTimes, FaQrcode, FaChevronDown, FaExclamationTriangle, FaSpinner, FaWallet, FaSignOutAlt, FaCube, FaKeyboard } from 'react-icons/fa';
+import { FaLock, FaQuestion, FaCheck, FaTimes, FaQrcode, FaChevronDown, FaExclamationTriangle, FaSpinner, FaWallet, FaSignOutAlt, FaCube, FaKeyboard, FaPlay } from 'react-icons/fa';
 
 // Lazy load QR Scanner to prevent build issues
 const QrReader = lazy(() =>
@@ -47,6 +48,22 @@ const VaultSection = styled.section`
   padding: 2rem;
   position: relative;
   backdrop-filter: blur(10px);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 20%;
+    left: -10%;
+    width: 80%;
+    height: 60%;
+    background-image: url('../assets/crown_logo_white.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: left center;
+    opacity: 0.2;
+    pointer-events: none;
+    z-index: 0;
+  }
 `;
 
 const MainTitle = styled.div`
@@ -101,7 +118,7 @@ const WalletInfo = styled.div`
 
   .icon {
     font-size: 2rem;
-    color: #00ff88;
+    color: #a5b4fc;
   }
 
   .details {
@@ -126,8 +143,8 @@ const WalletButtons = styled.div`
 
 const ConnectButton = styled(motion.button)`
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #00ff88, #00c8ff);
-  color: black;
+  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  color: white;
   border: none;
   border-radius: 8px;
   font-family: var(--font-secondary);
@@ -188,8 +205,9 @@ const CollectiblesGrid = styled.div`
 
 // Individual collectible slot
 const CollectibleSlot = styled(motion.div)`
-  aspect-ratio: 3/4;
-  border-radius: 16px;
+  width: 120px;
+  height: 160px;
+  border-radius: 12px;
   position: relative;
   cursor: pointer;
   overflow: hidden;
@@ -216,63 +234,52 @@ const LockedOverlay = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
-  gap: 1rem;
+  background: linear-gradient(180deg, rgba(10, 20, 35, 0.95), rgba(5, 10, 20, 0.98));
 `;
 
-const SilhouetteImage = styled.div`
-  width: 80%;
-  height: 60%;
-  background: linear-gradient(180deg, rgba(30, 30, 40, 0.8), rgba(10, 10, 15, 0.9));
-  border-radius: 12px;
+const SilhouetteHead = styled.div`
+  position: relative;
+  width: 80px;
+  height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
   
-  /* Silhouette effect */
+  /* Head shape */
   &::before {
     content: '';
     position: absolute;
-    width: 60%;
-    height: 80%;
-    background: rgba(0, 0, 0, 0.8);
+    width: 60px;
+    height: 70px;
+    background: rgba(40, 50, 70, 0.6);
     border-radius: 50% 50% 45% 45%;
-    filter: blur(2px);
+    top: 0;
+  }
+  
+  /* Neck/shoulders hint */
+  &::after {
+    content: '';
+    position: absolute;
+    width: 80px;
+    height: 25px;
+    background: rgba(40, 50, 70, 0.4);
+    border-radius: 10px 10px 0 0;
+    bottom: 0;
   }
 `;
 
-const LockIcon = styled.div`
-  font-size: 2.5rem;
-  color: rgba(255, 255, 255, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  z-index: 1;
-`;
-
 const QuestionMark = styled.div`
-  position: absolute;
-  bottom: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.5rem;
-  color: rgba(255, 255, 255, 0.3);
+  position: relative;
+  z-index: 2;
+  font-size: 2rem;
+  color: rgba(100, 120, 150, 0.7);
   font-family: 'Designer', sans-serif;
+  font-weight: bold;
+  margin-top: -15px;
 `;
 
 const SlotLabel = styled.div`
-  position: absolute;
-  bottom: 0.75rem;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-family: var(--font-secondary);
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  display: none;
 `;
 
 // Unlocked collectible content
@@ -308,8 +315,8 @@ const OwnedBadge = styled.div`
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: linear-gradient(135deg, #00ff88, #00c8ff);
-  color: black;
+  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  color: white;
   font-size: 0.65rem;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
@@ -637,6 +644,7 @@ export default function Vault() {
   const { isInitialized, isWeb3Available, user, isLoading, error: authError, login, logout, getAddress } = useWeb3Auth();
 
   const [selectedCollectible, setSelectedCollectible] = useState(null);
+  const [viewingContent, setViewingContent] = useState(null); // Content viewer state
   const [userTokens, setUserTokens] = useState([]);
   const [walletAddress, setWalletAddress] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
@@ -744,13 +752,13 @@ export default function Vault() {
           <div className="details">
             {user && walletAddress ? (
               <>
-                <h3>Account Secured</h3>
-                <p>You can now view and claim your digital collectibles</p>
+                <h3>Wallet Connected</h3>
+                <p>You can now verify and claim your digital collectibles</p>
               </>
             ) : (
               <>
-                <h3>Welcome to the Vault</h3>
-                <p>Sign in with Google or Email to unlock your digital collectibles</p>
+                <h3>Welcome to the Crownmania Vault</h3>
+                <p>Create a wallet to claim your digital collectibles</p>
               </>
             )}
           </div>
@@ -780,7 +788,7 @@ export default function Vault() {
                 'Sign-in Unavailable'
               ) : (
                 <>
-                  <FaWallet /> Sign in with Socials
+                  <FaWallet /> Connect
                 </>
               )}
             </ConnectButton>
@@ -809,42 +817,6 @@ export default function Vault() {
         </motion.div>
       )}
 
-      {/* Collectibles Grid */}
-      <CollectiblesGrid>
-        {COLLECTIBLES.map((collectible) => {
-          const owned = isOwned(collectible.id);
-          const unlocked = !collectible.locked || owned;
-
-          return (
-            <CollectibleSlot
-              key={collectible.id}
-              $unlocked={unlocked}
-              onClick={() => unlocked && setSelectedCollectible(collectible)}
-              whileHover={{ scale: unlocked ? 1.05 : 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {unlocked ? (
-                <UnlockedContent>
-                  {owned && <OwnedBadge>Owned</OwnedBadge>}
-                  <CollectibleImage src={collectible.image} alt={collectible.name} />
-                  <CollectibleName>{collectible.name}</CollectibleName>
-                </UnlockedContent>
-              ) : (
-                <LockedOverlay>
-                  <SilhouetteImage>
-                    <LockIcon>
-                      <FaLock />
-                    </LockIcon>
-                  </SilhouetteImage>
-                  <QuestionMark>?</QuestionMark>
-                  <SlotLabel>Locked</SlotLabel>
-                </LockedOverlay>
-              )}
-            </CollectibleSlot>
-          );
-        })}
-      </CollectiblesGrid>
-
       {/* Interactive Features Section */}
       <FeaturesSection>
         {/* 3D Model Viewer */}
@@ -860,15 +832,19 @@ export default function Vault() {
           </WindowHeader>
           <ModelCanvas>
             {showModel ? (
-              <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-                <ambientLight intensity={0.5} />
-                <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
-                <pointLight position={[-10, -10, -10]} />
+              <Canvas
+                camera={{ position: [0, 0, 5], fov: 45 }}
+                dpr={[1, 1.5]} // Limit pixel ratio for performance
+                performance={{ min: 0.5 }} // Allow frame dropping
+                frameloop="demand" // Only render when needed
+              >
+                <ambientLight intensity={0.6} />
+                <directionalLight position={[5, 5, 5]} intensity={0.8} />
                 <Suspense fallback={null}>
-                  <DurkModel />
+                  <DurkModel isUnlocked={isOwned(1)} />
                 </Suspense>
-                <OrbitControls enableZoom={true} autoRotate autoRotateSpeed={1} />
-                <Environment preset="city" />
+                <OrbitControls enableZoom={true} />
+                <Environment preset="studio" />
               </Canvas>
             ) : (
               <ModelPlaceholder>
@@ -931,7 +907,7 @@ export default function Vault() {
                       <FaSpinner style={{ animation: 'spin 1s linear infinite' }} /> Verifying...
                     </>
                   ) : (
-                    'Verify & Unlock'
+                    'Verify Code'
                   )}
                 </GlowButton>
               </>
@@ -953,6 +929,38 @@ export default function Vault() {
         </VerificationWindow>
       </FeaturesSection>
 
+      {/* Collectibles Grid */}
+      <CollectiblesGrid>
+        {COLLECTIBLES.map((collectible) => {
+          const owned = isOwned(collectible.id);
+          const unlocked = !collectible.locked || owned;
+
+          return (
+            <CollectibleSlot
+              key={collectible.id}
+              $unlocked={unlocked}
+              onClick={() => unlocked && setSelectedCollectible(collectible)}
+              whileHover={{ scale: unlocked ? 1.05 : 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {unlocked ? (
+                <UnlockedContent>
+                  {owned && <OwnedBadge>Owned</OwnedBadge>}
+                  <CollectibleImage src={collectible.image} alt={collectible.name} />
+                  <CollectibleName>{collectible.name}</CollectibleName>
+                </UnlockedContent>
+              ) : (
+                <LockedOverlay>
+                  <SilhouetteHead>
+                    <QuestionMark>?</QuestionMark>
+                  </SilhouetteHead>
+                </LockedOverlay>
+              )}
+            </CollectibleSlot>
+          );
+        })}
+      </CollectiblesGrid>
+
       {/* Detail Modal with 3D Model */}
       <AnimatePresence>
         {selectedCollectible && (
@@ -973,15 +981,18 @@ export default function Vault() {
               {/* 3D Model View */}
               <ModalModelView>
                 {selectedCollectible.has3DModel ? (
-                  <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-                    <ambientLight intensity={0.5} />
-                    <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
-                    <pointLight position={[-10, -10, -10]} />
+                  <Canvas
+                    camera={{ position: [0, 0, 5], fov: 45 }}
+                    dpr={[1, 1.5]}
+                    frameloop="demand"
+                  >
+                    <ambientLight intensity={0.6} />
+                    <directionalLight position={[5, 5, 5]} intensity={0.8} />
                     <Suspense fallback={null}>
                       <DurkModel />
                     </Suspense>
                     <OrbitControls enableZoom={true} />
-                    <Environment preset="city" />
+                    <Environment preset="studio" />
                   </Canvas>
                 ) : (
                   <img
@@ -997,15 +1008,41 @@ export default function Vault() {
                 <ModalTitle>{selectedCollectible.fullName || selectedCollectible.name}</ModalTitle>
                 <ModalInfo>
                   <p><span className="label">Series:</span><br />{selectedCollectible.series || 'Crown Series'}</p>
-                  <p><span className="label">Edition:</span><br />{selectedCollectible.edition || 'Limited Edition'}</p>
-                  <p><span className="label">Year:</span><br />{selectedCollectible.year || '2025'}</p>
-                  {isOwned(selectedCollectible.id) && (
-                    <p style={{ color: '#00ff88', marginTop: '1rem' }}>
-                      <FaCheck style={{ marginRight: '0.5rem' }} />
-                      You own this collectible
-                    </p>
+                  {selectedCollectible.edition ? (
+                    <p><span className="label">Edition:</span><br />#{selectedCollectible.edition} of {selectedCollectible.totalEditions || 500}</p>
+                  ) : (
+                    <p><span className="label">Edition:</span><br />Limited Edition</p>
                   )}
+                  <p><span className="label">Year:</span><br />{selectedCollectible.year || '2025'}</p>
                 </ModalInfo>
+                {isOwned(selectedCollectible.id) && (
+                  <div style={{
+                    marginTop: '1rem',
+                    padding: '1rem',
+                    background: 'rgba(0, 255, 136, 0.1)',
+                    border: '1px solid rgba(0, 255, 136, 0.3)',
+                    borderRadius: '8px'
+                  }}>
+                    <p style={{ color: '#00ff88', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <FaCheck /> You own this collectible
+                    </p>
+                    {selectedCollectible.claimedDate && (
+                      <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>
+                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>Claimed:</span> {new Date(selectedCollectible.claimedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </p>
+                    )}
+                    {selectedCollectible.walletAddress && (
+                      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem', fontFamily: 'monospace' }}>
+                        Wallet: {selectedCollectible.walletAddress.slice(0, 6)}...{selectedCollectible.walletAddress.slice(-4)}
+                      </p>
+                    )}
+                    {selectedCollectible.tokenId && (
+                      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem', fontFamily: 'monospace' }}>
+                        Token: {selectedCollectible.tokenId}
+                      </p>
+                    )}
+                  </div>
+                )}
                 {!isOwned(selectedCollectible.id) && (
                   <GlowButton
                     style={{ marginTop: '1.5rem' }}
@@ -1026,12 +1063,23 @@ export default function Vault() {
                       });
                     }}
                   >
-                    {user ? 'Claim Digital Twin' : 'Sign in to Claim'}
+                    {user ? 'Unlock' : 'Sign in to Unlock'}
                   </GlowButton>
                 )}
               </ModalDetails>
             </ModalContent>
           </ModalOverlay>
+        )}
+      </AnimatePresence>
+
+      {/* Content Viewer */}
+      <AnimatePresence>
+        {viewingContent && (
+          <ContentViewer
+            contentId={viewingContent.contentId}
+            onClose={() => setViewingContent(null)}
+            walletAddress={walletAddress}
+          />
         )}
       </AnimatePresence>
     </VaultSection>

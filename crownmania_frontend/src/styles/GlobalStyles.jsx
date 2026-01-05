@@ -8,7 +8,7 @@ export const GlobalStyles = createGlobalStyle`
     font-style: normal;
   }
 
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Sans+Pro:wght@300;400;500;600&display=swap');
 
   :root {
     --dark-blue: rgb(2, 6, 23);
@@ -17,7 +17,7 @@ export const GlobalStyles = createGlobalStyle`
     --white: #FFFFFF;
     --black: #000000;
     --font-primary: 'Designer', sans-serif;
-    --font-secondary: 'Avenir Next', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-secondary: 'Source Sans Pro', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   * {
@@ -28,16 +28,22 @@ export const GlobalStyles = createGlobalStyle`
 
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    font-family: 'Designer', sans-serif;
+    font-family: var(--font-secondary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-color: #000000;
     color: var(--white);
-    line-height: 1.5;
+    line-height: 1.6;
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  p, span, label, input, textarea, select {
+    font-family: var(--font-secondary);
   }
 
   #root {
@@ -63,6 +69,8 @@ export const GlobalStyles = createGlobalStyle`
 
   button {
     font-family: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
   }
 
   img {
@@ -70,13 +78,15 @@ export const GlobalStyles = createGlobalStyle`
     height: auto;
   }
 
+  /* Mobile-friendly button sizing */
+  button, a[role="button"], input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   @keyframes slideUp {
@@ -99,15 +109,56 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
   .spin {
     animation: spin 1s linear infinite;
+  }
+
+  /* Mobile Responsive Typography */
+  @media (max-width: 768px) {
+    html {
+      font-size: 14px;
+    }
+
+    h1 {
+      font-size: 2rem !important;
+    }
+
+    h2 {
+      font-size: 1.5rem !important;
+    }
+
+    h3 {
+      font-size: 1.25rem !important;
+    }
+
+    body {
+      padding: 0;
+    }
+  }
+
+  @media (max-width: 480px) {
+    html {
+      font-size: 13px;
+    }
+
+    h1 {
+      font-size: 1.75rem !important;
+    }
+
+    h2 {
+      font-size: 1.35rem !important;
+    }
+  }
+
+  /* Safe area insets for notched phones */
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: max(0px, env(safe-area-inset-left));
+      padding-right: max(0px, env(safe-area-inset-right));
+    }
   }
 `;

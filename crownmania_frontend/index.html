@@ -9,11 +9,23 @@
   <meta name="description"
     content="Revolutionary collectibles platform combining physical artistry with digital innovation" />
 
-  <!-- Polyfills for Web3Auth (Node.js globals needed in browser) -->
+  <!-- Polyfills for Web3Auth -->
   <script>
     if (typeof global === 'undefined') { window.global = window; }
     if (typeof process === 'undefined') { window.process = { env: {} }; }
+    if (typeof Buffer === 'undefined') {
+      window.Buffer = {
+        isBuffer: function () { return false; },
+        from: function (arr) { return new Uint8Array(arr); },
+        alloc: function (size) { return new Uint8Array(size); }
+      };
+    }
   </script>
+
+  <!-- Web3Auth v8 CDN - Modal and Provider -->
+  <script src="https://cdn.jsdelivr.net/npm/@web3auth/ethereum-provider@8.12.4/dist/ethereumProvider.umd.min.js"
+    defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@web3auth/modal@8.12.4/dist/modal.umd.min.js" defer></script>
 
 </head>
 

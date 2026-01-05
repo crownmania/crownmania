@@ -24,15 +24,24 @@
   "jest": {
     "testEnvironment": "node",
     "transform": {},
-    "extensionsToTreatAsEsm": [".js"],
+    "extensionsToTreatAsEsm": [
+      ".js"
+    ],
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"
     },
-    "setupFiles": ["./tests/setup.js"],
+    "setupFiles": [
+      "./tests/setup.js"
+    ],
     "collectCoverage": true,
     "coverageDirectory": "coverage",
-    "coverageReporters": ["text", "lcov"],
-    "testMatch": ["**/tests/**/*.test.js"],
+    "coverageReporters": [
+      "text",
+      "lcov"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
     "verbose": true
   },
   "dependencies": {
@@ -49,9 +58,10 @@
     "firebase-functions": "^4.5.0",
     "helmet": "^7.0.0",
     "ioredis": "^5.3.2",
-    "js-yaml": "^4.1.0",
     "joi": "^17.11.0",
+    "js-yaml": "^4.1.0",
     "moralis": "^2.25.0",
+    "multer": "^2.0.2",
     "rate-limit-redis": "^3.0.2",
     "stripe": "^12.17.0",
     "swagger-ui-express": "^5.0.0",

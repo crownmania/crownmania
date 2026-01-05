@@ -138,8 +138,8 @@ export const authenticateWallet = async (req, res, next) => {
 
     // Validate required fields
     if (!signature || !message || !walletAddress) {
-      return res.status(400).json({ 
-        error: 'Signature, message, and wallet address are required' 
+      return res.status(400).json({
+        error: 'Signature, message, and wallet address are required'
       });
     }
 
@@ -163,38 +163,40 @@ export const authenticateWallet = async (req, res, next) => {
       return res.status(401).json({ error: 'Signature does not match wallet address' });
     }
 
-    // Parse and validate message format
+    // Try to parse as secure nonce-based message first
     const parsedMessage = parseSignedMessage(message);
 
-    // Validate message has correct prefix
-    if (parsedMessage.prefix !== EXPECTED_MESSAGE_PREFIX) {
-      return res.status(400).json({ 
-        error: 'Invalid message format: missing authentication prefix' 
-      });
-    }
+    if (parsedMessage.prefix === EXPECTED_MESSAGE_PREFIX && parsedMessage.nonce) {
+      // Full security validation for nonce-based messages
+      const timestampValidation = validateTimestamp(parsedMessage.timestamp);
+      if (!timestampValidation.valid) {
+        logger.warn(`Timestamp validation failed: ${timestampValidation.error}`);
+        return res.status(401).json({ error: timestampValidation.error });
+      }
 
-    // Validate timestamp (prevents old signatures from being reused)
-    const timestampValidation = validateTimestamp(parsedMessage.timestamp);
-    if (!timestampValidation.valid) {
-      logger.warn(`Timestamp validation failed: ${timestampValidation.error}`);
-      return res.status(401).json({ error: timestampValidation.error });
-    }
+      const nonceValidation = validateNonce(parsedMessage.nonce);
+      if (!nonceValidation.valid) {
+        logger.warn(`Nonce validation failed for wallet ${walletAddress}: ${nonceValidation.error}`);
+        return res.status(401).json({ error: nonceValidation.error });
+      }
 
-    // Validate nonce (prevents replay attacks)
-    const nonceValidation = validateNonce(parsedMessage.nonce);
-    if (!nonceValidation.valid) {
-      logger.warn(`Nonce validation failed for wallet ${walletAddress}: ${nonceValidation.error}`);
-      return res.status(401).json({ error: nonceValidation.error });
+      // Mark nonce as used
+      markNonceUsed(parsedMessage.nonce);
+      req.walletAction = parsedMessage.action;
+      logger.info(`Wallet authenticated (secure): ${walletAddress.substring(0, 10)}...`);
+    } else {
+      // Fallback: simple validation - just verify message context
+      const lowerMessage = message.toLowerCase();
+      if (!lowerMessage.includes('crownmania') && !lowerMessage.includes('claim')) {
+        return res.status(400).json({
+          error: 'Invalid message format: must include claim context'
+        });
+      }
+      logger.info(`Wallet authenticated (simple): ${walletAddress.substring(0, 10)}...`);
     }
-
-    // Mark nonce as used BEFORE processing the request
-    markNonceUsed(parsedMessage.nonce);
 
     // Attach wallet info to request
     req.wallet = walletAddress.toLowerCase();
-    req.walletAction = parsedMessage.action;
-    
-    logger.info(`Wallet authenticated: ${walletAddress.substring(0, 10)}...`);
     next();
   } catch (error) {
     logger.error('Wallet authentication error:', error);
@@ -208,7 +210,7 @@ export const authenticateWallet = async (req, res, next) => {
 export const getNonceHandler = (req, res) => {
   const nonce = generateNonce();
   const timestamp = Date.now();
-  
+
   res.json({
     nonce,
     timestamp,
@@ -222,18 +224,18 @@ export const getNonceHandler = (req, res) => {
  */
 export const authenticateAny = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  
+
   // Try Firebase token first
   if (authHeader?.startsWith('Bearer ')) {
     return authenticateUser(req, res, next);
   }
-  
+
   // Try wallet signature
   if (req.body.signature && req.body.message && req.body.walletAddress) {
     return authenticateWallet(req, res, next);
   }
-  
-  return res.status(401).json({ 
-    error: 'Authentication required: provide Bearer token or wallet signature' 
+
+  return res.status(401).json({
+    error: 'Authentication required: provide Bearer token or wallet signature'
   });
 };

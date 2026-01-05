@@ -9,6 +9,7 @@ import rateLimit from 'express-rate-limit';
 import { stripeRouter } from './routes/stripe.js';
 import { firebaseRouter } from './routes/firebase.js';
 import { verificationRouter } from './routes/verification.js';
+import contentRouter from './routes/content.js';
 import { getNonceHandler } from './middleware/auth.js';
 import logger from './config/logger.js';
 
@@ -58,12 +59,12 @@ app.use(helmet({
 // ============================================
 const getAllowedOrigins = () => {
   const origins = [];
-  
+
   // Always allow the configured frontend URL
   if (process.env.FRONTEND_URL) {
     origins.push(process.env.FRONTEND_URL);
   }
-  
+
   // In development, allow specific localhost ports
   if (!isProduction) {
     origins.push(
@@ -72,7 +73,7 @@ const getAllowedOrigins = () => {
       'http://localhost:3000'
     );
   }
-  
+
   // In production, add your production domains
   if (isProduction) {
     // Add your production frontend domain(s)
@@ -82,7 +83,7 @@ const getAllowedOrigins = () => {
       'https://api.crownmania.com'
     );
   }
-  
+
   return origins.filter(Boolean);
 };
 
@@ -98,17 +99,17 @@ app.use(cors({
       }
       return callback(null, true);
     }
-    
+
     // Check against whitelist
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    
+
     // In development only, allow any localhost origin
     if (!isProduction && origin.includes('localhost')) {
       return callback(null, true);
     }
-    
+
     // Block all other origins
     logger.warn(`CORS blocked origin: ${origin}`);
     callback(new Error('Not allowed by CORS'), false);
@@ -184,13 +185,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api/stripe', stripeRouter);
 app.use('/api/firebase', firebaseRouter);
 app.use('/api/verification', verificationRouter);
+app.use('/api/content', contentRouter);
 
 // Nonce endpoint for wallet authentication
 app.get('/api/auth/nonce', getNonceHandler);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
+  res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     environment: isProduction ? 'production' : 'development'
@@ -214,15 +216,15 @@ app.use((err, req, res, next) => {
     path: req.path,
     method: req.method
   });
-  
+
   // CORS errors
   if (err.message === 'Not allowed by CORS') {
     return res.status(403).json({ error: 'CORS policy violation' });
   }
-  
+
   // Generic error response (don't leak details in production)
-  res.status(500).json({ 
-    error: isProduction ? 'Internal server error' : err.message 
+  res.status(500).json({
+    error: isProduction ? 'Internal server error' : err.message
   });
 });
 
