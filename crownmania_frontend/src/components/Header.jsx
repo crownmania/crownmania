@@ -97,6 +97,8 @@ const LogoLink = styled.a`
   color: white;
   transition: all 0.3s ease;
   cursor: pointer;
+  margin-left: 0.5rem;
+  margin-top: 0.25rem;
 
   &:hover {
     filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
@@ -104,13 +106,13 @@ const LogoLink = styled.a`
 `;
 
 const LogoIcon = styled.img`
-  height: 40px;
-  width: 40px;
+  height: 36px;
+  width: 36px;
 `;
 
 const Logo = styled.div`
   font-family: 'Designer', sans-serif;
-  font-size: 2.2rem;
+  font-size: 2.0rem;
   font-weight: normal;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -122,11 +124,15 @@ const HamburgerButton = styled(motion.button)`
   background: none;
   border: none;
   cursor: pointer;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   position: relative;
   z-index: 102;
-  padding: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 `;
 
 const HamburgerLine = styled(motion.span)`
@@ -134,7 +140,7 @@ const HamburgerLine = styled(motion.span)`
   width: 24px;
   height: 2px;
   background: white;
-  margin: 5px auto;
+  margin: 4px 0;
 `;
 
 const MenuOverlay = styled(motion.div)`

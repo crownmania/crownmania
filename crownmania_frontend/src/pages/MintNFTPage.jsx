@@ -354,7 +354,7 @@ export default function MintNFTPage() {
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleConnectWallet}
                             >
-                                <FaWallet /> Secure My Account
+                                <FaWallet /> Unlock
                             </ActionButton>
                         </motion.div>
                     )}
@@ -393,7 +393,7 @@ export default function MintNFTPage() {
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleMint}
                             >
-                                Mint Digital Twin <FaArrowRight />
+                                Claim Collectible <FaArrowRight />
                             </ActionButton>
                         </motion.div>
                     )}
@@ -483,6 +483,6 @@ export default function MintNFTPage() {
                     )}
                 </AnimatePresence>
             </ContentCard>
-        </PageContainer>
+        </PageContainer >
     );
 }

@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaShieldAlt, FaCheckCircle, FaExclamationTriangle, FaWallet, FaArrowRight } from 'react-icons/fa';
+import { FaShieldAlt, FaCheckCircle, FaExclamationTriangle, FaWallet, FaArrowRight, FaLock, FaUser, FaShare, FaLink, FaCopy, FaCertificate, FaExternalLinkAlt } from 'react-icons/fa';
+import confetti from 'canvas-confetti';
 import useWeb3Auth from '../hooks/useWeb3Auth';
 import { verificationAPI } from '../services/api';
-
-// API URL - uses environment variable or defaults to local backend
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const VerifyContainer = styled.div`
   min-height: 100vh;
@@ -47,6 +45,11 @@ const ProductImage = styled.img`
   border-radius: 12px;
   margin-bottom: 1.5rem;
   border: 2px solid rgba(255, 255, 255, 0.2);
+  
+  @media (max-width: 480px) {
+    width: 150px;
+    height: 150px;
+  }
 `;
 
 const Title = styled.h1`
@@ -65,6 +68,51 @@ const ProductName = styled.h2`
   margin-bottom: 0.5rem;
 `;
 
+const EditionInfo = styled.p`
+  font-size: 0.9rem;
+  color: #a5b4fc;
+  margin-bottom: 1rem;
+`;
+
+const VerificationBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.2), rgba(34, 197, 94, 0.1));
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #4ade80;
+  margin: 0.5rem 0 1rem;
+  
+  svg {
+    font-size: 1rem;
+  }
+`;
+
+const BlockchainLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #a5b4fc;
+  font-size: 0.8rem;
+  text-decoration: none;
+  margin-top: 0.5rem;
+  opacity: 0.8;
+  transition: opacity 0.2s, color 0.2s;
+  
+  &:hover {
+    opacity: 1;
+    color: #818cf8;
+    text-decoration: underline;
+  }
+  
+  svg {
+    font-size: 0.7rem;
+  }
+`;
+
 const SerialDisplay = styled.div`
   font-family: 'Courier New', monospace;
   background: rgba(255, 255, 255, 0.05);
@@ -72,7 +120,7 @@ const SerialDisplay = styled.div`
   border-radius: 8px;
   border: 1px dashed rgba(255, 255, 255, 0.3);
   margin: 1.5rem 0;
-  font-size: 1rem;
+  font-size: 0.85rem;
   letter-spacing: 0.05em;
   color: #a5b4fc;
   word-break: break-all;
@@ -85,13 +133,14 @@ const StatusIcon = styled(motion.div)`
   &.valid { color: #4ade80; }
   &.invalid { color: #ef4444; }
   &.checking { color: #a5b4fc; }
+  &.claimed { color: #fbbf24; }
 `;
 
 const Message = styled.p`
   font-size: 1.1rem;
   line-height: 1.6;
   opacity: 0.9;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   max-width: 400px;
 `;
 
@@ -115,6 +164,122 @@ const ActionButton = styled(motion.button)`
   }
 `;
 
+const SecondaryButton = styled(motion.button)`
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  align-items: center;
+  margin-top: 1rem;
+`;
+
+const ShareButton = styled(motion.button)`
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+`;
+
+const OwnershipDetailsBox = styled.div`
+  background: linear-gradient(135deg, rgba(0, 30, 60, 0.9), rgba(0, 50, 80, 0.7));
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin: 1.5rem 0;
+  width: 100%;
+  text-align: left;
+`;
+
+const DetailsRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const DetailsLabel = styled.span`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+const DetailsValue = styled.span`
+  font-size: 0.9rem;
+  color: #fff;
+  font-family: ${props => props.mono ? "'Courier New', monospace" : 'inherit'};
+  
+  &.highlight {
+    color: #4ade80;
+    font-weight: 600;
+  }
+`;
+
+const OwnerInfo = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  width: 100%;
+`;
+
+const OwnerLabel = styled.p`
+  font-size: 0.85rem;
+  color: #4ade80;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+`;
+
+const OwnerAddress = styled.p`
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: white;
+  word-break: break-all;
+`;
+
+const ClaimDate = styled.p`
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 0.5rem;
+`;
+
 const ErrorMessage = styled.div`
   color: #ef4444;
   font-size: 0.9rem;
@@ -126,15 +291,110 @@ const ErrorMessage = styled.div`
   text-align: center;
 `;
 
+// Ownership details component
+const OwnershipDetails = ({ edition, totalEditions, claimedAt, walletAddress, tokenId }) => {
+    const formatAddress = (addr) => {
+        if (!addr) return 'Unknown';
+        return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    };
+
+    const formatDate = (dateInput) => {
+        if (!dateInput) return 'Just now';
+
+        let date;
+        // Handle Firestore Timestamp format (_seconds)
+        if (dateInput._seconds) {
+            date = new Date(dateInput._seconds * 1000);
+        }
+        // Handle seconds format (numeric)
+        else if (dateInput.seconds) {
+            date = new Date(dateInput.seconds * 1000);
+        }
+        // Handle ISO string or Date object
+        else {
+            date = new Date(dateInput);
+        }
+
+        // Check if valid date
+        if (isNaN(date.getTime())) return 'Just now';
+
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    return (
+        <OwnershipDetailsBox>
+            {edition && (
+                <DetailsRow>
+                    <DetailsLabel>Edition</DetailsLabel>
+                    <DetailsValue className="highlight">#{edition} of {totalEditions || 500}</DetailsValue>
+                </DetailsRow>
+            )}
+            <DetailsRow>
+                <DetailsLabel>Claimed On</DetailsLabel>
+                <DetailsValue>{formatDate(claimedAt)}</DetailsValue>
+            </DetailsRow>
+            <DetailsRow>
+                <DetailsLabel>Owner Wallet</DetailsLabel>
+                <DetailsValue mono>{formatAddress(walletAddress)}</DetailsValue>
+            </DetailsRow>
+            {tokenId && (
+                <DetailsRow>
+                    <DetailsLabel>Token ID</DetailsLabel>
+                    <DetailsValue mono>{tokenId}</DetailsValue>
+                </DetailsRow>
+            )}
+        </OwnershipDetailsBox>
+    );
+};
+
+
+const ProductDetails = ({ product, serial, showBadge = false, tokenId = null }) => {
+    if (!product) return null;
+
+    return (
+        <>
+            {product.imageUrl && <ProductImage src={product.imageUrl} alt={product.name} />}
+            <ProductName>{product.name}</ProductName>
+            {product.edition && (
+                <EditionInfo>Edition #{product.edition} of {product.totalEditions || '500'}</EditionInfo>
+            )}
+            {showBadge && (
+                <VerificationBadge>
+                    <FaCertificate /> Authentic Product
+                </VerificationBadge>
+            )}
+            {tokenId && (
+                <BlockchainLink
+                    href={`https://polygonscan.com/token/0x0000000000000000000000000000000000000000?a=${tokenId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    View on Polygon <FaExternalLinkAlt />
+                </BlockchainLink>
+            )}
+        </>
+    );
+};
+
 export default function VerifyPage() {
     const { serial } = useParams();
     const navigate = useNavigate();
-    const { login, user, getAddress, signMessage, isInitialized, isLoading: isWeb3Loading, isWeb3Available } = useWeb3Auth();
+    const { login, user, getAddress, signMessage, isInitialized, isLoading: isWeb3Loading } = useWeb3Auth();
 
-    const [status, setStatus] = useState('checking'); // checking, valid, invalid, claimed, already_claimed
+    // States: verifying, invalid, verified_unclaimed, verified_claimed, claiming, ownership_verified
+    const [status, setStatus] = useState('verifying');
     const [walletAddress, setWalletAddress] = useState(null);
     const [product, setProduct] = useState(null);
+    const [claimInfo, setClaimInfo] = useState(null);
+    const [claimResult, setClaimResult] = useState(null);
     const [errorMessage, setErrorMessage] = useState('');
+    const [isCurrentOwner, setIsCurrentOwner] = useState(false);
 
     // Sync wallet address
     useEffect(() => {
@@ -142,30 +402,38 @@ export default function VerifyPage() {
             if (user) {
                 const address = await getAddress();
                 setWalletAddress(address);
+
+                // Check if current user is the owner
+                if (claimInfo?.claimedBy && address) {
+                    setIsCurrentOwner(claimInfo.claimedBy.toLowerCase() === address.toLowerCase());
+                }
             } else {
                 setWalletAddress(null);
+                setIsCurrentOwner(false);
             }
         };
         syncWallet();
-    }, [user, getAddress]);
+    }, [user, getAddress, claimInfo]);
 
     useEffect(() => {
-        // Call the real backend API to verify the claim code
         const checkSerial = async () => {
             try {
                 const data = await verificationAPI.verifyProduct(serial);
-
                 console.log('Verification response:', data);
 
                 if (data.verified) {
+                    setProduct(data.product);
+
                     if (data.claimed) {
-                        // Already claimed
-                        setStatus('already_claimed');
-                        setProduct(data.product);
+                        // Product is verified but already claimed
+                        setStatus('verified_claimed');
+                        setClaimInfo({
+                            claimedBy: data.product?.claimedBy || 'Unknown',
+                            claimedAt: data.product?.claimedAt
+                        });
                     } else {
-                        // Valid and ready to claim
-                        setStatus('valid');
-                        setProduct(data.product);
+                        // Product is verified and available to claim
+                        setStatus('verified_unclaimed');
                     }
                 } else {
                     setStatus('invalid');
@@ -199,21 +467,38 @@ export default function VerifyPage() {
         setErrorMessage('');
 
         try {
-            // Sign a message to prove wallet ownership
-            const message = `I claim ownership of product ${serial} on Crownmania. Timestamp: ${Date.now()}`;
+            let message;
+            try {
+                const nonceData = await verificationAPI.getNonce();
+                message = nonceData.messageTemplate
+                    .replace('{ACTION}', 'claim')
+                    .replace('{WALLET_ADDRESS}', walletAddress);
+            } catch (nonceError) {
+                console.warn('Nonce fetch failed, using simple message:', nonceError);
+                message = `I claim ownership of product ${serial} on Crownmania. Timestamp: ${Date.now()}`;
+            }
+
             const signature = await signMessage(message);
 
             if (!signature) {
                 setErrorMessage('Failed to sign ownership proof. Please try again.');
-                setStatus('valid');
+                setStatus('verified_unclaimed');
                 return;
             }
 
-            // Call API to claim product
             const result = await verificationAPI.claimProduct(serial, walletAddress, signature, message);
 
             if (result.success) {
-                setStatus('claimed');
+                // Store claim result for display
+                const claimedAt = new Date().toISOString();
+                setClaimResult({
+                    edition: result.edition,
+                    totalEditions: result.totalEditions || 500,
+                    tokenId: result.tokenId,
+                    claimedAt: claimedAt,
+                    walletAddress: walletAddress
+                });
+                setStatus('ownership_verified');
 
                 // Save to local storage for vault display
                 const owned = JSON.parse(localStorage.getItem('my_collectibles') || '[]');
@@ -221,38 +506,54 @@ export default function VerifyPage() {
                     owned.push({
                         id: serial,
                         tokenId: result.tokenId,
+                        edition: result.edition,
+                        totalEditions: result.totalEditions || 500,
                         type: product?.type,
                         name: product?.name || 'Crownmania Collectible',
                         description: product?.description,
                         imageUrl: product?.imageUrl,
-                        claimedDate: new Date().toISOString(),
+                        claimedDate: claimedAt,
                         walletAddress
                     });
                     localStorage.setItem('my_collectibles', JSON.stringify(owned));
                 }
             } else {
                 setErrorMessage(result.message || 'Failed to claim');
-                setStatus('valid');
+                setStatus('verified_unclaimed');
             }
         } catch (err) {
             console.error('Claim error:', err);
             setErrorMessage(err.message || 'Failed to claim product');
-            setStatus('valid');
+            setStatus('verified_unclaimed');
         }
+    };
+
+    const formatAddress = (addr) => {
+        if (!addr) return 'Unknown';
+        return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    };
+
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '';
+        return new Date(dateStr).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
     };
 
     return (
         <VerifyContainer>
-
             <ContentCard
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
             >
                 <AnimatePresence mode="wait">
-                    {status === 'checking' && (
+                    {/* VERIFYING STATE */}
+                    {status === 'verifying' && (
                         <motion.div
-                            key="checking"
+                            key="verifying"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -260,15 +561,16 @@ export default function VerifyPage() {
                             <StatusIcon className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
                                 <FaShieldAlt />
                             </StatusIcon>
-                            <Title>Authenticating...</Title>
-                            <Message>Verifying security signature and blockchain records for this item.</Message>
+                            <Title>Verifying...</Title>
+                            <Message>Checking product authenticity and blockchain records.</Message>
                             <SerialDisplay>{serial}</SerialDisplay>
                         </motion.div>
                     )}
 
-                    {status === 'valid' && !walletAddress && (
+                    {/* VERIFIED UNCLAIMED - Not logged in */}
+                    {status === 'verified_unclaimed' && !walletAddress && (
                         <motion.div
-                            key="valid"
+                            key="verified_unclaimed_no_wallet"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -276,53 +578,51 @@ export default function VerifyPage() {
                             <StatusIcon className="valid" initial={{ scale: 0 }} animate={{ scale: 1 }}>
                                 <FaCheckCircle />
                             </StatusIcon>
-                            <Title>Authentication Successful!</Title>
-                            {product && (
-                                <>
-                                    {product.imageUrl && <ProductImage src={product.imageUrl} alt={product.name} />}
-                                    <ProductName>{product.name}</ProductName>
-                                </>
-                            )}
+                            <Title>Product Verified ✓</Title>
+                            <ProductDetails product={product} serial={serial} showBadge />
                             <Message>
-                                This item has been verified as authentic.
-                                Sign in with your social account to secure your Digital Twin.
+                                This product is authentic! Create a wallet to claim your digital collectible.
                             </Message>
-                            <SerialDisplay>{serial}</SerialDisplay>
                             <ActionButton
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleConnectWallet}
+                                disabled={isWeb3Loading}
                             >
-                                <FaWallet /> Sign in to the Vault
+                                <FaWallet /> {isWeb3Loading ? 'Connecting...' : 'Sign In to Claim'}
                             </ActionButton>
+                            {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
                         </motion.div>
                     )}
 
-                    {status === 'valid' && walletAddress && (
+                    {/* VERIFIED UNCLAIMED - Logged in (Ready to claim) */}
+                    {status === 'verified_unclaimed' && walletAddress && (
                         <motion.div
-                            key="claim"
+                            key="verified_unclaimed_ready"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                         >
                             <StatusIcon className="valid">
-                                <FaWallet />
+                                <FaCheckCircle />
                             </StatusIcon>
-                            <Title>Account Secured</Title>
+                            <Title>Ready to Claim</Title>
+                            <ProductDetails product={product} serial={serial} showBadge />
                             <Message>
-                                You have successfully secured your account. You are now ready to claim the Digital Twin for this item.
+                                Claim your digital collectible to prove ownership on the blockchain.
                             </Message>
                             <ActionButton
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleClaim}
                             >
-                                Claim Digital Token <FaArrowRight />
+                                Claim Now <FaArrowRight />
                             </ActionButton>
                             {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
                         </motion.div>
                     )}
 
+                    {/* CLAIMING STATE */}
                     {status === 'claiming' && (
                         <motion.div
                             key="claiming"
@@ -332,61 +632,155 @@ export default function VerifyPage() {
                             <StatusIcon className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
                                 <FaShieldAlt />
                             </StatusIcon>
-                            <Title>Minting...</Title>
-                            <Message>Recording ownership on the blockchain securely.</Message>
+                            <Title>Claiming...</Title>
+                            <ProductDetails product={product} serial={serial} showBadge />
+                            <Message>Recording your ownership on the blockchain.</Message>
                         </motion.div>
                     )}
 
-                    {status === 'claimed' && (
+                    {/* OWNERSHIP VERIFIED (Success) */}
+                    {status === 'ownership_verified' && (
                         <motion.div
-                            key="success"
+                            key="ownership_verified"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            onAnimationComplete={() => {
+                                // Fire confetti!
+                                confetti({
+                                    particleCount: 100,
+                                    spread: 70,
+                                    origin: { y: 0.6 }
+                                });
+                                // Fire again for extra celebration
+                                setTimeout(() => {
+                                    confetti({
+                                        particleCount: 50,
+                                        angle: 60,
+                                        spread: 55,
+                                        origin: { x: 0 }
+                                    });
+                                    confetti({
+                                        particleCount: 50,
+                                        angle: 120,
+                                        spread: 55,
+                                        origin: { x: 1 }
+                                    });
+                                }, 250);
+                            }}
+                        >
+                            <StatusIcon className="valid" initial={{ scale: 0 }} animate={{ scale: 1.2 }} transition={{ type: "spring" }}>
+                                <FaCheckCircle />
+                            </StatusIcon>
+                            <Title>Ownership Verified ✓</Title>
+                            <ProductDetails product={product} serial={serial} showBadge />
+                            <OwnershipDetails
+                                edition={claimResult?.edition}
+                                totalEditions={claimResult?.totalEditions}
+                                claimedAt={claimResult?.claimedAt}
+                                walletAddress={claimResult?.walletAddress}
+                                tokenId={claimResult?.tokenId}
+                            />
+                            <ButtonGroup>
+                                <ActionButton
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => {
+                                        navigate('/');
+                                        setTimeout(() => {
+                                            const vault = document.getElementById('vault');
+                                            if (vault) vault.scrollIntoView({ behavior: 'smooth' });
+                                        }, 100);
+                                    }}
+                                >
+                                    View in Vault <FaArrowRight />
+                                </ActionButton>
+                                <ShareButton
+                                    whileHover={{ scale: 1.02 }}
+                                    onClick={async () => {
+                                        const url = window.location.href;
+                                        if (navigator.share) {
+                                            await navigator.share({
+                                                title: `${product?.name || 'Crownmania Collectible'} - Verified`,
+                                                text: 'Check out my verified Crownmania collectible!',
+                                                url
+                                            });
+                                        } else {
+                                            await navigator.clipboard.writeText(url);
+                                            alert('Link copied to clipboard!');
+                                        }
+                                    }}
+                                >
+                                    <FaShare /> Share
+                                </ShareButton>
+                            </ButtonGroup>
+                        </motion.div>
+                    )}
+
+                    {/* VERIFIED BUT ALREADY CLAIMED */}
+                    {status === 'verified_claimed' && (
+                        <motion.div
+                            key="verified_claimed"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                         >
                             <StatusIcon className="valid">
                                 <FaCheckCircle />
                             </StatusIcon>
-                            <Title>Ownership Verified</Title>
+                            <Title>Product Verified ✓</Title>
+                            <ProductDetails product={product} serial={serial} showBadge />
                             <Message>
-                                Congratulations! This item is now cryptographically linked to your wallet.
+                                This product is authentic and has been claimed.
                             </Message>
-                            <ActionButton
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => navigate('/#vault')}
-                            >
-                                View in Vault
-                            </ActionButton>
+                            <OwnershipDetails
+                                edition={product?.edition}
+                                totalEditions={product?.totalEditions || 500}
+                                claimedAt={claimInfo?.claimedAt}
+                                walletAddress={claimInfo?.claimedBy}
+                                tokenId={product?.tokenId}
+                            />
+                            <ButtonGroup>
+                                {isCurrentOwner ? (
+                                    <ActionButton
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => {
+                                            navigate('/');
+                                            setTimeout(() => {
+                                                const vault = document.getElementById('vault');
+                                                if (vault) vault.scrollIntoView({ behavior: 'smooth' });
+                                            }, 100);
+                                        }}
+                                    >
+                                        View in Vault <FaArrowRight />
+                                    </ActionButton>
+                                ) : (
+                                    <SecondaryButton onClick={() => navigate('/')}>
+                                        Return Home
+                                    </SecondaryButton>
+                                )}
+                                <ShareButton
+                                    whileHover={{ scale: 1.02 }}
+                                    onClick={async () => {
+                                        const url = window.location.href;
+                                        if (navigator.share) {
+                                            await navigator.share({
+                                                title: `${product?.name || 'Crownmania Collectible'} - Verified`,
+                                                text: 'This Crownmania collectible is verified authentic!',
+                                                url
+                                            });
+                                        } else {
+                                            await navigator.clipboard.writeText(url);
+                                            alert('Link copied to clipboard!');
+                                        }
+                                    }}
+                                >
+                                    <FaShare /> Share Verification
+                                </ShareButton>
+                            </ButtonGroup>
                         </motion.div>
                     )}
 
-                    {status === 'already_claimed' && (
-                        <motion.div
-                            key="already_claimed"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                        >
-                            <StatusIcon className="invalid">
-                                <FaExclamationTriangle />
-                            </StatusIcon>
-                            <Title>Already Claimed</Title>
-                            {product && (
-                                <>
-                                    {product.imageUrl && <ProductImage src={product.imageUrl} alt={product.name} />}
-                                    <ProductName>{product.name}</ProductName>
-                                </>
-                            )}
-                            <Message>
-                                This Digital Twin NFT has already been claimed by another wallet.
-                                Each physical item can only be claimed once.
-                            </Message>
-                            <SerialDisplay>{serial}</SerialDisplay>
-                            <ActionButton onClick={() => navigate('/')}>
-                                Return Home
-                            </ActionButton>
-                        </motion.div>
-                    )}
-
+                    {/* INVALID STATE */}
                     {status === 'invalid' && (
                         <motion.div
                             key="invalid"
@@ -396,13 +790,13 @@ export default function VerifyPage() {
                             <StatusIcon className="invalid">
                                 <FaExclamationTriangle />
                             </StatusIcon>
-                            <Title>Authentication Failed</Title>
+                            <Title>Invalid Serial</Title>
                             <Message>
-                                {errorMessage || 'We could not verify this serial number. It may be counterfeit or invalid.'}
+                                {errorMessage || 'This serial number could not be verified. Please check and try again.'}
                             </Message>
                             <SerialDisplay>{serial}</SerialDisplay>
                             <ActionButton onClick={() => navigate('/')}>
-                                Return Home
+                                Try Another Code
                             </ActionButton>
                         </motion.div>
                     )}

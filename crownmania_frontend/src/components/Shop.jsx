@@ -19,7 +19,7 @@ const ShopSection = styled.section`
 
 const MainTitle = styled.div`
   position: absolute;
-  top: 2rem;
+  top: 4rem;
   left: 50%;
   transform: translateX(-50%);
   padding: 1rem;
@@ -221,19 +221,6 @@ const ComingSoonWindow = styled.div`
   text-transform: uppercase;
   font-family: 'Designer', sans-serif;
   position: relative;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(
-      circle at center,
-      rgba(0, 102, 255, 0.1),
-      transparent 70%
-    );
-    pointer-events: none;
-    animation: pulse 4s ease-in-out infinite;
-  }
 `;
 
 const CloseButton = styled(motion.button)`
@@ -437,35 +424,33 @@ export default function Shop() {
           <ShopWindow
             key={product.id}
             layoutId={`window-${product.id}`}
-            onClick={() => setSelectedWindow(product)}
+            onClick={() => !product.comingSoon && setSelectedWindow(product)}
             initial={{ scale: 1, opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: product.comingSoon ? 1 : 1.02 }}
+            whileTap={{ scale: product.comingSoon ? 1 : 0.98 }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
+            style={{ cursor: product.comingSoon ? 'default' : 'pointer' }}
           >
             <ModelPreview>
-              <img
-                src={product.mainImage}
-                alt={product.name}
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                onError={(e) => {
-                  e.target.src = '/images/Placeholder-product.png';
-                }}
-              />
-              {product.comingSoon && <ComingSoonText>Coming Soon</ComingSoonText>}
+              {product.comingSoon ? (
+                <ComingSoonText>COMING SOON</ComingSoonText>
+              ) : (
+                <img
+                  src={product.mainImage}
+                  alt={product.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
+              )}
             </ModelPreview>
-            <ProductTitle>{product.name}</ProductTitle>
-            <ProductPrice>
-              {product.comingSoon ? '' : `$${product.price}`}
-            </ProductPrice>
+            {!product.comingSoon && <ProductTitle>{product.name}</ProductTitle>}
             {!product.comingSoon && (
               <BuyButton
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={(e) => handleBuyClick(e, product)}
               >
-                BUY NOW
+                SHOP NOW
               </BuyButton>
             )}
           </ShopWindow>
@@ -492,9 +477,10 @@ export default function Shop() {
             >
               <div>
                 <ProductTitle>{selectedWindow.name}</ProductTitle>
-                <ProductPrice>
-                  {selectedWindow.comingSoon ? 'Coming Soon' : `$${selectedWindow.price}`}
-                </ProductPrice>
+                {/* Prices hidden - customers purchase through external website */}
+                {selectedWindow.comingSoon && (
+                  <ProductPrice>Coming Soon</ProductPrice>
+                )}
               </div>
               {!selectedWindow.comingSoon && (
                 <BuyButton
@@ -502,7 +488,7 @@ export default function Shop() {
                   whileTap={{ scale: 0.95 }}
                   onClick={(e) => handleBuyClick(e, selectedWindow)}
                 >
-                  Buy Now
+                  Shop Now
                 </BuyButton>
               )}
             </ProductInfo>

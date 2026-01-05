@@ -85,6 +85,129 @@ export const verificationAPI = {
             throw error.response?.data || { error: 'Failed to get wallet tokens' };
         }
     },
+
+    /**
+     * Get a nonce for secure message signing
+     * @returns {Promise<{nonce: string, timestamp: number, messageTemplate: string}>}
+     */
+    getNonce: async () => {
+        try {
+            const response = await api.get('/api/verification/nonce');
+            return response.data;
+        } catch (error) {
+            console.error('Error getting nonce:', error);
+            throw error.response?.data || { error: 'Failed to get nonce' };
+        }
+    },
+};
+
+/**
+ * Content API service for token-gated content
+ */
+export const contentAPI = {
+    /**
+     * Upload content to Firebase Storage
+     * @param {FormData} formData - Form data containing file and metadata
+     * @returns {Promise<{success: boolean, contentId: string, url: string}>}
+     */
+    uploadContent: async (formData) => {
+        try {
+            const response = await api.post('/api/content/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error uploading content:', error);
+            throw error.response?.data || { error: 'Failed to upload content' };
+        }
+    },
+
+    /**
+     * Generate a signed URL for content access
+     * @param {string} contentId - The content identifier
+     * @param {string} walletAddress - Wallet address requesting access
+     * @param {number} expiryMinutes - URL expiry time in minutes (default 60)
+     * @returns {Promise<{success: boolean, signedUrl: string, expiresAt: number}>}
+     */
+    getSignedUrl: async (contentId, walletAddress, expiryMinutes = 60) => {
+        try {
+            const response = await api.get(`/api/content/signed-url/${contentId}`, {
+                params: { walletAddress, expiryMinutes }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error getting signed URL:', error);
+            throw error.response?.data || { error: 'Failed to get signed URL' };
+        }
+    },
+
+    /**
+     * Get content metadata without granting access
+     * @param {string} contentId - The content identifier
+     * @returns {Promise<{success: boolean, metadata: object}>}
+     */
+    getContentMetadata: async (contentId) => {
+        try {
+            const response = await api.get(`/api/content/${contentId}/metadata`);
+            return response.data;
+        } catch (error) {
+            console.error('Error getting content metadata:', error);
+            throw error.response?.data || { error: 'Failed to get content metadata' };
+        }
+    },
+
+    /**
+     * Get all content for a specific product
+     * @param {string} productId - The product identifier
+     * @param {string} walletAddress - Optional wallet address for access filtering
+     * @returns {Promise<{success: boolean, content: Array, count: number}>}
+     */
+    getProductContent: async (productId, walletAddress) => {
+        try {
+            const params = walletAddress ? { walletAddress } : {};
+            const response = await api.get(`/api/content/product/${productId}`, { params });
+            return response.data;
+        } catch (error) {
+            console.error('Error getting product content:', error);
+            throw error.response?.data || { error: 'Failed to get product content' };
+        }
+    },
+
+    /**
+     * Get content accessible by the requesting wallet
+     * @param {string} walletAddress - Wallet address to check
+     * @returns {Promise<{success: boolean, content: Array, count: number}>}
+     */
+    getAccessibleContent: async (walletAddress) => {
+        try {
+            const response = await api.get('/api/content/accessible', {
+                params: { walletAddress }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error getting accessible content:', error);
+            throw error.response?.data || { error: 'Failed to get accessible content' };
+        }
+    },
+
+    /**
+     * Validate a signed URL
+     * @param {string} url - The signed URL to validate
+     * @returns {Promise<{valid: boolean, ...params}>}
+     */
+    validateSignedUrl: async (url) => {
+        try {
+            const response = await api.get('/api/content/validate-url', {
+                params: { url }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error validating signed URL:', error);
+            return { valid: false };
+        }
+    }
 };
 
 export default api;

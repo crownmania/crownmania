@@ -43,6 +43,14 @@ const HomePage = () => (
 
 function App() {
   useEffect(() => {
+    // Debug environment variables
+    if (import.meta.env.DEV) {
+      console.log('=== ENV DEBUG ===');
+      console.log('VITE_WEB3AUTH_CLIENT_ID:', import.meta.env.VITE_WEB3AUTH_CLIENT_ID ? 'Present' : 'Missing');
+      console.log('VITE_WEB3_RPC_TARGET:', import.meta.env.VITE_WEB3_RPC_TARGET ? 'Present' : 'Missing');
+      console.log('WEB3_KEYS:', !!(import.meta.env.VITE_WEB3AUTH_CLIENT_ID && import.meta.env.VITE_WEB3_RPC_TARGET));
+    }
+
     async function checkStorage() {
       try {
         const result = await verifyStorageSetup();
