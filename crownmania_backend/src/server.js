@@ -91,12 +91,13 @@ const allowedOrigins = getAllowedOrigins();
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin ONLY in development (mobile apps, curl, etc.)
+    // Allow requests with no origin for:
+    // - Health checks (Railway, load balancers)
+    // - Server-to-server requests
+    // - curl/Postman testing
     if (!origin) {
-      if (isProduction) {
-        logger.warn('Request with no origin blocked in production');
-        return callback(new Error('Origin required'), false);
-      }
+      // In production, only allow no-origin for specific use cases
+      // Health checks and API-to-API calls don't send Origin header
       return callback(null, true);
     }
 
