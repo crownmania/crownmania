@@ -86,10 +86,11 @@ const db = getFirestore(admin.app(), 'crownmania');
 const functions = getFunctions();
 const messaging = getMessaging();
 const storage = getStorage();
+const adminStorage = storage.bucket(); // Get the default bucket for admin operations
 
 console.log('📊 Using Firestore database: crownmania');
 
 // Configure Firestore settings
 db.settings({ ignoreUndefinedProperties: true });
 
-export { admin, db, functions, messaging, storage };
+export { admin, db, functions, messaging, storage, adminStorage };

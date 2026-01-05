@@ -1,7 +1,7 @@
-import { db } from '../config/firebase.js';
-import { storage } from '../config/firebase.js';
-import { ref, uploadBytes, getDownloadURL, deleteObject, getMetadata, listAll } from '@firebase/storage';
+import { db, adminStorage } from '../config/firebase.js';
 import { contentSecurity } from '../utils/contentSecurity.js';
+
+// Use firebase-admin storage bucket instead of client-side Firebase Storage
 
 /**
  * Service for managing content storage and access for token-gated content
@@ -22,28 +22,29 @@ export const contentService = {
 
       // Create storage path: content/{productId}/{contentId}/{filename}
       const storagePath = `content/${metadata.productId || 'general'}/${contentId}/${fileName}`;
-      const storageRef = ref(storage, storagePath);
+      const file = adminStorage.file(storagePath);
 
       // Prepare metadata for Firebase Storage
       const uploadMetadata = {
         contentType: contentType,
-        customMetadata: {
+        metadata: {
           contentId: contentId,
           productId: metadata.productId || '',
           tokenId: metadata.tokenId || '',
           uploadedBy: metadata.uploadedBy || '',
           uploadTimestamp: Date.now().toString(),
           originalName: fileName,
-          contentType: metadata.contentType || 'unknown', // video, image, audio, etc.
+          contentCategory: metadata.contentType || 'unknown',
           accessLevel: metadata.accessLevel || 'token_gated'
         }
       };
 
-      // Upload file to Firebase Storage
-      const snapshot = await uploadBytes(storageRef, fileBuffer, uploadMetadata);
+      // Upload file to Firebase Storage using admin SDK
+      await file.save(fileBuffer, uploadMetadata);
 
-      // Get download URL
-      const downloadURL = await getDownloadURL(snapshot.ref);
+      // Make file publicly readable and get URL
+      await file.makePublic();
+      const downloadURL = `https://storage.googleapis.com/${adminStorage.name}/${storagePath}`;
 
       // Store content metadata in Firestore
       const contentDocRef = db.collection('content').doc(contentId);
@@ -102,8 +103,8 @@ export const contentService = {
         }
       }
 
-      // Get storage reference
-      const storageRef = ref(storage, contentData.storagePath);
+      // Get storage file reference (using admin SDK)
+      const file = adminStorage.file(contentData.storagePath);
 
       // Generate signed URL using Firebase's built-in signed URLs
       // Note: Firebase Storage doesn't have built-in signed URLs like AWS S3,
@@ -285,9 +286,9 @@ export const contentService = {
 
       const contentData = contentDoc.data();
 
-      // Delete from Firebase Storage
-      const storageRef = ref(storage, contentData.storagePath);
-      await deleteObject(storageRef);
+      // Delete from Firebase Storage using admin SDK
+      const file = adminStorage.file(contentData.storagePath);
+      await file.delete();
 
       // Delete from Firestore
       await db.collection('content').doc(contentId).delete();
