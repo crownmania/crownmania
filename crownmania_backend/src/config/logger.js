@@ -20,13 +20,13 @@ const SENSITIVE_FIELDS = [
 // Function to redact sensitive information
 const redactSensitiveInfo = (info) => {
   const redacted = { ...info };
-  
+
   const redactObject = (obj) => {
     for (const key in obj) {
       if (typeof obj[key] === 'object' && obj[key] !== null) {
         obj[key] = redactObject(obj[key]);
       } else if (
-        SENSITIVE_FIELDS.some(field => 
+        SENSITIVE_FIELDS.some(field =>
           key.toLowerCase().includes(field.toLowerCase())
         )
       ) {
@@ -99,33 +99,40 @@ const logger = winston.createLogger({
   exitOnError: false
 });
 
-// Add Firebase Cloud Logging in production
-if (process.env.NODE_ENV === 'production') {
-  const loggingWinston = new LoggingWinston({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-    logName: 'crownmania_backend',
-    resource: {
-      type: 'cloud_function',
-      labels: {
-        function_name: process.env.FUNCTION_NAME || 'crownmania-api',
-        region: process.env.FUNCTION_REGION || 'us-central1'
+// Add Firebase Cloud Logging in production (disabled - requires GOOGLE_APPLICATION_CREDENTIALS file)
+// Cloud logging is skipped when running on Railway/Vercel as we use env vars instead
+if (process.env.NODE_ENV === 'production' && process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  try {
+    const loggingWinston = new LoggingWinston({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      logName: 'crownmania_backend',
+      resource: {
+        type: 'cloud_function',
+        labels: {
+          function_name: process.env.FUNCTION_NAME || 'crownmania-api',
+          region: process.env.FUNCTION_REGION || 'us-central1'
+        }
+      },
+      serviceContext: {
+        service: 'crownmania-backend',
+        version: process.env.npm_package_version
       }
-    },
-    // Retention settings for Cloud Logging
-    serviceContext: {
-      service: 'crownmania-backend',
-      version: process.env.npm_package_version
-    }
-  });
+    });
 
-  logger.add(loggingWinston);
+    logger.add(loggingWinston);
+    console.log('☁️ Google Cloud Logging enabled');
+  } catch (err) {
+    console.log('⚠️ Google Cloud Logging disabled - running without GOOGLE_APPLICATION_CREDENTIALS file');
+  }
+} else if (process.env.NODE_ENV === 'production') {
+  console.log('📝 Using console/file logging only (Cloud Logging disabled)');
 }
 
 // Log cleanup job
 const cleanupOldLogs = () => {
   const maxAge = 14 * 24 * 60 * 60 * 1000; // 14 days in milliseconds
-  
+
   fs.readdir(logsDir, (err, files) => {
     if (err) {
       logger.error('Error reading logs directory:', err);
