@@ -1,25 +1,23 @@
 FROM node:20-slim
 
 # Create app directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy package files
 COPY package*.json ./
-RUN npm ci --only=production
 
-# Copy built application and config files
-COPY dist/ ./dist/
-COPY .env* ./
+# Install dependencies (use install instead of ci for flexibility)
+RUN npm install --omit=dev
+
+# Copy source code
+COPY src/ ./src/
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Create an entry point file that requires the built server
-RUN echo "import './dist/server.js';" > index.js
-
-# Expose the port the app runs on
+# Expose the port
 EXPOSE 8080
 
 # Start the application
-CMD ["node", "index.js"]
+CMD ["node", "src/server.js"]
