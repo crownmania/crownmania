@@ -7,7 +7,9 @@ import { DurkModel } from './3d/DurkModel';
 import { loadStripe } from '@stripe/stripe-js';
 import { getStorageURL } from '../utils/storageUtils';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+// Only load Stripe if the key is configured
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -202,9 +204,9 @@ export default function ProductPage() {
           </ModelViewer>
           <ProductImages>
             {productImages.map((url, index) => (
-              <img 
-                key={index} 
-                src={url} 
+              <img
+                key={index}
+                src={url}
                 alt={`Product view ${index + 1}`}
                 loading="lazy"
               />
