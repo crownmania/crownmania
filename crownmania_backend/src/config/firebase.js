@@ -34,8 +34,18 @@ function getServiceAccount() {
     return JSON.parse(jsonContent);
   }
 
-  // Fall back to environment variables
-  console.log('🔧 Loading Firebase credentials from environment variables');
+  // Check for full JSON content in environment variable
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+    console.log('🔧 Loading Firebase credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON');
+    try {
+      return JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+    } catch (e) {
+      console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', e.message);
+    }
+  }
+
+  // Fall back to individual environment variables
+  console.log('🔧 Loading Firebase credentials from individual environment variables');
 
   const serviceAccount = {
     type: 'service_account',
