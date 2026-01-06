@@ -257,21 +257,7 @@ export function DurkModel({ usePlaceholder = false, isUnlocked = false }) {
       try {
         console.log('Starting model load process...');
 
-        // First try local public folder
-        const localUrl = '/models/durk-model.glb';
-        try {
-          const response = await fetch(localUrl, { method: 'HEAD' });
-          if (response.ok) {
-            console.log('Found local model');
-            setModelUrl(localUrl);
-            setIsLoading(false);
-            return;
-          }
-        } catch (localErr) {
-          console.log('Local model not found, trying Firebase...');
-        }
-
-        // Try Firebase Storage with multiple path variations
+        // Go directly to Firebase Storage (skip local check as Vercel SPA returns HTML for missing files)
         if (storage) {
           console.log('Attempting to fetch model from Firebase Storage...');
 
