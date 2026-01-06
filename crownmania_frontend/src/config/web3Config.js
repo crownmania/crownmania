@@ -151,13 +151,16 @@ const getWeb3Auth = async () => {
 
     if (isDev) console.log('Web3Auth: Provider created, creating Web3Auth instance...');
 
+    // Use environment variable for network, default to sapphire_devnet for testing
+    const web3AuthNetwork = import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_devnet";
+
     web3authInstance = new Web3Auth({
       clientId,
-      web3AuthNetwork: "sapphire_mainnet",
+      web3AuthNetwork,
       privateKeyProvider,
     });
 
-    if (isDev) console.log('Web3Auth: Initializing modal...');
+    if (isDev) console.log('Web3Auth: Using network:', web3AuthNetwork);
 
     await web3authInstance.initModal();
     isInitialized = true;
