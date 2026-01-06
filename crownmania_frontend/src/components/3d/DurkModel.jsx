@@ -241,7 +241,7 @@ function PlaceholderFigure({ isUnlocked = false }) {
   );
 }
 
-export function DurkModel({ usePlaceholder = false, isUnlocked = false }) {
+export function DurkModel({ usePlaceholder = true, isUnlocked = false }) {
   const [modelUrl, setModelUrl] = useState(null);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
