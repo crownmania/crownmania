@@ -17,6 +17,9 @@ const app = express();
 const defaultPort = process.env.PORT || 5001;
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Trust proxy for Railway/Vercel (needed for rate limiting and getting real IP)
+app.set('trust proxy', 1);
+
 // ============================================
 // Security Middleware - Helmet with CSP
 // ============================================
