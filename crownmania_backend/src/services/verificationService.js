@@ -2,6 +2,7 @@ import { db } from '../config/firebase.js';
 import { sendVerificationEmail } from '../config/email.js';
 import crypto from 'crypto';
 import { contentSecurity } from '../utils/contentSecurity.js';
+import { transferNFTToWallet, checkNFTOwnership } from './thirdwebService.js';
 
 /**
  * Service for managing collectible verification and token claiming
@@ -297,13 +298,41 @@ export const verificationService = {
         claimedAt: new Date()
       });
 
+      // Transfer the actual NFT on Polygon via Thirdweb
+      let nftTransferResult = null;
+      try {
+        nftTransferResult = await transferNFTToWallet(walletAddress);
+        console.log('NFT Transfer successful:', nftTransferResult);
+
+        // Update collectible with blockchain transaction info
+        await collectibleRef.update({
+          blockchainTokenId: nftTransferResult.tokenId,
+          transactionHash: nftTransferResult.transactionHash,
+          contractAddress: nftTransferResult.contractAddress,
+          nftTransferred: true
+        });
+      } catch (nftError) {
+        console.error('NFT Transfer failed (claim still recorded):', nftError.message);
+        // The claim is still valid, but NFT transfer failed
+        // This can be retried later
+        await collectibleRef.update({
+          nftTransferError: nftError.message,
+          nftTransferred: false
+        });
+      }
+
       return {
         success: true,
         tokenId: tokenId,
+        blockchainTokenId: nftTransferResult?.tokenId || null,
+        transactionHash: nftTransferResult?.transactionHash || null,
         edition: editionNumber,
         totalEditions: 500,
         productName: productData.name,
-        message: `NFT minted successfully! You own Edition #${editionNumber} of 500.`
+        nftTransferred: !!nftTransferResult,
+        message: nftTransferResult
+          ? `NFT transferred successfully! You own Edition #${editionNumber} of 500. TX: ${nftTransferResult.transactionHash?.substring(0, 10)}...`
+          : `Claim recorded! NFT transfer pending - Edition #${editionNumber} of 500.`
       };
     } catch (error) {
       console.error('Error claiming product:', error);
