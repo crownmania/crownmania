@@ -3,12 +3,13 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-comp
 
 // Firebase config - these are public web config values (safe to expose)
 firebase.initializeApp({
-  apiKey: "AIzaSyBJoY_1QhxYpvVTcBw4lJxqNNjNn9qJD9g",
+  apiKey: "AIzaSyCWUFvCqGeCTYPZ5RNTE5JRdg8044lay94",
   authDomain: "sonorous-crane-440603-s6.firebaseapp.com",
   projectId: "sonorous-crane-440603-s6",
-  storageBucket: "sonorous-crane-440603-s6.appspot.com",
-  messagingSenderId: "515434599532",
-  appId: "1:515434599532:web:3a4b5c6d7e8f9a0b1c2d3e"
+  storageBucket: "sonorous-crane-440603-s6.firebasestorage.app",
+  messagingSenderId: "4886730691",
+  appId: "1:515434599532:web:c803494515474ffa053449",
+  measurementId: "G-KGLV8Y6S5G"
 });
 
 const messaging = firebase.messaging();
