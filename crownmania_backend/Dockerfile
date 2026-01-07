@@ -5,12 +5,13 @@ FROM node:20-slim
 # Create app directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files and npm config
 COPY package*.json ./
+COPY .npmrc ./
 
 # Install dependencies (use install instead of ci for flexibility)
-# Using --legacy-peer-deps to resolve ethers v5/v6 conflict between thirdweb and typechain
-RUN npm install --omit=dev --legacy-peer-deps
+# legacy-peer-deps is set in .npmrc to resolve ethers v5/v6 conflict
+RUN npm install --omit=dev
 
 # Copy source code
 COPY src/ ./src/
