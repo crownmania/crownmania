@@ -629,7 +629,7 @@ const COLLECTIBLES = [
     image: '/images/product1.webp',
     edition: 'First Edition',
     year: '2025',
-    series: 'Crown Series',
+    series: 'Lil Durk: Free The Voice Series',
     has3DModel: true,
     locked: true  // Requires ownership to unlock
   },
@@ -1017,7 +1017,7 @@ export default function Vault() {
               <ModalDetails>
                 <ModalTitle>{selectedCollectible.fullName || selectedCollectible.name}</ModalTitle>
                 <ModalInfo>
-                  <p><span className="label">Series:</span><br />{selectedCollectible.series || 'Crown Series'}</p>
+                  <p><span className="label">Series:</span><br />{selectedCollectible.series || 'Lil Durk: Free The Voice Series'}</p>
                   {selectedCollectible.edition ? (
                     <p><span className="label">Edition:</span><br />#{selectedCollectible.edition} of {selectedCollectible.totalEditions || 500}</p>
                   ) : (
