@@ -1,9 +1,11 @@
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { useState, useEffect, useRef } from 'react';
-import { FaHome, FaShoppingBag, FaLock, FaInfoCircle, FaEnvelope, FaComments } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { FaHome, FaShoppingBag, FaLock, FaInfoCircle, FaEnvelope, FaComments, FaWallet, FaSpinner } from 'react-icons/fa';
 import crownLogo from '../assets/crown_logo_white.svg';
 import BackgroundBeams from './BackgroundBeams';
+import { useWeb3Auth } from '../hooks/useWeb3Auth';
 
 const HeaderContainer = styled(motion.header)`
   position: fixed;
@@ -120,6 +122,59 @@ const Logo = styled.div`
   color: white;
 `;
 
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const ConnectButton = styled(motion.button)`
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: white;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-family: 'Designer', sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: white;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  svg.spin {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  @media (max-width: 600px) {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+    gap: 0.35rem;
+    
+    span {
+      display: none;
+    }
+  }
+`;
+
 const HamburgerButton = styled(motion.button)`
   background: none;
   border: none;
@@ -229,9 +284,12 @@ const menuItemVariants = {
 };
 
 export default function Header() {
+  const navigate = useNavigate();
+  const { isInitialized, isWeb3Available, user, isLoading, login } = useWeb3Auth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isConnecting, setIsConnecting] = useState(false);
   const { scrollY } = useScroll();
   const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.8]);
   const menuRef = useRef(null);
@@ -247,6 +305,35 @@ export default function Header() {
   ];
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  const handleConnect = async () => {
+    if (user) {
+      // Already connected, go to vault
+      navigate('/#vault');
+      const vaultSection = document.getElementById('vault');
+      if (vaultSection) {
+        vaultSection.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
+    try {
+      setIsConnecting(true);
+      await login();
+      // After successful login, navigate to vault
+      navigate('/#vault');
+      setTimeout(() => {
+        const vaultSection = document.getElementById('vault');
+        if (vaultSection) {
+          vaultSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 500);
+    } catch (err) {
+      console.error('Connection failed:', err);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   const scrollToTop = () => {
     window.scrollTo({
@@ -339,20 +426,36 @@ export default function Header() {
           <Logo>CROWNMANIA</Logo>
         </LogoLink>
 
-        <HamburgerButton
-          onClick={toggleMenu}
-          ref={buttonRef}
-        >
-          <HamburgerLine
-            animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
-          />
-          <HamburgerLine
-            animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
-          />
-          <HamburgerLine
-            animate={isMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
-          />
-        </HamburgerButton>
+        <HeaderActions>
+          <ConnectButton
+            onClick={handleConnect}
+            disabled={isLoading || isConnecting || !isWeb3Available}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {isLoading || isConnecting ? (
+              <FaSpinner className="spin" />
+            ) : (
+              <FaWallet />
+            )}
+            <span>{user ? 'Vault' : 'Connect'}</span>
+          </ConnectButton>
+
+          <HamburgerButton
+            onClick={toggleMenu}
+            ref={buttonRef}
+          >
+            <HamburgerLine
+              animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
+            />
+            <HamburgerLine
+              animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
+            />
+            <HamburgerLine
+              animate={isMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
+            />
+          </HamburgerButton>
+        </HeaderActions>
       </HeaderContainer>
 
       <HalftoneOverlay />
