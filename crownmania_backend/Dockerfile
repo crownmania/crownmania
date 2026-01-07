@@ -7,7 +7,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies (use install instead of ci for flexibility)
-RUN npm install --omit=dev
+# Using --legacy-peer-deps to resolve ethers v5/v6 conflict between thirdweb and typechain
+RUN npm install --omit=dev --legacy-peer-deps
 
 # Copy source code
 COPY src/ ./src/
