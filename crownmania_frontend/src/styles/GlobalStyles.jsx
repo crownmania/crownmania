@@ -3,9 +3,10 @@ import { createGlobalStyle } from 'styled-components';
 export const GlobalStyles = createGlobalStyle`
   @font-face {
     font-family: 'Designer';
-    src: local('Designer');
+    src: url('/fonts/Designer.otf') format('opentype');
     font-weight: normal;
     font-style: normal;
+    font-display: swap;
   }
 
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Sans+Pro:wght@300;400;500;600&display=swap');
