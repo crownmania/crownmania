@@ -1,5 +1,7 @@
 FROM node:20-slim
 
+# Force rebuild - updated Jan 7 2026
+
 # Create app directory
 WORKDIR /app
 
