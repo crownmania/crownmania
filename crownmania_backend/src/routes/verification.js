@@ -1,6 +1,7 @@
 import express from 'express';
 import { verificationService } from '../services/verificationService.js';
 import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
+import { sendClaimConfirmationEmail } from '../config/email.js';
 
 const router = express.Router();
 
@@ -61,19 +62,38 @@ router.get('/verify-product/:id', async (req, res) => {
  */
 router.post('/claim', authenticateWallet, async (req, res) => {
   try {
-    const { productId, walletAddress, signature, message } = req.body;
+    const { productId, walletAddress, signature, message, email } = req.body;
 
     if (!productId || !walletAddress) {
       return res.status(400).json({ error: 'Product ID and wallet address are required' });
     }
 
     const result = await verificationService.claimProduct(productId, walletAddress, signature, message);
+
+    // Send confirmation email if email is provided
+    if (email && result.success) {
+      try {
+        await sendClaimConfirmationEmail(email, {
+          productName: result.productName || 'Lil Durk 10-inch Resin Figure',
+          serialNumber: productId,
+          walletAddress: walletAddress,
+          tokenId: result.tokenId,
+          editionNumber: result.edition,
+          claimDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        });
+      } catch (emailError) {
+        console.error('Failed to send claim confirmation email:', emailError);
+        // Don't fail the claim if email fails
+      }
+    }
+
     res.json(result);
   } catch (error) {
     console.error('Error claiming product:', error);
     res.status(500).json({ error: error.message || 'Server error during claim' });
   }
 });
+
 
 /**
  * @route POST /api/verification/request-email-verification

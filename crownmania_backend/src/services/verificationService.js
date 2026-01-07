@@ -1,5 +1,5 @@
 import { db } from '../config/firebase.js';
-import { sendVerificationEmail } from '../config/email.js';
+import { sendVerificationEmail, sendClaimConfirmationEmail } from '../config/email.js';
 import crypto from 'crypto';
 import { contentSecurity } from '../utils/contentSecurity.js';
 import { transferNFTToWallet, checkNFTOwnership } from './thirdwebService.js';
@@ -334,6 +334,10 @@ export const verificationService = {
           ? `NFT transferred successfully! You own Edition #${editionNumber} of 500. TX: ${nftTransferResult.transactionHash?.substring(0, 10)}...`
           : `Claim recorded! NFT transfer pending - Edition #${editionNumber} of 500.`
       };
+
+      // Note: Email notification would be sent here if user email is available
+      // The frontend can trigger this via a separate endpoint if needed
+
     } catch (error) {
       console.error('Error claiming product:', error);
       throw new Error('Failed to claim product');
