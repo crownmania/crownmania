@@ -144,14 +144,14 @@ export const authenticateWallet = async (req, res, next) => {
     }
 
     // Validate wallet address format
-    if (!ethers.isAddress(walletAddress)) {
+    if (!ethers.utils.isAddress(walletAddress)) {
       return res.status(400).json({ error: 'Invalid wallet address format' });
     }
 
     // Verify the signature using ethers (v6)
     let recoveredAddress;
     try {
-      recoveredAddress = ethers.verifyMessage(message, signature);
+      recoveredAddress = ethers.utils.verifyMessage(message, signature);
     } catch (sigError) {
       logger.warn('Signature verification failed:', sigError.message);
       return res.status(401).json({ error: 'Invalid signature format' });
