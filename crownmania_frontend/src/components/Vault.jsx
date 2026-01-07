@@ -687,6 +687,16 @@ export default function Vault() {
     return userTokens.some(token => token.productId === collectible.productId);
   }, [userTokens]);
 
+  // Get token details for a collectible
+  const getTokenDetails = useCallback((collectibleId) => {
+    if (!userTokens || userTokens.length === 0) return null;
+
+    const collectible = COLLECTIBLES.find(c => c.id === collectibleId);
+    if (!collectible || !collectible.productId) return null;
+
+    return userTokens.find(token => token.productId === collectible.productId);
+  }, [userTokens]);
+
   // Handle wallet connection
   const handleConnect = async () => {
     try {
@@ -1015,34 +1025,65 @@ export default function Vault() {
                   )}
                   <p><span className="label">Year:</span><br />{selectedCollectible.year || '2025'}</p>
                 </ModalInfo>
-                {isOwned(selectedCollectible.id) && (
-                  <div style={{
-                    marginTop: '1rem',
-                    padding: '1rem',
-                    background: 'rgba(0, 255, 136, 0.1)',
-                    border: '1px solid rgba(0, 255, 136, 0.3)',
-                    borderRadius: '8px'
-                  }}>
-                    <p style={{ color: '#00ff88', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <FaCheck /> You own this collectible
-                    </p>
-                    {selectedCollectible.claimedDate && (
-                      <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)' }}>
-                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>Claimed:</span> {new Date(selectedCollectible.claimedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                {isOwned(selectedCollectible.id) && (() => {
+                  const tokenDetails = getTokenDetails(selectedCollectible.id);
+                  return (
+                    <div style={{
+                      marginTop: '1rem',
+                      padding: '1.25rem',
+                      background: 'linear-gradient(145deg, rgba(0, 40, 60, 0.9), rgba(0, 20, 40, 0.95))',
+                      border: '1px solid rgba(0, 255, 136, 0.3)',
+                      borderRadius: '12px'
+                    }}>
+                      <p style={{
+                        color: '#00ff88',
+                        marginBottom: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        fontWeight: '600'
+                      }}>
+                        <FaCheck /> You own this collectible
                       </p>
-                    )}
-                    {selectedCollectible.walletAddress && (
-                      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem', fontFamily: 'monospace' }}>
-                        Wallet: {selectedCollectible.walletAddress.slice(0, 6)}...{selectedCollectible.walletAddress.slice(-4)}
-                      </p>
-                    )}
-                    {selectedCollectible.tokenId && (
-                      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginTop: '0.25rem', fontFamily: 'monospace' }}>
-                        Token: {selectedCollectible.tokenId}
-                      </p>
-                    )}
-                  </div>
-                )}
+
+                      {/* Ownership Details Grid */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '0.75rem',
+                        fontSize: '0.85rem'
+                      }}>
+                        <div>
+                          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Edition</span>
+                          <p style={{ color: '#00c8ff', fontFamily: 'monospace', marginTop: '0.25rem' }}>
+                            #{tokenDetails?.editionNumber || tokenDetails?.claimNumber || '1'} of {tokenDetails?.totalEditions || 500}
+                          </p>
+                        </div>
+                        <div>
+                          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Claimed On</span>
+                          <p style={{ color: 'white', marginTop: '0.25rem' }}>
+                            {tokenDetails?.claimedAt ?
+                              new Date(tokenDetails.claimedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                              : 'Recently'
+                            }
+                          </p>
+                        </div>
+                        <div>
+                          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Owner Wallet</span>
+                          <p style={{ color: 'white', fontFamily: 'monospace', marginTop: '0.25rem', fontSize: '0.8rem' }}>
+                            {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connected'}
+                          </p>
+                        </div>
+                        <div>
+                          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Token ID</span>
+                          <p style={{ color: 'white', fontFamily: 'monospace', marginTop: '0.25rem', fontSize: '0.8rem' }}>
+                            {tokenDetails?.tokenId || tokenDetails?.id || 'NFT-' + (tokenDetails?.claimNumber || '001')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
                 {!isOwned(selectedCollectible.id) && (
                   <GlowButton
                     style={{ marginTop: '1.5rem' }}
