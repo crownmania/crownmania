@@ -465,8 +465,8 @@ const CharacterGrid = styled.div`
 `;
 
 const CharacterSlot = styled(motion.div)`
-  width: 100px;
-  height: 130px;
+  width: ${props => props.$isCenter ? '140px' : '100px'};
+  height: ${props => props.$isCenter ? '180px' : '130px'};
   border-radius: 8px;
   position: relative;
   cursor: pointer;
@@ -474,22 +474,7 @@ const CharacterSlot = styled(motion.div)`
   transition: all 0.3s ease;
   transform-style: preserve-3d;
   flex-shrink: 0;
-
-  ${props => props.$isCenter && css`
-    width: 140px;
-    height: 180px;
-    z-index: 10;
-  `}
-  
-  @media (max-width: 600px) {
-    width: 70px;
-    height: 95px;
-    
-    ${props => props.$isCenter && css`
-      width: 85px;
-      height: 115px;
-    `}
-  }
+  z-index: ${props => props.$isCenter ? '10' : '1'};
 
   ${props => props.$unlocked ? css`
     background: linear-gradient(145deg, rgba(0, 40, 60, 0.9), rgba(0, 20, 40, 0.95));
@@ -511,6 +496,11 @@ const CharacterSlot = styled(motion.div)`
 
   &:hover {
     transform: ${props => props.$isCenter ? 'scale(1.05)' : 'scale(1.08)'};
+  }
+  
+  @media (max-width: 600px) {
+    width: ${props => props.$isCenter ? '85px' : '70px'};
+    height: ${props => props.$isCenter ? '115px' : '95px'};
   }
 `;
 
@@ -654,7 +644,7 @@ export default function Vault() {
 
     try {
       // Navigate to verify page with the serial number
-      navigate(`/mintNFT?id=${serialNumber.trim()}&type=1`);
+      navigate(`/ mintNFT ? id = ${serialNumber.trim()}& type=1`);
     } catch (err) {
       setVerificationResult({ status: 'error', message: err.message || 'Verification failed' });
     } finally {
@@ -900,14 +890,14 @@ export default function Vault() {
 
       {/* Global Styles for spin animation */}
       <style>{`
-        @keyframes spin {
+@keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
-        }
+}
         .spin {
-          animation: spin 1s linear infinite;
-        }
-      `}</style>
+  animation: spin 1s linear infinite;
+}
+`}</style>
     </VaultSection>
   );
 }
