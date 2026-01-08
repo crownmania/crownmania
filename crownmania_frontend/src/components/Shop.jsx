@@ -30,13 +30,14 @@ const MainTitle = styled.div`
     font-family: 'Designer', sans-serif;
     margin-bottom: 0.5rem;
     font-weight: bold;
+    text-shadow: var(--title-glow);
   }
 
   .subtitle {
     font-size: 0.8rem;
     opacity: 0.8;
     letter-spacing: 0.1em;
-    font-family: 'Designer', sans-serif;
+    font-family: 'Source Sans Pro', sans-serif;
     text-transform: uppercase;
   }
 `;
@@ -59,7 +60,7 @@ const WindowsContainer = styled.div`
 `;
 
 const ShopWindow = styled(motion.div)`
-  aspect-ratio: 3/4;
+  aspect-ratio: 1/1;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 12px;
   backdrop-filter: blur(10px);
@@ -409,7 +410,8 @@ export default function Shop() {
 
   const handleBuyClick = (e, product) => {
     e.stopPropagation();
-    navigate(`/product/${product.id}`);
+    // Redirect to Lil Durk's official store
+    window.open('https://shop.lildurkofficial.com/products/lil-durk-resin-figure', '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -450,7 +452,7 @@ export default function Shop() {
                 whileTap={{ scale: 0.95 }}
                 onClick={(e) => handleBuyClick(e, product)}
               >
-                SHOP NOW
+                VIEW PRODUCT
               </BuyButton>
             )}
           </ShopWindow>
@@ -488,7 +490,7 @@ export default function Shop() {
                   whileTap={{ scale: 0.95 }}
                   onClick={(e) => handleBuyClick(e, selectedWindow)}
                 >
-                  Shop Now
+                  View Product
                 </BuyButton>
               )}
             </ProductInfo>

@@ -20,6 +20,7 @@ export const GlobalStyles = createGlobalStyle`
     --black: #000000;
     --font-primary: 'Designer', sans-serif;
     --font-secondary: 'Source Sans Pro', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --title-glow: 0 0 10px rgba(255, 255, 255, 0.5);
   }
 
   * {

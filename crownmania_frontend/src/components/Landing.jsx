@@ -116,7 +116,38 @@ const BuyButton = styled.button`
   }
 `;
 
+const LogoButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 2rem;
+  z-index: 2;
+  padding: 0;
+  
+  img {
+    width: 60px;
+    height: 60px;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+    transition: all 0.3s ease;
+  }
+  
+  &:hover img {
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.6));
+    transform: scale(1.1);
+  }
+`;
+
+import crownLogo from '../assets/crown_logo_white.svg';
+
 export default function Landing() {
+  const scrollToGallery = () => {
+    const gallerySection = document.getElementById('gallery');
+    if (gallerySection) {
+      gallerySection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <LandingSection id="landing">
       <ContentWrapper>
@@ -134,7 +165,9 @@ export default function Landing() {
         >
           REVOLUTIONIZING COLLECTIBLES TO CONNECT THE WORLD
         </SubTagline>
-        <BuyButton style={{ marginTop: '2rem' }}>BUY NOW</BuyButton>
+        <LogoButton onClick={scrollToGallery} aria-label="Scroll to gallery">
+          <img src={crownLogo} alt="Crownmania" />
+        </LogoButton>
       </ContentWrapper>
     </LandingSection>
   );
