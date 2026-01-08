@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "_forceRebuild": "v2-font-fix-20260108",
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
