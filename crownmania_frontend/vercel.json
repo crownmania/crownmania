@@ -6,11 +6,36 @@
   "installCommand": "npm install",
   "rewrites": [
     {
-      "source": "/((?!api/|fonts/|assets/|images/|.*\\..*).*)",
+      "source": "/fonts/:path*",
+      "destination": "/fonts/:path*"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "/assets/:path*"
+    },
+    {
+      "source": "/images/:path*",
+      "destination": "/images/:path*"
+    },
+    {
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/fonts/(.*)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "font/otf"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
     {
       "source": "/assets/(.*)",
       "headers": [
