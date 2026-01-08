@@ -2,6 +2,7 @@ import express from 'express';
 import { verificationService } from '../services/verificationService.js';
 import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
 import { sendClaimConfirmationEmail } from '../config/email.js';
+import { sendScanAttemptEmail, sendCodeEntryEmail, sendClaimAttemptEmail } from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -26,6 +27,15 @@ router.post('/verify-serial', async (req, res) => {
     }
 
     const result = await verificationService.verifySerialNumber(serialNumber);
+
+    // Send admin notification
+    sendCodeEntryEmail(serialNumber, {
+      ip: req.ip || req.headers['x-forwarded-for'],
+      userAgent: req.headers['user-agent'],
+      verified: result.verified,
+      productName: result.product?.name
+    }).catch(err => console.error('Notification error:', err));
+
     res.json(result);
   } catch (error) {
     console.error('Error verifying serial number:', error);
@@ -48,6 +58,15 @@ router.get('/verify-product/:id', async (req, res) => {
     }
 
     const result = await verificationService.verifyProductById(id, type);
+
+    // Send admin notification
+    sendScanAttemptEmail(id, 'qr_scan', {
+      ip: req.ip || req.headers['x-forwarded-for'],
+      userAgent: req.headers['user-agent'],
+      verified: result.verified,
+      productName: result.product?.name
+    }).catch(err => console.error('Notification error:', err));
+
     res.json(result);
   } catch (error) {
     console.error('Error verifying product:', error);
@@ -69,6 +88,15 @@ router.post('/claim', authenticateWallet, async (req, res) => {
     }
 
     const result = await verificationService.claimProduct(productId, walletAddress, signature, message);
+
+    // Send admin notification for claim attempt
+    sendClaimAttemptEmail({
+      claimCodeId: productId,
+      walletAddress,
+      success: result.success,
+      edition: result.edition,
+      ip: req.ip || req.headers['x-forwarded-for']
+    }).catch(err => console.error('Claim notification error:', err));
 
     // Send confirmation email if email is provided
     if (email && result.success) {

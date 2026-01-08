@@ -130,24 +130,27 @@ const HeaderActions = styled.div`
 
 const ConnectButton = styled(motion.button)`
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  color: white;
-  padding: 0.5rem 1.25rem;
-  border-radius: 6px;
+  border: 1px solid ${props => props.$connected ? 'rgba(0, 255, 136, 0.6)' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${props => props.$connected ? '#00ff88' : 'white'};
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
   font-family: 'Designer', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   transition: all 0.3s ease;
+  ${props => props.$connected && `
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+  `}
   
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: white;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    background: ${props => props.$connected ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 255, 255, 0.1)'};
+    border-color: ${props => props.$connected ? '#00ff88' : 'white'};
+    box-shadow: 0 0 15px ${props => props.$connected ? 'rgba(0, 255, 136, 0.3)' : 'rgba(255, 255, 255, 0.2)'};
   }
   
   &:disabled {
@@ -165,9 +168,9 @@ const ConnectButton = styled(motion.button)`
   }
   
   @media (max-width: 600px) {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.75rem;
-    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.65rem;
+    gap: 0.3rem;
     
     span {
       display: none;
@@ -430,6 +433,7 @@ export default function Header() {
           <ConnectButton
             onClick={handleConnect}
             disabled={isLoading || isConnecting || !isWeb3Available}
+            $connected={!!user}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -438,7 +442,7 @@ export default function Header() {
             ) : (
               <FaWallet />
             )}
-            <span>{user ? 'Vault' : 'Connect'}</span>
+            <span>{user ? 'Connected' : 'Connect'}</span>
           </ConnectButton>
 
           <HamburgerButton
