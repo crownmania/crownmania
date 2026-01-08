@@ -120,12 +120,25 @@ const Logo = styled.div`
   text-transform: uppercase;
   margin: 0;
   color: white;
+  
+  @media (max-width: 600px) {
+    font-size: 1.2rem;
+    letter-spacing: 0.05em;
+  }
+  
+  @media (max-width: 400px) {
+    font-size: 1rem;
+  }
 `;
 
 const HeaderActions = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
+  
+  @media (max-width: 600px) {
+    gap: 0.5rem;
+  }
 `;
 
 const ConnectButton = styled(motion.button)`

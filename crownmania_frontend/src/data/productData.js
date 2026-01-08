@@ -20,7 +20,7 @@ Designed to capture Lil Durk's signature style and presence, it's the perfect pi
 • High-quality, durable build
 • Detailed design and finish
 • Limited edition collectible`,
-        mainImage: '/images/product3.webp', // Local fallback
+        mainImage: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy1.webp?alt=media',
         images: [
             '/images/product.webp',
         ],
