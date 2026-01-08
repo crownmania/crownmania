@@ -18,30 +18,39 @@ const PlaceholderImage = styled.div`
   background-color: #f0f0f0;
   filter: blur(10px);
   transform: scale(1.1);
-  opacity: ${props => props.$isMainLoaded ? 0 : 1};
+  opacity: 1;
   transition: opacity 0.3s ease-in-out;
+  pointer-events: none;
+
+  &.loaded {
+    opacity: 0;
+  }
 `;
 
 const MainImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: ${props => props.$isLoaded ? 1 : 0};
+  opacity: 0;
   transition: opacity 0.3s ease-in-out;
+
+  &.loaded {
+    opacity: 1;
+  }
 `;
 
 const ImageLoader = ({ src, alt, className, sizes = '100vw', placeholderSize = 10 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [placeholderSrc, setPlaceholderSrc] = useState('');
   const imgRef = useRef(null);
-  
+
   // Generate a tiny placeholder version of the image URL
   useEffect(() => {
     if (src && src.includes('firebasestorage.googleapis.com')) {
       // For Firebase Storage URLs, we can modify the URL to get a smaller version
       // This assumes we have properly structured URLs
-      const placeholderUrl = src.includes('?') 
-        ? `${src}&w=${placeholderSize}` 
+      const placeholderUrl = src.includes('?')
+        ? `${src}&w=${placeholderSize}`
         : `${src}?w=${placeholderSize}`;
       setPlaceholderSrc(placeholderUrl);
     } else {
@@ -58,7 +67,7 @@ const ImageLoader = ({ src, alt, className, sizes = '100vw', placeholderSize = 1
   // Use intersection observer for lazy loading
   useEffect(() => {
     if (!imgRef.current) return;
-    
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
@@ -74,9 +83,9 @@ const ImageLoader = ({ src, alt, className, sizes = '100vw', placeholderSize = 1
         threshold: 0.01
       }
     );
-    
+
     observer.observe(imgRef.current);
-    
+
     return () => {
       if (imgRef.current) {
         observer.unobserve(imgRef.current);
@@ -87,7 +96,7 @@ const ImageLoader = ({ src, alt, className, sizes = '100vw', placeholderSize = 1
   return (
     <ImageContainer className={className}>
       {placeholderSrc && (
-        <PlaceholderImage $isMainLoaded={isLoaded} />
+        <PlaceholderImage className={isLoaded ? 'loaded' : ''} />
       )}
       <MainImage
         ref={imgRef}
@@ -95,7 +104,7 @@ const ImageLoader = ({ src, alt, className, sizes = '100vw', placeholderSize = 1
         src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" // Tiny transparent placeholder
         alt={alt}
         onLoad={handleImageLoad}
-        $isLoaded={isLoaded}
+        className={isLoaded ? 'loaded' : ''}
         loading="lazy"
         decoding="async"
         sizes={sizes}

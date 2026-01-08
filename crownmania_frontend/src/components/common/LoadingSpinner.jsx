@@ -10,8 +10,12 @@ const SpinnerContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: ${props => props.$fullHeight ? '100vh' : '100%'};
+  height: 100%;
   width: 100%;
+
+  &.full-height {
+    height: 100vh;
+  }
 `;
 
 const Spinner = styled.div`
@@ -34,7 +38,7 @@ const LoadingText = styled.div`
 
 const LoadingSpinner = ({ fullHeight = false, text = 'Loading...' }) => {
   return (
-    <SpinnerContainer $fullHeight={fullHeight}>
+    <SpinnerContainer className={fullHeight ? 'full-height' : ''}>
       <div style={{ textAlign: 'center' }}>
         <Spinner />
         {text && <LoadingText>{text}</LoadingText>}

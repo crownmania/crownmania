@@ -54,6 +54,11 @@ const HeaderContainer = styled(motion.header)`
     );
     z-index: -1;
   }
+  transition: transform 0.3s ease;
+  
+  &.hidden {
+    transform: translateY(-100%);
+  }
 `;
 
 const BlurOverlay = styled(motion.div)`
@@ -139,8 +144,8 @@ const HeaderActions = styled.div`
 
 const ConnectButton = styled(motion.button)`
   background: transparent;
-  border: 1px solid ${props => props.$connected ? 'rgba(0, 255, 136, 0.6)' : 'rgba(255, 255, 255, 0.6)'};
-  color: ${props => props.$connected ? '#00ff88' : 'white'};
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: white;
   padding: 0.35rem 0.75rem;
   border-radius: 4px;
   font-family: 'Designer', sans-serif;
@@ -152,14 +157,23 @@ const ConnectButton = styled(motion.button)`
   align-items: center;
   gap: 0.4rem;
   transition: all 0.3s ease;
-  ${props => props.$connected && `
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
-  `}
   
+  &.connected {
+    border-color: rgba(0, 255, 136, 0.6);
+    color: #00ff88;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+
+    &:hover {
+      background: rgba(0, 255, 136, 0.1);
+      border-color: #00ff88;
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+    }
+  }
+
   &:hover {
-    background: ${props => props.$connected ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 255, 255, 0.1)'};
-    border-color: ${props => props.$connected ? '#00ff88' : 'white'};
-    box-shadow: 0 0 15px ${props => props.$connected ? 'rgba(0, 255, 136, 0.3)' : 'rgba(255, 255, 255, 0.2)'};
+    background: rgba(255, 255, 255, 0.1);
+    border-color: white;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
   }
   
   &:disabled {
@@ -215,10 +229,16 @@ const MenuOverlay = styled(motion.div)`
   overflow: hidden;
   z-index: 101;
   padding: 5rem 0.5rem 2rem;
-  opacity: ${props => (props.$isOpen ? 1 : 0)};
-  transform: translateY(${props => (props.$isOpen ? '0' : '-10px')});
-  pointer-events: ${props => (props.$isOpen ? 'auto' : 'none')};
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
   transition: all 0.3s ease;
+
+  &.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
 `;
 
 const MenuItem = styled(motion.a)`
@@ -424,7 +444,7 @@ export default function Header() {
   return (
     <>
       <BackgroundBeams />
-      <HeaderContainer style={{ opacity: headerOpacity }} $show={showHeader}>
+      <HeaderContainer style={{ opacity: headerOpacity }} className={showHeader ? '' : 'hidden'}>
         <LogoLink href="#" onClick={(e) => {
           e.preventDefault();
           scrollToTop();
@@ -437,7 +457,7 @@ export default function Header() {
           <ConnectButton
             onClick={handleConnect}
             disabled={isLoading || isConnecting || !isWeb3Available}
-            $connected={!!user}
+            className={user ? 'connected' : ''}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -480,7 +500,7 @@ export default function Header() {
             />
             <MenuOverlay
               ref={menuRef}
-              $isOpen={isMenuOpen}
+              className={isMenuOpen ? 'open' : ''}
               initial="closed"
               animate="open"
               exit="closed"
