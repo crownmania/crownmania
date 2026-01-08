@@ -416,7 +416,14 @@ const CharacterGridWrapper = styled.div`
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  padding: 1rem 0;
+  padding: 1rem;
+  overflow-x: auto;
+  max-width: 100%;
+  
+  @media (max-width: 600px) {
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
 `;
 
 const NavArrow = styled(motion.button)`
@@ -441,12 +448,20 @@ const NavArrow = styled(motion.button)`
     opacity: 0.3;
     cursor: not-allowed;
   }
+  
+  @media (max-width: 600px) {
+    display: none;
+  }
 `;
 
 const CharacterGrid = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   perspective: 1000px;
+  
+  @media (max-width: 600px) {
+    gap: 0.5rem;
+  }
 `;
 
 const CharacterSlot = styled(motion.div)`
@@ -458,12 +473,23 @@ const CharacterSlot = styled(motion.div)`
   overflow: hidden;
   transition: all 0.3s ease;
   transform-style: preserve-3d;
+  flex-shrink: 0;
 
   ${props => props.$isCenter && css`
     width: 140px;
     height: 180px;
     z-index: 10;
   `}
+  
+  @media (max-width: 600px) {
+    width: 70px;
+    height: 95px;
+    
+    ${props => props.$isCenter && css`
+      width: 85px;
+      height: 115px;
+    `}
+  }
 
   ${props => props.$unlocked ? css`
     background: linear-gradient(145deg, rgba(0, 40, 60, 0.9), rgba(0, 20, 40, 0.95));
@@ -525,6 +551,12 @@ const EmptySlot = styled.div`
   border-radius: 8px;
   background: linear-gradient(145deg, rgba(20, 25, 35, 0.5), rgba(10, 15, 25, 0.6));
   border: 2px dashed rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  
+  @media (max-width: 600px) {
+    width: 70px;
+    height: 95px;
+  }
 `;
 
 // ============================================
@@ -537,7 +569,7 @@ const CHARACTERS = [
   {
     id: 'lil-durk-figure',
     name: 'Lil Durk',
-    image: '/images/durktoy2.webp',
+    image: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy2.webp?alt=media',
     isCenter: false
   },
 ];
