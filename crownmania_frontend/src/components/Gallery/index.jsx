@@ -62,35 +62,52 @@ const CarouselWrapper = styled.div`
     black 90%,
     transparent
   );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 10%,
+    black 90%,
+    transparent
+  );
 `;
 
 const CarouselTrack = styled.div`
   display: flex;
   width: fit-content;
-  animation: ${scroll} 30s linear infinite;
+  animation: ${scroll} 40s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
   
   &:hover {
     animation-play-state: paused;
   }
+  
+  @media (max-width: 768px) {
+    animation-duration: 25s;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const GalleryImage = styled.img`
-  width: 350px;
-  height: 450px;
+  width: 300px;
+  height: 380px;
   object-fit: cover;
-  margin: 0 1rem;
+  margin: 0 0.75rem;
   border-radius: 12px;
   filter: brightness(0.9);
-  transition: all 0.3s ease;
+  transition: filter 0.3s ease;
+  will-change: filter;
   
   &:hover {
     filter: brightness(1.1);
-    transform: scale(1.02);
   }
   
   @media (max-width: 768px) {
-    width: 280px;
-    height: 360px;
+    width: 200px;
+    height: 260px;
     margin: 0 0.5rem;
   }
 `;
