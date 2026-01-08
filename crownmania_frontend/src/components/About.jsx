@@ -25,13 +25,14 @@ const MainTitle = styled.div`
     font-family: 'Designer', sans-serif;
     margin-bottom: 0.5rem;
     font-weight: bold;
+    text-shadow: var(--title-glow);
   }
 
   .subtitle {
     font-size: clamp(0.6rem, 2vw, 0.8rem);
     opacity: 0.8;
     letter-spacing: 0.05em;
-    font-family: 'Avenir Next', sans-serif;
+    font-family: 'Source Sans Pro', sans-serif;
     text-transform: uppercase;
   }
 `;
@@ -85,7 +86,7 @@ const WindowTitle = styled.h3`
 `;
 
 const WindowSubtitle = styled.p`
-  font-family: 'Avenir Next', sans-serif;
+  font-family: 'Source Sans Pro', sans-serif;
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.8);
   text-transform: uppercase;

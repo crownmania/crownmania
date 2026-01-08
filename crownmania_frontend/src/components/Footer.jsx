@@ -9,18 +9,15 @@ const FooterContainer = styled.footer`
 `;
 
 const FooterContent = styled.div`
-  max-width: 1200px;
+  max-width: 800px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3rem;
 
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
+    gap: 2rem;
   }
 `;
 
@@ -29,6 +26,7 @@ const FooterSection = styled(motion.div)`
     color: var(--light-blue);
     margin-bottom: 1rem;
     font-size: 1.2rem;
+    font-family: 'Designer', sans-serif;
   }
 `;
 
@@ -39,6 +37,7 @@ const FooterLink = styled(motion.a)`
   margin: 0.5rem 0;
   opacity: 0.8;
   transition: opacity 0.3s ease;
+  font-family: 'Source Sans Pro', sans-serif;
 
   &:hover {
     opacity: 1;
@@ -52,6 +51,7 @@ const Copyright = styled.div`
   padding-top: 2rem;
   border-top: 1px solid rgba(0, 166, 251, 0.2);
   opacity: 0.8;
+  font-family: 'Source Sans Pro', sans-serif;
 `;
 
 export default function Footer() {
@@ -64,10 +64,10 @@ export default function Footer() {
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
         >
-          <h3>About</h3>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Our Story</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Team</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Careers</FooterLink>
+          <h3>Support</h3>
+          <FooterLink href="#" whileHover={{ x: 5 }}>FAQ</FooterLink>
+          <FooterLink href="/contact" whileHover={{ x: 5 }}>Contact Us</FooterLink>
+          <FooterLink href="#" whileHover={{ x: 5 }}>Help Center</FooterLink>
         </FooterSection>
 
         <FooterSection
@@ -76,34 +76,10 @@ export default function Footer() {
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
         >
-          <h3>Support</h3>
-          <FooterLink href="#" whileHover={{ x: 5 }}>FAQ</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Contact Us</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Help Center</FooterLink>
-        </FooterSection>
-
-        <FooterSection
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
-        >
           <h3>Legal</h3>
           <FooterLink href="#" whileHover={{ x: 5 }}>Privacy Policy</FooterLink>
           <FooterLink href="#" whileHover={{ x: 5 }}>Terms of Service</FooterLink>
           <FooterLink href="#" whileHover={{ x: 5 }}>Returns</FooterLink>
-        </FooterSection>
-
-        <FooterSection
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.4 }}
-        >
-          <h3>Connect</h3>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Twitter</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Instagram</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Discord</FooterLink>
         </FooterSection>
       </FooterContent>
 
@@ -113,7 +89,7 @@ export default function Footer() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
         >
-          © 2023 Crownmania. All rights reserved.
+          © 2025 Crownmania. All rights reserved.
         </motion.p>
       </Copyright>
     </FooterContainer>

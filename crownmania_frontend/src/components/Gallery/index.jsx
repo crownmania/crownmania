@@ -1,7 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
-import { getStorageURL } from '../../utils/storageUtils';
+import React, { useState, useEffect, useRef } from 'react';
+import styled, { keyframes } from 'styled-components';
+import { motion } from 'framer-motion';
+
+const scroll = keyframes`
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+`;
 
 const GallerySection = styled.section`
   width: 100%;
@@ -9,119 +17,130 @@ const GallerySection = styled.section`
   position: relative;
   overflow: hidden;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 2rem 0;
+  background: rgba(0, 0, 0, 0.3);
   
   @media (max-width: 768px) {
     min-height: auto;
+    padding: 1rem 0;
   }
 `;
 
-const ImagesContainer = styled.div`
-  width: 100%;
-  max-width: 100vw;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  overflow: hidden;
+const GalleryTitle = styled.div`
+  text-align: center;
+  margin-bottom: 2rem;
   
-  @media (max-width: 768px) {
-    flex-direction: column;
+  h2 {
+    font-family: 'Designer', sans-serif;
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: white;
+    text-shadow: var(--title-glow);
+  }
+  
+  .subtitle {
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 0.5rem;
+  }
+`;
+
+const CarouselWrapper = styled.div`
+  width: 100%;
+  overflow: hidden;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 10%,
+    black 90%,
+    transparent
+  );
+`;
+
+const CarouselTrack = styled.div`
+  display: flex;
+  width: fit-content;
+  animation: ${scroll} 30s linear infinite;
+  
+  &:hover {
+    animation-play-state: paused;
   }
 `;
 
 const GalleryImage = styled.img`
-  flex: 1;
-  min-width: 0;
-  max-width: 33.33%;
-  height: 500px;
+  width: 350px;
+  height: 450px;
   object-fit: cover;
-  filter: brightness(0.95);
-  
-  @media (max-width: 768px) {
-    max-width: 100%;
-    width: 100%;
-    height: 250px;
-  }
-`;
-
-const NavigationButton = styled.button`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: white;
-  padding: 1rem;
-  cursor: pointer;
-  z-index: 10;
-  font-family: 'Designer', sans-serif;
-  font-size: 1.5rem;
+  margin: 0 1rem;
+  border-radius: 12px;
+  filter: brightness(0.9);
   transition: all 0.3s ease;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
+    filter: brightness(1.1);
+    transform: scale(1.02);
   }
-
-  &.prev {
-    left: 2rem;
-  }
-
-  &.next {
-    right: 2rem;
+  
+  @media (max-width: 768px) {
+    width: 280px;
+    height: 360px;
+    margin: 0 0.5rem;
   }
 `;
 
-const SlideCounter = styled.div`
-  position: absolute;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  color: white;
-  font-family: 'Designer', sans-serif;
-  font-size: 1rem;
-  z-index: 10;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-`;
-
-const slideVariants = {
-  enter: (direction) => ({
-    x: direction > 0 ? 1000 : -1000,
-    opacity: 0
-  }),
-  center: {
-    zIndex: 1,
-    x: 0,
-    opacity: 1
-  },
-  exit: (direction) => ({
-    zIndex: 0,
-    x: direction < 0 ? 1000 : -1000,
-    opacity: 0
-  })
-};
+// Product images - duplicate for infinite scroll effect
+const images = [
+  { src: '/images/product1.webp', alt: 'Lil Durk Figure - Front' },
+  { src: '/images/product2.webp', alt: 'Lil Durk Figure - Back' },
+  { src: '/images/product3.webp', alt: 'Lil Durk Figure - Full' },
+  { src: '/images/product1.webp', alt: 'Lil Durk Figure - Front' },
+  { src: '/images/product2.webp', alt: 'Lil Durk Figure - Back' },
+  { src: '/images/product3.webp', alt: 'Lil Durk Figure - Full' },
+];
 
 export default function Gallery() {
   return (
     <GallerySection id="gallery">
-      <ImagesContainer>
-        <GalleryImage
-          src="/images/product3.webp"
-          alt="Standing full-body figure"
-        />
-        <GalleryImage
-          src="/images/product2.webp"
-          alt="Back tattoo"
-        />
-        <GalleryImage
-          src="/images/product1.webp"
-          alt="Face"
-        />
-      </ImagesContainer>
+      <GalleryTitle>
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          THE GALLERY
+        </motion.h2>
+        <motion.div
+          className="subtitle"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          Explore the Collection
+        </motion.div>
+      </GalleryTitle>
+
+      <CarouselWrapper>
+        <CarouselTrack>
+          {/* Double the images for seamless loop */}
+          {[...images, ...images].map((img, index) => (
+            <GalleryImage
+              key={index}
+              src={img.src}
+              alt={img.alt}
+              loading="lazy"
+            />
+          ))}
+        </CarouselTrack>
+      </CarouselWrapper>
     </GallerySection>
   );
 }

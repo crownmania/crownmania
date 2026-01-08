@@ -83,7 +83,10 @@ const getAllowedOrigins = () => {
     origins.push(
       'https://crownmania.com',
       'https://www.crownmania.com',
-      'https://api.crownmania.com'
+      'https://nft.crownmania.com',
+      'https://api.crownmania.com',
+      'https://crownmania-backend-production.up.railway.app',
+      'https://crownmania-frontend.vercel.app'
     );
   }
 
@@ -104,8 +107,16 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // Check against whitelist
-    if (allowedOrigins.includes(origin)) {
+    // Check against whitelist and regex
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return allowedOrigin === origin;
+    });
+
+    // Also allow any .vercel.app deployment
+    if (isAllowed || origin.endsWith('.vercel.app')) {
       return callback(null, true);
     }
 

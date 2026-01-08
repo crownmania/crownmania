@@ -102,7 +102,7 @@ export const verificationService = {
       }, clientIP);
 
       // First, look up the claim code
-      const claimCodeRef = db.collection('claimCodes').doc(sanitizedCodeId);
+      const claimCodeRef = db.collection('claimCodes').doc(sanitizedCodeId.toLowerCase());
       const claimCodeDoc = await claimCodeRef.get();
 
       if (!claimCodeDoc.exists) {
@@ -215,7 +215,7 @@ export const verificationService = {
       }, clientIP, sanitizedWallet);
 
       // Look up the claim code
-      const claimCodeRef = db.collection('claimCodes').doc(sanitizedCodeId);
+      const claimCodeRef = db.collection('claimCodes').doc(sanitizedCodeId.toLowerCase());
       const claimCodeDoc = await claimCodeRef.get();
 
       if (!claimCodeDoc.exists) {
