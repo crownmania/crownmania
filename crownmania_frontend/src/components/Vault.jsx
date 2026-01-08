@@ -466,8 +466,8 @@ const CharacterGrid = styled.div`
 `;
 
 const CharacterSlot = styled(motion.div)`
-  width: ${props => props.$isCenter ? '140px' : '100px'};
-  height: ${props => props.$isCenter ? '180px' : '130px'};
+  width: 100px;
+  height: 130px;
   border-radius: 8px;
   position: relative;
   cursor: pointer;
@@ -475,33 +475,43 @@ const CharacterSlot = styled(motion.div)`
   transition: all 0.3s ease;
   transform-style: preserve-3d;
   flex-shrink: 0;
-  z-index: ${props => props.$isCenter ? '10' : '1'};
+  background: linear-gradient(145deg, rgba(20, 25, 35, 0.9), rgba(10, 15, 25, 0.95));
+  border: 2px solid rgba(255, 255, 255, 0.1);
 
-  ${props => props.$unlocked ? css`
+  img {
+    filter: grayscale(100%) brightness(0.3);
+    opacity: 0.6;
+  }
+
+  &.center {
+    width: 140px;
+    height: 180px;
+    z-index: 10;
+  }
+
+  &.unlocked {
     background: linear-gradient(145deg, rgba(0, 40, 60, 0.9), rgba(0, 20, 40, 0.95));
     border: 2px solid transparent;
     animation: ${packAPunchGlow} 3s ease-in-out infinite;
     
     img {
       filter: none;
+      opacity: 1;
     }
-  ` : css`
-    background: linear-gradient(145deg, rgba(20, 25, 35, 0.9), rgba(10, 15, 25, 0.95));
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    
-    img {
-      filter: grayscale(100%) brightness(0.3);
-      opacity: 0.6;
-    }
-  `}
+  }
 
   &:hover {
-    transform: ${props => props.$isCenter ? 'scale(1.05)' : 'scale(1.08)'};
+    transform: scale(1.05);
   }
   
   @media (max-width: 600px) {
-    width: ${props => props.$isCenter ? '85px' : '70px'};
-    height: ${props => props.$isCenter ? '115px' : '95px'};
+    width: 70px;
+    height: 95px;
+    
+    &.center {
+      width: 85px;
+      height: 115px;
+    }
   }
 `;
 
@@ -524,7 +534,11 @@ const CharacterName = styled.div`
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: ${props => props.$unlocked ? '#00ff88' : 'rgba(255, 255, 255, 0.5)'};
+  color: rgba(255, 255, 255, 0.5);
+  
+  &.unlocked {
+    color: #00ff88;
+  }
 `;
 
 const LockedIcon = styled.div`
@@ -857,16 +871,15 @@ export default function Vault() {
               ) : (
                 <CharacterSlot
                   key={char.id}
-                  $isCenter={char.isCenter}
-                  $unlocked={isOwned(char.id)}
-                  whileHover={{ scale: char.isCenter ? 1.05 : 1.08 }}
+                  className={`${char.isCenter ? 'center' : ''} ${isOwned(char.id) ? 'unlocked' : ''}`}
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   <CharacterImage
                     src={char.image}
                     alt={char.name}
                   />
-                  <CharacterName $unlocked={isOwned(char.id)}>
+                  <CharacterName className={isOwned(char.id) ? 'unlocked' : ''}>
                     {char.name}
                   </CharacterName>
                   {!isOwned(char.id) && (
