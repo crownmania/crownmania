@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     nodePolyfills({
       // Enable comprehensive polyfills for Web3Auth
-      include: ['buffer', 'stream', 'events', 'util', 'process', 'crypto', 'string_decoder', 'path', 'os', 'fs'],
+      include: ['buffer', 'stream', 'events', 'util', 'process', 'crypto', 'string_decoder', 'path', 'os', 'fs', 'vm'],
       globals: {
         Buffer: true,
         global: true,
