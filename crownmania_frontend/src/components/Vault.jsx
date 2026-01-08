@@ -213,8 +213,15 @@ const ActionButton = styled(motion.button)`
   gap: 0.5rem;
   transition: all 0.3s ease;
   width: 100%;
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  color: #00ff88;
 
-  ${props => props.$primary ? css`
+  &:hover {
+    background: rgba(0, 255, 136, 0.2);
+  }
+
+  &.primary {
     background: linear-gradient(135deg, #4f46e5, #3b82f6);
     border: none;
     color: white;
@@ -223,15 +230,7 @@ const ActionButton = styled(motion.button)`
       transform: translateY(-2px);
       box-shadow: 0 5px 20px rgba(59, 130, 246, 0.4);
     }
-  ` : css`
-    background: rgba(0, 255, 136, 0.1);
-    border: 1px solid rgba(0, 255, 136, 0.4);
-    color: #00ff88;
-
-    &:hover {
-      background: rgba(0, 255, 136, 0.2);
-    }
-  `}
+  }
 
   &:disabled {
     opacity: 0.5;
@@ -250,23 +249,23 @@ const StatusMessage = styled(motion.div)`
   font-size: 0.85rem;
   margin-top: 1rem;
 
-  ${props => props.$status === 'success' && css`
+  &.success {
     background: rgba(0, 255, 136, 0.1);
     border: 1px solid rgba(0, 255, 136, 0.3);
     color: #00ff88;
-  `}
+  }
 
-  ${props => props.$status === 'error' && css`
+  &.error {
     background: rgba(255, 107, 107, 0.1);
     border: 1px solid rgba(255, 107, 107, 0.3);
     color: #ff6b6b;
-  `}
+  }
 
-  ${props => props.$status === 'loading' && css`
+  &.loading {
     background: rgba(0, 200, 255, 0.1);
     border: 1px solid rgba(0, 200, 255, 0.3);
     color: #00c8ff;
-  `}
+  }
 `;
 
 // Middle Row: Preview & 3D Model
@@ -303,10 +302,12 @@ const PreviewImage = styled.div`
     height: 100%;
     object-fit: cover;
     object-position: center top;
-    ${props => !props.$unlocked && css`
-      filter: grayscale(100%) brightness(0.4);
-    `}
+    filter: grayscale(100%) brightness(0.4);
     transition: filter 0.5s ease;
+  }
+  
+  &.unlocked img {
+    filter: none;
   }
 `;
 
@@ -319,8 +320,13 @@ const EditionBadge = styled.div`
   border-radius: 6px;
   font-family: 'Designer', sans-serif;
   font-size: 1.2rem;
-  color: ${props => props.$unlocked ? '#00ff88' : 'rgba(255, 255, 255, 0.5)'};
-  border: 1px solid ${props => props.$unlocked ? 'rgba(0, 255, 136, 0.5)' : 'rgba(255, 255, 255, 0.1)'};
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  &.unlocked {
+    color: #00ff88;
+    border: 1px solid rgba(0, 255, 136, 0.5);
+  }
 `;
 
 const ModelViewerPanel = styled(motion.div)`
@@ -732,7 +738,7 @@ export default function Vault() {
 
           {verificationResult && (
             <StatusMessage
-              $status={verificationResult.status}
+              className={verificationResult.status}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -773,7 +779,7 @@ export default function Vault() {
             </ActionButton>
           ) : (
             <ActionButton
-              $primary
+              className="primary"
               onClick={handleConnect}
               disabled={isLoading || !isWeb3Available}
               whileHover={{ scale: 1.02 }}
@@ -801,9 +807,9 @@ export default function Vault() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
         >
-          <PreviewImage $unlocked={isDurkOwned}>
+          <PreviewImage className={isDurkOwned ? 'unlocked' : ''}>
             <img src={DURK_PREVIEW_IMG} alt="Lil Durk Figure" />
-            <EditionBadge $unlocked={isDurkOwned}>
+            <EditionBadge className={isDurkOwned ? 'unlocked' : ''}>
               #{currentEdition || '---'}
             </EditionBadge>
           </PreviewImage>
