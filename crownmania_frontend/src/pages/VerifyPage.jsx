@@ -240,7 +240,11 @@ const DetailsLabel = styled.span`
 const DetailsValue = styled.span`
   font-size: 0.9rem;
   color: #fff;
-  font-family: ${props => props.mono ? "'Courier New', monospace" : 'inherit'};
+  font-family: inherit;
+  
+  &.mono {
+    font-family: 'Courier New', monospace;
+  }
   
   &.highlight {
     color: #4ade80;
@@ -341,12 +345,12 @@ const OwnershipDetails = ({ edition, totalEditions, claimedAt, walletAddress, to
             </DetailsRow>
             <DetailsRow>
                 <DetailsLabel>Owner Wallet</DetailsLabel>
-                <DetailsValue mono>{formatAddress(walletAddress)}</DetailsValue>
+                <DetailsValue className="mono">{formatAddress(walletAddress)}</DetailsValue>
             </DetailsRow>
             {tokenId && (
                 <DetailsRow>
                     <DetailsLabel>Token ID</DetailsLabel>
-                    <DetailsValue mono>{tokenId}</DetailsValue>
+                    <DetailsValue className="mono">{tokenId}</DetailsValue>
                 </DetailsRow>
             )}
         </OwnershipDetailsBox>

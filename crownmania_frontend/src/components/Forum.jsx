@@ -51,12 +51,17 @@ const FilterButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: ${props => props.$active ? 'rgba(0, 102, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
-  border: 1px solid ${props => props.$active ? 'rgba(0, 102, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'};
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
+
+  &.active {
+    background: rgba(0, 102, 255, 0.2);
+    border: 1px solid rgba(0, 102, 255, 0.3);
+  }
 
   &:hover {
     background: rgba(0, 102, 255, 0.15);
@@ -243,7 +248,7 @@ const Forum = () => {
     <ForumSection id="forum">
       <GlowOrb
         initial={{ x: 200, y: -200 }}
-        animate={{ 
+        animate={{
           x: [200, -200, 200],
           y: [-200, 200, -200]
         }}
@@ -253,13 +258,13 @@ const Forum = () => {
           ease: "linear"
         }}
       />
-      
+
       <ForumContainer>
         <ForumHeader>
           <Title>Community Forum</Title>
           <FilterContainer>
             <FilterButton
-              $active={filter === 'trending'}
+              className={filter === 'trending' ? 'active' : ''}
               onClick={() => setFilter('trending')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -267,7 +272,7 @@ const Forum = () => {
               <FaFire /> Trending
             </FilterButton>
             <FilterButton
-              $active={filter === 'current'}
+              className={filter === 'current' ? 'active' : ''}
               onClick={() => setFilter('current')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

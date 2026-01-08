@@ -225,7 +225,6 @@ const ProgressBar = styled.div`
     height: 100%;
     background: linear-gradient(90deg, #00ff88, #00c8ff);
     border-radius: 2px;
-    width: ${props => props.progress || 0}%;
     transition: width 0.1s ease;
   }
 `;
@@ -457,8 +456,8 @@ const ContentViewer = ({ contentId, onClose, walletAddress }) => {
           </ControlButton>
         </ControlGroup>
 
-        <ProgressBar progress={(currentTime / duration) * 100} onClick={handleProgressClick}>
-          <div className="progress"></div>
+        <ProgressBar onClick={handleProgressClick}>
+          <div className="progress" style={{ width: `${(currentTime / duration) * 100}%` }}></div>
         </ProgressBar>
 
         <ControlGroup>
