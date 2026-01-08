@@ -16,6 +16,7 @@ export default defineConfig({
       protocolImports: true,
     }),
   ],
+  assetsInclude: ['**/*.otf', '**/*.ttf', '**/*.woff', '**/*.woff2'],
   define: {
     'process.env': {},
     'global': 'globalThis',
