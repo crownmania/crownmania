@@ -121,13 +121,9 @@ const Logo = styled.div`
   margin: 0;
   color: white;
   
-  @media (max-width: 600px) {
-    font-size: 1.2rem;
-    letter-spacing: 0.05em;
-  }
-  
-  @media (max-width: 400px) {
-    font-size: 1rem;
+  @media (max-width: 480px) {
+    font-size: 1.4rem;
+    letter-spacing: 0.08em;
   }
 `;
 
@@ -181,12 +177,17 @@ const ConnectButton = styled(motion.button)`
   }
   
   @media (max-width: 600px) {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.65rem;
-    gap: 0.3rem;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.55rem;
+    gap: 0.2rem;
+    border-width: 1px;
     
     span {
       display: none;
+    }
+    
+    svg {
+      font-size: 0.7rem;
     }
   }
 `;
