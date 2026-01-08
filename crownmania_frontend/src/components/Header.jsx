@@ -177,18 +177,7 @@ const ConnectButton = styled(motion.button)`
   }
   
   @media (max-width: 600px) {
-    padding: 0.25rem 0.4rem;
-    font-size: 0.55rem;
-    gap: 0.2rem;
-    border-width: 1px;
-    
-    span {
-      display: none;
-    }
-    
-    svg {
-      font-size: 0.7rem;
-    }
+    display: none;
   }
 `;
 
@@ -318,7 +307,8 @@ export default function Header() {
     { text: 'Vault', icon: <FaLock size={16} />, link: '/#vault' },
     { text: 'About', icon: <FaInfoCircle size={16} />, link: '/#about' },
     { text: 'Forum', icon: <FaComments size={16} />, link: '/forum' },
-    { text: 'Contact', icon: <FaEnvelope size={16} />, link: '/contact' }
+    { text: 'Contact', icon: <FaEnvelope size={16} />, link: '/contact' },
+    { text: user ? 'Connected' : 'Connect', icon: <FaWallet size={16} />, action: handleConnect, isConnect: true }
   ];
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -502,7 +492,11 @@ export default function Header() {
                   href={item.link}
                   custom={i}
                   variants={menuItemVariants}
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    if (item.action) item.action();
+                  }}
+                  style={item.isConnect ? { color: user ? '#00ff88' : 'white' } : {}}
                 >
                   {item.icon}
                   <MenuItemText>{item.text}</MenuItemText>
