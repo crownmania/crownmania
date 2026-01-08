@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaHome, FaShoppingBag, FaLock, FaInfoCircle, FaEnvelope, FaComments, FaWallet, FaSpinner } from 'react-icons/fa';
 import crownLogo from '../assets/crown_logo_white.svg';
 import BackgroundBeams from './BackgroundBeams';
-import { useWeb3Auth } from '../hooks/useWeb3Auth';
+import useWeb3Auth from '../hooks/useWeb3Auth';
 
 const HeaderContainer = styled(motion.header)`
   position: fixed;
