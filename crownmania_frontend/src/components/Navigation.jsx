@@ -12,11 +12,15 @@ const NavContainer = styled.nav`
 const NavDot = styled.div`
   width: 12px;
   height: 12px;
-  background: ${props => props.active ? 'var(--light-blue)' : 'rgba(255, 255, 255, 0.3)'};
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   margin: 1rem 0;
   cursor: pointer;
   transition: all 0.3s ease;
+
+  &.active {
+    background: var(--light-blue);
+  }
 
   &:hover {
     background: var(--light-blue);
@@ -58,7 +62,7 @@ export default function Navigation() {
       {['home', 'shop', 'about', 'vault'].map((section) => (
         <NavDot
           key={section}
-          active={activeSection === section}
+          className={activeSection === section ? 'active' : ''}
           onClick={() => scrollToSection(section)}
         />
       ))}
