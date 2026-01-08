@@ -1,9 +1,10 @@
 import { createGlobalStyle } from 'styled-components';
+import DesignerFont from '../assets/fonts/Designer.otf';
 
 export const GlobalStyles = createGlobalStyle`
   @font-face {
     font-family: 'Designer';
-    src: url('/fonts/Designer.otf') format('opentype');
+    src: url(${DesignerFont}) format('opentype');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
