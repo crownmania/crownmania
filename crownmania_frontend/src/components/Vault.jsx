@@ -1,3 +1,4 @@
+// Vault Component - Build v2.0.1
 import { useState, useEffect, Suspense, lazy, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
