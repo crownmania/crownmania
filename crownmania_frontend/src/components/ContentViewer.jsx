@@ -5,7 +5,7 @@ import { FaPlay, FaPause, FaVolumeUp, FaVolumeMute, FaDownload, FaTimes, FaSpinn
 import { contentAPI } from '../services/api';
 
 // Styled Components
-const ViewerOverlay = styled(motion.div)`
+const ViewerOverlay = styled.div`
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.95);
@@ -17,7 +17,7 @@ const ViewerOverlay = styled(motion.div)`
   padding: 2rem;
 `;
 
-const ViewerContainer = styled(motion.div)`
+const ViewerContainer = styled.div`
   background: linear-gradient(145deg, rgba(0, 30, 60, 0.95), rgba(0, 10, 30, 0.98));
   border: 1px solid rgba(0, 255, 136, 0.3);
   border-radius: 20px;
@@ -475,12 +475,14 @@ const ContentViewer = ({ contentId, onClose, walletAddress }) => {
   return (
     <AnimatePresence>
       <ViewerOverlay
+        as={motion.div}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
       >
         <ViewerContainer
+          as={motion.div}
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}

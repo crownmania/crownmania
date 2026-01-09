@@ -2,7 +2,6 @@ import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import BlockchainMatrix from './BlockchainMatrix';
-import CobeGlobe from './CobeGlobe';
 
 const AboutSection = styled.section`
   min-height: 100vh;
@@ -68,12 +67,7 @@ const Window = styled.div`
   backdrop-filter: blur(10px);
 `;
 
-const GlobeWindow = styled(Window)`
-  canvas {
-    width: 100% !important;
-    height: 100% !important;
-  }
-`;
+
 
 const WindowTitle = styled.h3`
   font-family: 'Designer', sans-serif;

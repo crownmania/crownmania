@@ -85,7 +85,7 @@ const TextArea = styled.textarea`
   }
 `;
 
-const SubmitButton = styled(motion.button)`
+const SubmitButton = styled.button`
   padding: 1rem 2rem;
   background: #0066FF;
   border: none;
@@ -110,7 +110,7 @@ const SubmitButton = styled(motion.button)`
   }
 `;
 
-const GlowOrb = styled(motion.div)`
+const GlowOrb = styled.div`
   position: absolute;
   width: 300px;
   height: 300px;
@@ -141,7 +141,7 @@ export default function Contact() {
 
     // Simulate form submission
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
+
     // Reset form
     setFormData({ name: '', email: '', message: '' });
     setIsSubmitting(false);
@@ -150,8 +150,9 @@ export default function Contact() {
   return (
     <ContactSection id="contact">
       <GlowOrb
+        as={motion.div}
         initial={{ x: -200, y: -200 }}
-        animate={{ 
+        animate={{
           x: [-200, 200, -200],
           y: [-200, 200, -200]
         }}
@@ -161,7 +162,7 @@ export default function Contact() {
           ease: "linear"
         }}
       />
-      
+
       <ContactContainer>
         <Title>Get in Touch</Title>
         <Form onSubmit={handleSubmit}>
@@ -201,6 +202,7 @@ export default function Contact() {
           </InputGroup>
 
           <SubmitButton
+            as={motion.button}
             type="submit"
             disabled={isSubmitting}
             whileHover={{ scale: 1.02 }}
