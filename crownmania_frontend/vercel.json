@@ -24,6 +24,15 @@
   ],
   "headers": [
     {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://apis.google.com https://www.gstatic.com https://www.google.com; connect-src 'self' https://*.web3auth.io https://*.rpc.web3auth.io https://*.firebaseio.com https://*.googleapis.com https://*.cloudfunctions.net https://*.stripe.com https://*.polygonscan.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://*.web3auth.io https://*.googleusercontent.com https://*.lildurkofficial.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; frame-src 'self' https://*.web3auth.io https://*.stripe.com https://www.google.com; upgrade-insecure-requests;"
+        }
+      ]
+    },
+    {
       "source": "/fonts/(.*)",
       "headers": [
         {
