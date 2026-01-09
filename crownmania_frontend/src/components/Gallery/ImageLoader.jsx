@@ -18,25 +18,16 @@ const PlaceholderImage = styled.div`
   background-color: #f0f0f0;
   filter: blur(10px);
   transform: scale(1.1);
-  opacity: 1;
+  opacity: ${props => props.$isMainLoaded ? 0 : 1};
   transition: opacity 0.3s ease-in-out;
-  pointer-events: none;
-
-  &.loaded {
-    opacity: 0;
-  }
 `;
 
 const MainImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0;
+  opacity: ${props => props.$isLoaded ? 1 : 0};
   transition: opacity 0.3s ease-in-out;
-
-  &.loaded {
-    opacity: 1;
-  }
 `;
 
 const ImageLoader = ({ src, alt, className, sizes = '100vw', placeholderSize = 10 }) => {
@@ -96,7 +87,7 @@ const ImageLoader = ({ src, alt, className, sizes = '100vw', placeholderSize = 1
   return (
     <ImageContainer className={className}>
       {placeholderSrc && (
-        <PlaceholderImage className={isLoaded ? 'loaded' : ''} />
+        <PlaceholderImage $isMainLoaded={isLoaded} />
       )}
       <MainImage
         ref={imgRef}
@@ -104,7 +95,7 @@ const ImageLoader = ({ src, alt, className, sizes = '100vw', placeholderSize = 1
         src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" // Tiny transparent placeholder
         alt={alt}
         onLoad={handleImageLoad}
-        className={isLoaded ? 'loaded' : ''}
+        $isLoaded={isLoaded}
         loading="lazy"
         decoding="async"
         sizes={sizes}

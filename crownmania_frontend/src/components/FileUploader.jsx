@@ -60,12 +60,7 @@ const UploadButton = styled.button`
   color: white;
   cursor: pointer;
   font-size: 0.9rem;
-  opacity: 1;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  opacity: ${props => props.disabled ? 0.5 : 1};
 
   &:not(:disabled):hover {
     background: #0077ff;
@@ -78,23 +73,14 @@ const StatusMessage = styled.div`
   right: 0;
   margin-bottom: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(0, 200, 83, 0.9);
+  background: ${props => props.error ? 'rgba(255, 68, 68, 0.9)' : 'rgba(0, 200, 83, 0.9)'};
   color: white;
   border-radius: 4px;
   font-size: 0.9rem;
   pointer-events: none;
-  opacity: 0;
-  transform: translateY(10px);
+  opacity: ${props => props.show ? 1 : 0};
+  transform: translateY(${props => props.show ? '0' : '10px'});
   transition: all 0.3s ease;
-
-  &.error {
-    background: rgba(255, 68, 68, 0.9);
-  }
-
-  &.show {
-    opacity: 1;
-    transform: translateY(0);
-  }
 `;
 
 export default function FileUploader({ onUploadComplete }) {
@@ -131,7 +117,8 @@ export default function FileUploader({ onUploadComplete }) {
   return (
     <UploaderContainer>
       <StatusMessage
-        className={`${status.message ? 'show' : ''} ${status.error ? 'error' : ''}`}
+        show={status.message}
+        error={status.error}
       >
         {status.message}
       </StatusMessage>

@@ -70,7 +70,7 @@ const ProductDescription = styled.p`
   color: rgba(255, 255, 255, 0.8);
 `;
 
-const Button = styled.button`
+const Button = styled(motion.button)`
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
@@ -221,7 +221,6 @@ export default function ProductPage() {
           </ProductDescription>
           <ButtonGroup>
             <Button
-              as={motion.button}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleAddToCart}
@@ -229,7 +228,6 @@ export default function ProductPage() {
               Add to Cart
             </Button>
             <Button
-              as={motion.button}
               className="checkout"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}

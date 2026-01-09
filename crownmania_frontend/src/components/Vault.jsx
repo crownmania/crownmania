@@ -1,4 +1,3 @@
-// Vault Component - Build v2.0.3
 import { useState, useEffect, Suspense, lazy, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
@@ -113,7 +112,7 @@ const TopPanelsRow = styled.div`
   }
 `;
 
-const Panel = styled.div`
+const Panel = styled(motion.div)`
   background: linear-gradient(145deg, rgba(0, 30, 50, 0.8), rgba(0, 15, 30, 0.9));
   border: 1px solid rgba(0, 166, 251, 0.2);
   border-radius: 12px;
@@ -133,24 +132,8 @@ const Panel = styled.div`
 `;
 
 // Welcome Panel with background image
-const WelcomePanel = styled.div`
-  background: linear-gradient(145deg, rgba(0, 30, 50, 0.8), rgba(0, 15, 30, 0.9));
-  border: 1px solid rgba(0, 166, 251, 0.2);
-  border-radius: 12px;
-  padding: 2rem;
-  position: relative;
-  min-height: 250px;
+const WelcomePanel = styled(Panel)`
   overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.6), transparent);
-  }
   
   &::after {
     content: '';
@@ -215,7 +198,7 @@ const SerialInput = styled.input`
   }
 `;
 
-const ActionButton = styled.button`
+const ActionButton = styled(motion.button)`
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-family: 'Designer', sans-serif;
@@ -229,15 +212,8 @@ const ActionButton = styled.button`
   gap: 0.5rem;
   transition: all 0.3s ease;
   width: 100%;
-  background: rgba(0, 255, 136, 0.1);
-  border: 1px solid rgba(0, 255, 136, 0.4);
-  color: #00ff88;
 
-  &:hover {
-    background: rgba(0, 255, 136, 0.2);
-  }
-
-  &.primary {
+  ${props => props.$primary ? css`
     background: linear-gradient(135deg, #4f46e5, #3b82f6);
     border: none;
     color: white;
@@ -246,16 +222,24 @@ const ActionButton = styled.button`
       transform: translateY(-2px);
       box-shadow: 0 5px 20px rgba(59, 130, 246, 0.4);
     }
-  }
+  ` : css`
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid rgba(0, 255, 136, 0.4);
+    color: #00ff88;
+
+    &:hover {
+      background: rgba(0, 255, 136, 0.2);
+    }
+  `}
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none !important;
+    transform: none;
   }
 `;
 
-const StatusMessage = styled.div`
+const StatusMessage = styled(motion.div)`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -265,23 +249,23 @@ const StatusMessage = styled.div`
   font-size: 0.85rem;
   margin-top: 1rem;
 
-  &.success {
+  ${props => props.$status === 'success' && css`
     background: rgba(0, 255, 136, 0.1);
     border: 1px solid rgba(0, 255, 136, 0.3);
     color: #00ff88;
-  }
+  `}
 
-  &.error {
+  ${props => props.$status === 'error' && css`
     background: rgba(255, 107, 107, 0.1);
     border: 1px solid rgba(255, 107, 107, 0.3);
     color: #ff6b6b;
-  }
+  `}
 
-  &.loading {
+  ${props => props.$status === 'loading' && css`
     background: rgba(0, 200, 255, 0.1);
     border: 1px solid rgba(0, 200, 255, 0.3);
     color: #00c8ff;
-  }
+  `}
 `;
 
 // Middle Row: Preview & 3D Model
@@ -300,7 +284,7 @@ const MiddleRow = styled.div`
   }
 `;
 
-const PreviewCard = styled.div`
+const PreviewCard = styled(motion.div)`
   background: linear-gradient(145deg, rgba(0, 30, 50, 0.8), rgba(0, 15, 30, 0.9));
   border: 1px solid rgba(0, 166, 251, 0.2);
   border-radius: 12px;
@@ -318,12 +302,10 @@ const PreviewImage = styled.div`
     height: 100%;
     object-fit: cover;
     object-position: center top;
-    filter: grayscale(100%) brightness(0.4);
+    ${props => !props.$unlocked && css`
+      filter: grayscale(100%) brightness(0.4);
+    `}
     transition: filter 0.5s ease;
-  }
-  
-  &.unlocked img {
-    filter: none;
   }
 `;
 
@@ -336,16 +318,11 @@ const EditionBadge = styled.div`
   border-radius: 6px;
   font-family: 'Designer', sans-serif;
   font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  
-  &.unlocked {
-    color: #00ff88;
-    border: 1px solid rgba(0, 255, 136, 0.5);
-  }
+  color: ${props => props.$unlocked ? '#00ff88' : 'rgba(255, 255, 255, 0.5)'};
+  border: 1px solid ${props => props.$unlocked ? 'rgba(0, 255, 136, 0.5)' : 'rgba(255, 255, 255, 0.1)'};
 `;
 
-const ModelViewerPanel = styled.div`
+const ModelViewerPanel = styled(motion.div)`
   background: linear-gradient(145deg, rgba(0, 30, 50, 0.8), rgba(0, 15, 30, 0.9));
   border: 1px solid rgba(0, 166, 251, 0.2);
   border-radius: 12px;
@@ -361,6 +338,23 @@ const ModelViewerPanel = styled.div`
     right: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.6), transparent);
+  }
+
+  /* Background image - 
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 80%;
+    background-image: url('https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy4.webp?alt=media');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: right center;
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 0;
   }
 `;
 
@@ -422,17 +416,10 @@ const CharacterGridWrapper = styled.div`
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  padding: 1rem;
-  overflow-x: auto;
-  max-width: 100%;
-  
-  @media (max-width: 600px) {
-    gap: 0.5rem;
-    padding: 0.5rem;
-  }
+  padding: 1rem 0;
 `;
 
-const NavArrow = styled.button`
+const NavArrow = styled(motion.button)`
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
@@ -454,23 +441,15 @@ const NavArrow = styled.button`
     opacity: 0.3;
     cursor: not-allowed;
   }
-  
-  @media (max-width: 600px) {
-    display: none;
-  }
 `;
 
 const CharacterGrid = styled.div`
   display: flex;
-  gap: 0.75rem;
+  gap: 1rem;
   perspective: 1000px;
-  
-  @media (max-width: 600px) {
-    gap: 0.5rem;
-  }
 `;
 
-const CharacterSlot = styled.div`
+const CharacterSlot = styled(motion.div)`
   width: 100px;
   height: 130px;
   border-radius: 8px;
@@ -479,44 +458,33 @@ const CharacterSlot = styled.div`
   overflow: hidden;
   transition: all 0.3s ease;
   transform-style: preserve-3d;
-  flex-shrink: 0;
-  background: linear-gradient(145deg, rgba(20, 25, 35, 0.9), rgba(10, 15, 25, 0.95));
-  border: 2px solid rgba(255, 255, 255, 0.1);
 
-  img {
-    filter: grayscale(100%) brightness(0.3);
-    opacity: 0.6;
-  }
-
-  &.center {
+  ${props => props.$isCenter && css`
     width: 140px;
     height: 180px;
     z-index: 10;
-  }
+  `}
 
-  &.unlocked {
+  ${props => props.$unlocked ? css`
     background: linear-gradient(145deg, rgba(0, 40, 60, 0.9), rgba(0, 20, 40, 0.95));
     border: 2px solid transparent;
     animation: ${packAPunchGlow} 3s ease-in-out infinite;
     
     img {
       filter: none;
-      opacity: 1;
     }
-  }
+  ` : css`
+    background: linear-gradient(145deg, rgba(20, 25, 35, 0.9), rgba(10, 15, 25, 0.95));
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    
+    img {
+      filter: grayscale(100%) brightness(0.3);
+      opacity: 0.6;
+    }
+  `}
 
   &:hover {
-    transform: scale(1.05);
-  }
-  
-  @media (max-width: 600px) {
-    width: 70px;
-    height: 95px;
-    
-    &.center {
-      width: 85px;
-      height: 115px;
-    }
+    transform: ${props => props.$isCenter ? 'scale(1.05)' : 'scale(1.08)'};
   }
 `;
 
@@ -539,11 +507,7 @@ const CharacterName = styled.div`
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.5);
-  
-  &.unlocked {
-    color: #00ff88;
-  }
+  color: ${props => props.$unlocked ? '#00ff88' : 'rgba(255, 255, 255, 0.5)'};
 `;
 
 const LockedIcon = styled.div`
@@ -561,12 +525,6 @@ const EmptySlot = styled.div`
   border-radius: 8px;
   background: linear-gradient(145deg, rgba(20, 25, 35, 0.5), rgba(10, 15, 25, 0.6));
   border: 2px dashed rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
-  
-  @media (max-width: 600px) {
-    width: 70px;
-    height: 95px;
-  }
 `;
 
 // ============================================
@@ -579,7 +537,7 @@ const CHARACTERS = [
   {
     id: 'lil-durk-figure',
     name: 'Lil Durk',
-    image: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy2.webp?alt=media',
+    image: '/images/durktoy2.webp',
     isCenter: false
   },
 ];
@@ -664,7 +622,7 @@ export default function Vault() {
 
     try {
       // Navigate to verify page with the serial number
-      navigate(`/ mintNFT ? id = ${serialNumber.trim()}& type=1`);
+      navigate(`/mintNFT?id=${serialNumber.trim()}&type=1`);
     } catch (err) {
       setVerificationResult({ status: 'error', message: err.message || 'Verification failed' });
     } finally {
@@ -704,7 +662,6 @@ export default function Vault() {
       <TopPanelsRow>
         {/* Left Panel: Verify & Unlock */}
         <Panel
-          as={motion.div}
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
@@ -722,7 +679,6 @@ export default function Vault() {
           />
 
           <ActionButton
-            as={motion.button}
             onClick={handleVerify}
             disabled={isVerifying || !serialNumber.trim()}
             whileHover={{ scale: 1.02 }}
@@ -739,8 +695,7 @@ export default function Vault() {
 
           {verificationResult && (
             <StatusMessage
-              as={motion.div}
-              className={verificationResult.status}
+              $status={verificationResult.status}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -754,7 +709,6 @@ export default function Vault() {
 
         {/* Right Panel: Welcome & Connect */}
         <WelcomePanel
-          as={motion.div}
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
@@ -773,7 +727,6 @@ export default function Vault() {
 
           {user && walletAddress ? (
             <ActionButton
-              as={motion.button}
               onClick={handleDisconnect}
               disabled={isLoading}
               whileHover={{ scale: 1.02 }}
@@ -783,8 +736,7 @@ export default function Vault() {
             </ActionButton>
           ) : (
             <ActionButton
-              as={motion.button}
-              className="primary"
+              $primary
               onClick={handleConnect}
               disabled={isLoading || !isWeb3Available}
               whileHover={{ scale: 1.02 }}
@@ -808,14 +760,13 @@ export default function Vault() {
       <MiddleRow>
         {/* Product Preview Card */}
         <PreviewCard
-          as={motion.div}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
         >
-          <PreviewImage className={isDurkOwned ? 'unlocked' : ''}>
+          <PreviewImage $unlocked={isDurkOwned}>
             <img src={DURK_PREVIEW_IMG} alt="Lil Durk Figure" />
-            <EditionBadge className={isDurkOwned ? 'unlocked' : ''}>
+            <EditionBadge $unlocked={isDurkOwned}>
               #{currentEdition || '---'}
             </EditionBadge>
           </PreviewImage>
@@ -823,7 +774,6 @@ export default function Vault() {
 
         {/* 3D Model Viewer */}
         <ModelViewerPanel
-          as={motion.div}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
@@ -870,7 +820,6 @@ export default function Vault() {
 
         <CharacterGridWrapper>
           <NavArrow
-            as={motion.button}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             disabled
@@ -884,17 +833,17 @@ export default function Vault() {
                 <EmptySlot key={char.id} />
               ) : (
                 <CharacterSlot
-                  as={motion.div}
                   key={char.id}
-                  className={`${char.isCenter ? 'center' : ''} ${isOwned(char.id) ? 'unlocked' : ''}`}
-                  whileHover={{ scale: 1.05 }}
+                  $isCenter={char.isCenter}
+                  $unlocked={isOwned(char.id)}
+                  whileHover={{ scale: char.isCenter ? 1.05 : 1.08 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   <CharacterImage
                     src={char.image}
                     alt={char.name}
                   />
-                  <CharacterName className={isOwned(char.id) ? 'unlocked' : ''}>
+                  <CharacterName $unlocked={isOwned(char.id)}>
                     {char.name}
                   </CharacterName>
                   {!isOwned(char.id) && (
@@ -919,14 +868,14 @@ export default function Vault() {
 
       {/* Global Styles for spin animation */}
       <style>{`
-@keyframes spin {
+        @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
-}
+        }
         .spin {
-  animation: spin 1s linear infinite;
-}
-`}</style>
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
     </VaultSection>
   );
 }

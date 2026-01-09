@@ -7,7 +7,7 @@ import crownLogo from '../assets/crown_logo_white.svg';
 import BackgroundBeams from './BackgroundBeams';
 import useWeb3Auth from '../hooks/useWeb3Auth';
 
-const HeaderContainer = styled.header`
+const HeaderContainer = styled(motion.header)`
   position: fixed;
   top: 0;
   left: 0;
@@ -17,11 +17,6 @@ const HeaderContainer = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.3s ease;
-  
-  &.hidden {
-    transform: translateY(-100%);
-  }
   
   &::before {
     content: '';
@@ -59,14 +54,9 @@ const HeaderContainer = styled.header`
     );
     z-index: -1;
   }
-  transition: transform 0.3s ease;
-  
-  &.hidden {
-    transform: translateY(-100%);
-  }
 `;
 
-const BlurOverlay = styled.div`
+const BlurOverlay = styled(motion.div)`
   position: fixed;
   top: 0;
   left: 0;
@@ -147,10 +137,10 @@ const HeaderActions = styled.div`
   }
 `;
 
-const ConnectButton = styled.button`
+const ConnectButton = styled(motion.button)`
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  color: white;
+  border: 1px solid ${props => props.$connected ? 'rgba(0, 255, 136, 0.6)' : 'rgba(255, 255, 255, 0.6)'};
+  color: ${props => props.$connected ? '#00ff88' : 'white'};
   padding: 0.35rem 0.75rem;
   border-radius: 4px;
   font-family: 'Designer', sans-serif;
@@ -162,23 +152,14 @@ const ConnectButton = styled.button`
   align-items: center;
   gap: 0.4rem;
   transition: all 0.3s ease;
-  
-  &.connected {
-    border-color: rgba(0, 255, 136, 0.6);
-    color: #00ff88;
+  ${props => props.$connected && `
     box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
-
-    &:hover {
-      background: rgba(0, 255, 136, 0.1);
-      border-color: #00ff88;
-      box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
-    }
-  }
-
+  `}
+  
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: white;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    background: ${props => props.$connected ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 255, 255, 0.1)'};
+    border-color: ${props => props.$connected ? '#00ff88' : 'white'};
+    box-shadow: 0 0 15px ${props => props.$connected ? 'rgba(0, 255, 136, 0.3)' : 'rgba(255, 255, 255, 0.2)'};
   }
   
   &:disabled {
@@ -196,11 +177,22 @@ const ConnectButton = styled.button`
   }
   
   @media (max-width: 600px) {
-    display: none;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.55rem;
+    gap: 0.2rem;
+    border-width: 1px;
+    
+    span {
+      display: none;
+    }
+    
+    svg {
+      font-size: 0.7rem;
+    }
   }
 `;
 
-const HamburgerButton = styled.button`
+const HamburgerButton = styled(motion.button)`
   background: none;
   border: none;
   cursor: pointer;
@@ -215,7 +207,7 @@ const HamburgerButton = styled.button`
   align-items: center;
 `;
 
-const HamburgerLine = styled.span`
+const HamburgerLine = styled(motion.span)`
   display: block;
   width: 24px;
   height: 2px;
@@ -223,7 +215,7 @@ const HamburgerLine = styled.span`
   margin: 4px 0;
 `;
 
-const MenuOverlay = styled.div`
+const MenuOverlay = styled(motion.div)`
   position: fixed;
   top: 0;
   right: 0;
@@ -234,19 +226,13 @@ const MenuOverlay = styled.div`
   overflow: hidden;
   z-index: 101;
   padding: 5rem 0.5rem 2rem;
-  opacity: 0;
-  transform: translateY(-10px);
-  pointer-events: none;
+  opacity: ${props => (props.$isOpen ? 1 : 0)};
+  transform: translateY(${props => (props.$isOpen ? '0' : '-10px')});
+  pointer-events: ${props => (props.$isOpen ? 'auto' : 'none')};
   transition: all 0.3s ease;
-
-  &.open {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
 `;
 
-const MenuItem = styled.a`
+const MenuItem = styled(motion.a)`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -332,8 +318,7 @@ export default function Header() {
     { text: 'Vault', icon: <FaLock size={16} />, link: '/#vault' },
     { text: 'About', icon: <FaInfoCircle size={16} />, link: '/#about' },
     { text: 'Forum', icon: <FaComments size={16} />, link: '/forum' },
-    { text: 'Contact', icon: <FaEnvelope size={16} />, link: '/contact' },
-    { text: user ? 'Connected' : 'Connect', icon: <FaWallet size={16} />, action: handleConnect, isConnect: true }
+    { text: 'Contact', icon: <FaEnvelope size={16} />, link: '/contact' }
   ];
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -449,7 +434,7 @@ export default function Header() {
   return (
     <>
       <BackgroundBeams />
-      <HeaderContainer style={{ opacity: headerOpacity }} className={showHeader ? '' : 'hidden'}>
+      <HeaderContainer style={{ opacity: headerOpacity }} $show={showHeader}>
         <LogoLink href="#" onClick={(e) => {
           e.preventDefault();
           scrollToTop();
@@ -460,10 +445,9 @@ export default function Header() {
 
         <HeaderActions>
           <ConnectButton
-            as={motion.button}
             onClick={handleConnect}
             disabled={isLoading || isConnecting || !isWeb3Available}
-            className={user ? 'connected' : ''}
+            $connected={!!user}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -476,20 +460,16 @@ export default function Header() {
           </ConnectButton>
 
           <HamburgerButton
-            as={motion.button}
             onClick={toggleMenu}
             ref={buttonRef}
           >
             <HamburgerLine
-              as={motion.span}
               animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
             />
             <HamburgerLine
-              as={motion.span}
               animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
             />
             <HamburgerLine
-              as={motion.span}
               animate={isMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
             />
           </HamburgerButton>
@@ -502,15 +482,15 @@ export default function Header() {
         {isMenuOpen && (
           <>
             <BlurOverlay
-              as={motion.div}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMenuOpen(false)}
               className={isMenuOpen ? 'active' : ''}
             />
             <MenuOverlay
-              as={motion.div}
               ref={menuRef}
-              className={isMenuOpen ? 'open' : ''}
+              $isOpen={isMenuOpen}
               initial="closed"
               animate="open"
               exit="closed"
@@ -518,16 +498,11 @@ export default function Header() {
             >
               {menuItems.map((item, i) => (
                 <MenuItem
-                  as={motion.a}
                   key={item.text}
                   href={item.link}
                   custom={i}
                   variants={menuItemVariants}
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    if (item.action) item.action();
-                  }}
-                  style={item.isConnect ? { color: user ? '#00ff88' : 'white' } : {}}
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   {item.icon}
                   <MenuItemText>{item.text}</MenuItemText>

@@ -28,7 +28,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net https://apis.google.com https://www.gstatic.com https://www.google.com; connect-src 'self' https://*.web3auth.io https://*.rpc.web3auth.io https://*.firebaseio.com https://*.googleapis.com https://*.cloudfunctions.net https://*.stripe.com https://*.polygonscan.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://*.web3auth.io https://*.googleusercontent.com https://*.lildurkofficial.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; frame-src 'self' https://*.web3auth.io https://*.stripe.com https://www.google.com; worker-src 'self' blob:; upgrade-insecure-requests;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net https://*.web3auth.io https://*.stripe.com https://*.firebase.com https://*.firebaseio.com https://*.googleapis.com https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.firebasestorage.app https://*.googleapis.com https://*.stripe.com; connect-src 'self' https://*.web3auth.io https://*.stripe.com https://*.firebase.com https://*.firebaseio.com https://*.googleapis.com wss://*.web3auth.io https://api.crownmania.com https://*.infura.io https://*.alchemy.com; frame-src 'self' https://*.web3auth.io https://*.stripe.com; object-src 'none'; base-uri 'self';"
         }
       ]
     },
