@@ -447,21 +447,24 @@ const CharacterGrid = styled.div`
   display: flex;
   gap: 1rem;
   perspective: 1000px;
+  align-items: flex-end;
 `;
 
 const CharacterSlot = styled(motion.div)`
-  width: 100px;
-  height: 130px;
-  border-radius: 8px;
+  width: 140px;
+  height: 200px;
+  border-radius: 12px;
   position: relative;
   cursor: pointer;
   overflow: hidden;
   transition: all 0.3s ease;
   transform-style: preserve-3d;
+  display: flex;
+  flex-direction: column;
 
   ${props => props.$isCenter && css`
-    width: 140px;
-    height: 180px;
+    width: 180px;
+    height: 260px;
     z-index: 10;
   `}
 
@@ -488,6 +491,16 @@ const CharacterSlot = styled(motion.div)`
   }
 `;
 
+const CharacterImageWrapper = styled.div`
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+`;
+
 const CharacterImage = styled.img`
   width: 100%;
   height: 100%;
@@ -495,19 +508,43 @@ const CharacterImage = styled.img`
   transition: all 0.5s ease;
 `;
 
-const CharacterName = styled.div`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+const CharacterInfo = styled.div`
   padding: 0.5rem;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const CharacterName = styled.div`
   font-family: 'Designer', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: ${props => props.$unlocked ? '#00ff88' : 'rgba(255, 255, 255, 0.5)'};
+`;
+
+const CollectibleDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  
+  .edition {
+    color: #00c8ff;
+    font-weight: bold;
+    font-size: 0.7rem;
+  }
+  
+  .status {
+    color: ${props => props.$claimed ? '#00ff88' : 'rgba(255, 255, 255, 0.4)'};
+    font-size: 0.55rem;
+    text-transform: uppercase;
+  }
 `;
 
 const LockedIcon = styled.div`
@@ -520,11 +557,17 @@ const LockedIcon = styled.div`
 `;
 
 const EmptySlot = styled.div`
-  width: 100px;
-  height: 130px;
-  border-radius: 8px;
-  background: linear-gradient(145deg, rgba(20, 25, 35, 0.5), rgba(10, 15, 25, 0.6));
+  width: 140px;
+  height: 200px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(20, 25, 35, 0.3), rgba(10, 15, 25, 0.4));
   border: 2px dashed rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.2);
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 0.6rem;
 `;
 
 // ============================================
@@ -537,7 +580,10 @@ const CHARACTERS = [
   {
     id: 'lil-durk-figure',
     name: 'Lil Durk',
-    image: '/images/durktoy2.webp',
+    fullName: 'Lil Durk 10" Resin Figure',
+    image: DURK_PREVIEW_IMG,
+    description: 'Limited Edition Collectible',
+    totalSupply: 500,
     isCenter: false
   },
 ];
@@ -830,7 +876,7 @@ export default function Vault() {
           <CharacterGrid>
             {CHARACTERS.map((char) => (
               char.empty ? (
-                <EmptySlot key={char.id} />
+                <EmptySlot key={char.id}>COMING SOON</EmptySlot>
               ) : (
                 <CharacterSlot
                   key={char.id}
@@ -839,18 +885,35 @@ export default function Vault() {
                   whileHover={{ scale: char.isCenter ? 1.05 : 1.08 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <CharacterImage
-                    src={char.image}
-                    alt={char.name}
-                  />
-                  <CharacterName $unlocked={isOwned(char.id)}>
-                    {char.name}
-                  </CharacterName>
-                  {!isOwned(char.id) && (
-                    <LockedIcon>
-                      <FaLock />
-                    </LockedIcon>
-                  )}
+                  <CharacterImageWrapper>
+                    <CharacterImage
+                      src={char.image}
+                      alt={char.name}
+                    />
+                    {!isOwned(char.id) && (
+                      <LockedIcon>
+                        <FaLock />
+                      </LockedIcon>
+                    )}
+                  </CharacterImageWrapper>
+                  <CharacterInfo>
+                    <CharacterName $unlocked={isOwned(char.id)}>
+                      {char.name}
+                    </CharacterName>
+                    <CollectibleDetails $claimed={isOwned(char.id)}>
+                      {isOwned(char.id) ? (
+                        <>
+                          <span className="edition">Edition #{currentEdition || '---'} / {char.totalSupply}</span>
+                          <span className="status">✓ Claimed</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{char.description}</span>
+                          <span className="status">Locked</span>
+                        </>
+                      )}
+                    </CollectibleDetails>
+                  </CharacterInfo>
                 </CharacterSlot>
               )
             ))}
