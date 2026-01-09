@@ -19,7 +19,7 @@ const VerifyContainer = styled.div`
   z-index: 1;
 `;
 
-const ContentCard = styled(motion.div)`
+const ContentCard = styled.div`
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -126,7 +126,7 @@ const SerialDisplay = styled.div`
   word-break: break-all;
 `;
 
-const StatusIcon = styled(motion.div)`
+const StatusIcon = styled.div`
   font-size: 4rem;
   margin-bottom: 1.5rem;
   
@@ -144,7 +144,7 @@ const Message = styled.p`
   max-width: 400px;
 `;
 
-const ActionButton = styled(motion.button)`
+const ActionButton = styled.button`
   background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
   border: none;
   padding: 1rem 2rem;
@@ -157,6 +157,7 @@ const ActionButton = styled(motion.button)`
   align-items: center;
   gap: 0.8rem;
   margin-top: 1rem;
+  transition: all 0.3s ease;
   
   &:disabled {
     opacity: 0.5;
@@ -164,7 +165,7 @@ const ActionButton = styled(motion.button)`
   }
 `;
 
-const SecondaryButton = styled(motion.button)`
+const SecondaryButton = styled.button`
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 0.75rem 1.5rem;
@@ -176,6 +177,7 @@ const SecondaryButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   margin-top: 0.75rem;
+  transition: all 0.3s ease;
   
   &:hover {
     background: rgba(255, 255, 255, 0.1);
@@ -191,7 +193,7 @@ const ButtonGroup = styled.div`
   margin-top: 1rem;
 `;
 
-const ShareButton = styled(motion.button)`
+const ShareButton = styled.button`
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 0.75rem 1.5rem;
@@ -202,6 +204,7 @@ const ShareButton = styled(motion.button)`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  transition: all 0.3s ease;
   
   &:hover {
     background: rgba(255, 255, 255, 0.2);
@@ -549,6 +552,7 @@ export default function VerifyPage() {
     return (
         <VerifyContainer>
             <ContentCard
+                as={motion.div}
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
@@ -562,7 +566,7 @@ export default function VerifyPage() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                         >
-                            <StatusIcon className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
+                            <StatusIcon as={motion.div} className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
                                 <FaShieldAlt />
                             </StatusIcon>
                             <Title>Verifying...</Title>
@@ -579,7 +583,7 @@ export default function VerifyPage() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                         >
-                            <StatusIcon className="valid" initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                            <StatusIcon as={motion.div} className="valid" initial={{ scale: 0 }} animate={{ scale: 1 }}>
                                 <FaCheckCircle />
                             </StatusIcon>
                             <Title>Product Verified ✓</Title>
@@ -588,6 +592,7 @@ export default function VerifyPage() {
                                 This product is authentic! Create a wallet to claim your digital collectible.
                             </Message>
                             <ActionButton
+                                as={motion.button}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleConnectWallet}
@@ -616,6 +621,7 @@ export default function VerifyPage() {
                                 Claim your digital collectible to prove ownership on the blockchain.
                             </Message>
                             <ActionButton
+                                as={motion.button}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleClaim}
@@ -633,7 +639,7 @@ export default function VerifyPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                         >
-                            <StatusIcon className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
+                            <StatusIcon as={motion.div} className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
                                 <FaShieldAlt />
                             </StatusIcon>
                             <Title>Claiming...</Title>
@@ -672,7 +678,7 @@ export default function VerifyPage() {
                                 }, 250);
                             }}
                         >
-                            <StatusIcon className="valid" initial={{ scale: 0 }} animate={{ scale: 1.2 }} transition={{ type: "spring" }}>
+                            <StatusIcon as={motion.div} className="valid" initial={{ scale: 0 }} animate={{ scale: 1.2 }} transition={{ type: "spring" }}>
                                 <FaCheckCircle />
                             </StatusIcon>
                             <Title>Ownership Verified ✓</Title>
@@ -686,6 +692,7 @@ export default function VerifyPage() {
                             />
                             <ButtonGroup>
                                 <ActionButton
+                                    as={motion.button}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => {
@@ -699,6 +706,7 @@ export default function VerifyPage() {
                                     View in Vault <FaArrowRight />
                                 </ActionButton>
                                 <ShareButton
+                                    as={motion.button}
                                     whileHover={{ scale: 1.02 }}
                                     onClick={async () => {
                                         const url = window.location.href;
@@ -745,6 +753,7 @@ export default function VerifyPage() {
                             <ButtonGroup>
                                 {isCurrentOwner ? (
                                     <ActionButton
+                                        as={motion.button}
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => {
@@ -763,6 +772,7 @@ export default function VerifyPage() {
                                     </SecondaryButton>
                                 )}
                                 <ShareButton
+                                    as={motion.button}
                                     whileHover={{ scale: 1.02 }}
                                     onClick={async () => {
                                         const url = window.location.href;
@@ -791,7 +801,7 @@ export default function VerifyPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                         >
-                            <StatusIcon className="invalid">
+                            <StatusIcon as={motion.div} className="invalid">
                                 <FaExclamationTriangle />
                             </StatusIcon>
                             <Title>Invalid Serial</Title>

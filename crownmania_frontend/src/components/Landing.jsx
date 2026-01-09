@@ -39,7 +39,7 @@ const ContentWrapper = styled.div`
 
 
 
-const MainTagline = styled(motion.h1)`
+const MainTagline = styled.h1`
   font-size: clamp(0.7rem, 3.5vw, 2.5rem);
   font-family: 'Designer', sans-serif;
   font-style: italic;
@@ -52,7 +52,7 @@ const MainTagline = styled(motion.h1)`
   white-space: nowrap;
 `;
 
-const SubTagline = styled(motion.h2)`
+const SubTagline = styled.h2`
   font-size: 2vw;
   font-family: 'Designer', sans-serif;
   color: white;
@@ -152,6 +152,7 @@ export default function Landing() {
     <LandingSection id="landing">
       <ContentWrapper>
         <MainTagline
+          as={motion.h1}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
@@ -159,6 +160,7 @@ export default function Landing() {
           INNOVATE • COLLECT • CONNECT
         </MainTagline>
         <SubTagline
+          as={motion.h2}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}

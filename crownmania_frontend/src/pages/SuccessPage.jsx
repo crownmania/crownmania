@@ -15,7 +15,7 @@ const Container = styled.div`
   text-align: center;
 `;
 
-const Card = styled(motion.div)`
+const Card = styled.div`
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -45,7 +45,7 @@ const Message = styled.p`
   line-height: 1.6;
 `;
 
-const Button = styled(motion.button)`
+const Button = styled.button`
   background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
   color: black;
   border: none;
@@ -58,36 +58,39 @@ const Button = styled(motion.button)`
   align-items: center;
   gap: 0.8rem;
   margin: 0 auto;
+  transition: all 0.3s ease;
 `;
 
 export default function SuccessPage() {
-    const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
-    const sessionId = searchParams.get('session_id');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const sessionId = searchParams.get('session_id');
 
-    return (
-        <Container>
-            <Card
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-            >
-                <Icon>
-                    <FaCheckCircle />
-                </Icon>
-                <Title>Purchase Successful!</Title>
-                <Message>
-                    Thank you for your order. Your physical collectible will be shipped soon.
-                    Once you receive it, scan the QR code to claim your Digital Twin!
-                </Message>
-                <Button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => navigate('/#vault')}
-                >
-                    Visit Your Vault <FaArrowRight />
-                </Button>
-            </Card>
-        </Container>
-    );
+  return (
+    <Container>
+      <Card
+        as={motion.div}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Icon>
+          <FaCheckCircle />
+        </Icon>
+        <Title>Purchase Successful!</Title>
+        <Message>
+          Thank you for your order. Your physical collectible will be shipped soon.
+          Once you receive it, scan the QR code to claim your Digital Twin!
+        </Message>
+        <Button
+          as={motion.button}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigate('/#vault')}
+        >
+          Visit Your Vault <FaArrowRight />
+        </Button>
+      </Card>
+    </Container>
+  );
 }

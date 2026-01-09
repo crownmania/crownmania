@@ -7,7 +7,7 @@ import crownLogo from '../assets/crown_logo_white.svg';
 import BackgroundBeams from './BackgroundBeams';
 import useWeb3Auth from '../hooks/useWeb3Auth';
 
-const HeaderContainer = styled(motion.header)`
+const HeaderContainer = styled.header`
   position: fixed;
   top: 0;
   left: 0;
@@ -17,6 +17,11 @@ const HeaderContainer = styled(motion.header)`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: all 0.3s ease;
+  
+  &.hidden {
+    transform: translateY(-100%);
+  }
   
   &::before {
     content: '';
@@ -61,7 +66,7 @@ const HeaderContainer = styled(motion.header)`
   }
 `;
 
-const BlurOverlay = styled(motion.div)`
+const BlurOverlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
@@ -142,7 +147,7 @@ const HeaderActions = styled.div`
   }
 `;
 
-const ConnectButton = styled(motion.button)`
+const ConnectButton = styled.button`
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.6);
   color: white;
@@ -195,7 +200,7 @@ const ConnectButton = styled(motion.button)`
   }
 `;
 
-const HamburgerButton = styled(motion.button)`
+const HamburgerButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
@@ -210,7 +215,7 @@ const HamburgerButton = styled(motion.button)`
   align-items: center;
 `;
 
-const HamburgerLine = styled(motion.span)`
+const HamburgerLine = styled.span`
   display: block;
   width: 24px;
   height: 2px;
@@ -218,7 +223,7 @@ const HamburgerLine = styled(motion.span)`
   margin: 4px 0;
 `;
 
-const MenuOverlay = styled(motion.div)`
+const MenuOverlay = styled.div`
   position: fixed;
   top: 0;
   right: 0;
@@ -241,7 +246,7 @@ const MenuOverlay = styled(motion.div)`
   }
 `;
 
-const MenuItem = styled(motion.a)`
+const MenuItem = styled.a`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -455,6 +460,7 @@ export default function Header() {
 
         <HeaderActions>
           <ConnectButton
+            as={motion.button}
             onClick={handleConnect}
             disabled={isLoading || isConnecting || !isWeb3Available}
             className={user ? 'connected' : ''}
@@ -470,16 +476,20 @@ export default function Header() {
           </ConnectButton>
 
           <HamburgerButton
+            as={motion.button}
             onClick={toggleMenu}
             ref={buttonRef}
           >
             <HamburgerLine
+              as={motion.span}
               animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
             />
             <HamburgerLine
+              as={motion.span}
               animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
             />
             <HamburgerLine
+              as={motion.span}
               animate={isMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
             />
           </HamburgerButton>
@@ -492,13 +502,13 @@ export default function Header() {
         {isMenuOpen && (
           <>
             <BlurOverlay
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              as={motion.div}
               exit={{ opacity: 0 }}
               onClick={() => setIsMenuOpen(false)}
               className={isMenuOpen ? 'active' : ''}
             />
             <MenuOverlay
+              as={motion.div}
               ref={menuRef}
               className={isMenuOpen ? 'open' : ''}
               initial="closed"
@@ -508,6 +518,7 @@ export default function Header() {
             >
               {menuItems.map((item, i) => (
                 <MenuItem
+                  as={motion.a}
                   key={item.text}
                   href={item.link}
                   custom={i}
