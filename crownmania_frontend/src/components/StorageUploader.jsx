@@ -50,12 +50,8 @@ const UploadButton = styled.button`
   border-radius: 6px;
   color: white;
   cursor: pointer;
+  opacity: ${props => props.disabled ? 0.5 : 1};
   transition: all 0.3s ease;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 
   &:not(:disabled):hover {
     background: #0077ff;

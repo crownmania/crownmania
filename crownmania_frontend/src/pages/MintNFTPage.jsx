@@ -18,7 +18,7 @@ const PageContainer = styled.div`
   background: linear-gradient(180deg, #0f172a 0%, #000 100%);
 `;
 
-const ContentCard = styled.div`
+const ContentCard = styled(motion.div)`
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -81,7 +81,7 @@ const IdDisplay = styled.div`
   word-break: break-all;
 `;
 
-const StatusIcon = styled.div`
+const StatusIcon = styled(motion.div)`
   font-size: 4rem;
   margin-bottom: 1.5rem;
   
@@ -99,7 +99,7 @@ const Message = styled.p`
   max-width: 400px;
 `;
 
-const ActionButton = styled.button`
+const ActionButton = styled(motion.button)`
   background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
   border: none;
   padding: 1rem 2rem;
@@ -112,7 +112,6 @@ const ActionButton = styled.button`
   align-items: center;
   gap: 0.8rem;
   margin-top: 1rem;
-  transition: all 0.3s ease;
   
   &:disabled {
     opacity: 0.5;
@@ -120,7 +119,7 @@ const ActionButton = styled.button`
   }
 `;
 
-const SecondaryButton = styled.button`
+const SecondaryButton = styled(motion.button)`
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 0.8rem 1.5rem;
@@ -129,7 +128,6 @@ const SecondaryButton = styled.button`
   font-size: 0.9rem;
   cursor: pointer;
   margin-top: 1rem;
-  transition: all 0.3s ease;
   
   &:hover {
     background: rgba(255, 255, 255, 0.1);
@@ -309,7 +307,6 @@ export default function MintNFTPage() {
     return (
         <PageContainer>
             <ContentCard
-                as={motion.div}
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
@@ -326,7 +323,7 @@ export default function MintNFTPage() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                         >
-                            <StatusIcon as={motion.div} className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
+                            <StatusIcon className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
                                 <FaShieldAlt />
                             </StatusIcon>
                             <Title>Verifying Product...</Title>
@@ -343,7 +340,7 @@ export default function MintNFTPage() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                         >
-                            <StatusIcon as={motion.div} className="valid" initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                            <StatusIcon className="valid" initial={{ scale: 0 }} animate={{ scale: 1 }}>
                                 <FaCheckCircle />
                             </StatusIcon>
                             <Title>Authentic Product Verified</Title>
@@ -353,7 +350,6 @@ export default function MintNFTPage() {
                             </Message>
                             <IdDisplay>Product ID: {id}</IdDisplay>
                             <ActionButton
-                                as={motion.button}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleConnectWallet}
@@ -369,7 +365,7 @@ export default function MintNFTPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                         >
-                            <StatusIcon as={motion.div} className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
+                            <StatusIcon className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
                                 <FaWallet />
                             </StatusIcon>
                             <Title>Securing Your Account...</Title>
@@ -393,7 +389,6 @@ export default function MintNFTPage() {
                                 You have successfully secured your account! Click below to finalize ownership and secure your Digital Twin NFT.
                             </Message>
                             <ActionButton
-                                as={motion.button}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleMint}
@@ -409,7 +404,7 @@ export default function MintNFTPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                         >
-                            <StatusIcon as={motion.div} className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
+                            <StatusIcon className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
                                 <FaShieldAlt />
                             </StatusIcon>
                             <Title>Minting NFT...</Title>
@@ -432,7 +427,6 @@ export default function MintNFTPage() {
                                 Congratulations! Your Digital Twin NFT has been minted. This product is now cryptographically linked to your wallet.
                             </Message>
                             <ActionButton
-                                as={motion.button}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => navigate('/#vault')}
@@ -482,7 +476,7 @@ export default function MintNFTPage() {
                             </Message>
                             <IdDisplay>ID: {id || 'No ID provided'}</IdDisplay>
                             {error && <ErrorMessage>{error}</ErrorMessage>}
-                            <ActionButton as={motion.button} onClick={() => navigate('/')}>
+                            <ActionButton onClick={() => navigate('/')}>
                                 Return Home
                             </ActionButton>
                         </motion.div>

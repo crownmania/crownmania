@@ -85,7 +85,7 @@ const TextArea = styled.textarea`
   }
 `;
 
-const SubmitButton = styled.button`
+const SubmitButton = styled(motion.button)`
   padding: 1rem 2rem;
   background: #0066FF;
   border: none;
@@ -110,7 +110,7 @@ const SubmitButton = styled.button`
   }
 `;
 
-const GlowOrb = styled.div`
+const GlowOrb = styled(motion.div)`
   position: absolute;
   width: 300px;
   height: 300px;
@@ -150,7 +150,6 @@ export default function Contact() {
   return (
     <ContactSection id="contact">
       <GlowOrb
-        as={motion.div}
         initial={{ x: -200, y: -200 }}
         animate={{
           x: [-200, 200, -200],
@@ -202,7 +201,6 @@ export default function Contact() {
           </InputGroup>
 
           <SubmitButton
-            as={motion.button}
             type="submit"
             disabled={isSubmitting}
             whileHover={{ scale: 1.02 }}
