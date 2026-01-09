@@ -246,7 +246,8 @@ const ErrorMessage = styled.p`
 const ProductImage = styled.img`
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center center;
 `;
 
 const ImageContainer = styled.div`
