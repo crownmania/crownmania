@@ -15,7 +15,7 @@ const Container = styled.div`
   text-align: center;
 `;
 
-const Card = styled(motion.div)`
+const Card = styled.div`
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -45,7 +45,7 @@ const Message = styled.p`
   line-height: 1.6;
 `;
 
-const Button = styled(motion.button)`
+const Button = styled.button`
   background: rgba(255, 255, 255, 0.1);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -58,6 +58,7 @@ const Button = styled(motion.button)`
   align-items: center;
   gap: 0.8rem;
   margin: 0 auto;
+  transition: all 0.3s ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.2);
@@ -65,31 +66,33 @@ const Button = styled(motion.button)`
 `;
 
 export default function CancelPage() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    return (
-        <Container>
-            <Card
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-            >
-                <Icon>
-                    <FaTimesCircle />
-                </Icon>
-                <Title>Checkout Cancelled</Title>
-                <Message>
-                    Your checkout process has been cancelled. No charges were made.
-                    If you had any issues, please contact our support.
-                </Message>
-                <Button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => navigate('/')}
-                >
-                    Return to Shop <FaArrowRight />
-                </Button>
-            </Card>
-        </Container>
-    );
+  return (
+    <Container>
+      <Card
+        as={motion.div}
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Icon>
+          <FaTimesCircle />
+        </Icon>
+        <Title>Checkout Cancelled</Title>
+        <Message>
+          Your checkout process has been cancelled. No charges were made.
+          If you had any issues, please contact our support.
+        </Message>
+        <Button
+          as={motion.button}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigate('/')}
+        >
+          Return to Shop <FaArrowRight />
+        </Button>
+      </Card>
+    </Container>
+  );
 }

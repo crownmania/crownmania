@@ -46,7 +46,7 @@ const FilterContainer = styled.div`
   gap: 1rem;
 `;
 
-const FilterButton = styled(motion.button)`
+const FilterButton = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -97,7 +97,7 @@ const TextArea = styled.textarea`
   }
 `;
 
-const SubmitButton = styled(motion.button)`
+const SubmitButton = styled.button`
   padding: 1rem 2rem;
   background: #0066FF;
   border: none;
@@ -123,7 +123,7 @@ const PostsContainer = styled.div`
   gap: 1rem;
 `;
 
-const Post = styled(motion.div)`
+const Post = styled.div`
   padding: 1.5rem;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -148,7 +148,7 @@ const PostActions = styled.div`
   color: rgba(255, 255, 255, 0.6);
 `;
 
-const ActionButton = styled(motion.button)`
+const ActionButton = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -164,7 +164,7 @@ const ActionButton = styled(motion.button)`
   }
 `;
 
-const GlowOrb = styled(motion.div)`
+const GlowOrb = styled.div`
   position: absolute;
   width: 300px;
   height: 300px;
@@ -247,6 +247,7 @@ const Forum = () => {
   return (
     <ForumSection id="forum">
       <GlowOrb
+        as={motion.div}
         initial={{ x: 200, y: -200 }}
         animate={{
           x: [200, -200, 200],
@@ -264,6 +265,7 @@ const Forum = () => {
           <Title>Community Forum</Title>
           <FilterContainer>
             <FilterButton
+              as={motion.button}
               className={filter === 'trending' ? 'active' : ''}
               onClick={() => setFilter('trending')}
               whileHover={{ scale: 1.05 }}
@@ -272,6 +274,7 @@ const Forum = () => {
               <FaFire /> Trending
             </FilterButton>
             <FilterButton
+              as={motion.button}
               className={filter === 'current' ? 'active' : ''}
               onClick={() => setFilter('current')}
               whileHover={{ scale: 1.05 }}
@@ -289,6 +292,7 @@ const Forum = () => {
             placeholder="Share your thoughts..."
           />
           <SubmitButton
+            as={motion.button}
             type="submit"
             disabled={!newPost.trim()}
             whileHover={{ scale: 1.02 }}
@@ -302,6 +306,7 @@ const Forum = () => {
           <AnimatePresence>
             {sortedPosts.map(post => (
               <Post
+                as={motion.div}
                 key={post.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -309,10 +314,10 @@ const Forum = () => {
               >
                 <PostContent>{post.content}</PostContent>
                 <PostActions>
-                  <ActionButton onClick={() => handleVote(post.id, 'like')}>
+                  <ActionButton as={motion.button} onClick={() => handleVote(post.id, 'like')}>
                     <FaThumbsUp /> {post.likes}
                   </ActionButton>
-                  <ActionButton onClick={() => handleVote(post.id, 'dislike')}>
+                  <ActionButton as={motion.button} onClick={() => handleVote(post.id, 'dislike')}>
                     <FaThumbsDown /> {post.dislikes}
                   </ActionButton>
                 </PostActions>

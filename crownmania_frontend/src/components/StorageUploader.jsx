@@ -50,8 +50,12 @@ const UploadButton = styled.button`
   border-radius: 6px;
   color: white;
   cursor: pointer;
-  opacity: ${props => props.disabled ? 0.5 : 1};
   transition: all 0.3s ease;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   &:not(:disabled):hover {
     background: #0077ff;
@@ -114,11 +118,11 @@ export default function StorageUploader() {
       setUploading(true);
       setError(null);
       await uploadFile(selectedFile, selectedFolder);
-      
+
       // Refresh file list
       const updatedFiles = await listFiles(selectedFolder);
       setFiles(updatedFiles);
-      
+
       // Reset file input
       setSelectedFile(null);
       event.target.reset();
@@ -138,22 +142,22 @@ export default function StorageUploader() {
           <option value="images">Images</option>
           <option value="videos">Videos</option>
         </Select>
-        
+
         <FileLabel>
           {selectedFile ? selectedFile.name : 'Choose File'}
-          <FileInput 
-            type="file" 
+          <FileInput
+            type="file"
             onChange={handleFileSelect}
             accept={
               selectedFolder === 'models' ? '.gltf,.glb' :
-              selectedFolder === 'images' ? '.webp,.png,.jpg' :
-              '.webm,.mp4'
+                selectedFolder === 'images' ? '.webp,.png,.jpg' :
+                  '.webm,.mp4'
             }
           />
         </FileLabel>
 
-        <UploadButton 
-          type="submit" 
+        <UploadButton
+          type="submit"
           disabled={!selectedFile || uploading}
         >
           {uploading ? 'Uploading...' : 'Upload'}

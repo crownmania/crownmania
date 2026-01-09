@@ -21,7 +21,7 @@ const FooterContent = styled.div`
   }
 `;
 
-const FooterSection = styled(motion.div)`
+const FooterSection = styled.div`
   h3 {
     color: var(--light-blue);
     margin-bottom: 1rem;
@@ -30,7 +30,7 @@ const FooterSection = styled(motion.div)`
   }
 `;
 
-const FooterLink = styled(motion.a)`
+const FooterLink = styled.a`
   display: block;
   color: var(--text-color);
   text-decoration: none;
@@ -59,27 +59,29 @@ export default function Footer() {
     <FooterContainer>
       <FooterContent>
         <FooterSection
+          as={motion.div}
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
         >
           <h3>Support</h3>
-          <FooterLink href="#" whileHover={{ x: 5 }}>FAQ</FooterLink>
-          <FooterLink href="/contact" whileHover={{ x: 5 }}>Contact Us</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Help Center</FooterLink>
+          <FooterLink as={motion.a} href="#" whileHover={{ x: 5 }}>FAQ</FooterLink>
+          <FooterLink as={motion.a} href="/contact" whileHover={{ x: 5 }}>Contact Us</FooterLink>
+          <FooterLink as={motion.a} href="#" whileHover={{ x: 5 }}>Help Center</FooterLink>
         </FooterSection>
 
         <FooterSection
+          as={motion.div}
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
         >
           <h3>Legal</h3>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Privacy Policy</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Terms of Service</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Returns</FooterLink>
+          <FooterLink as={motion.a} href="#" whileHover={{ x: 5 }}>Privacy Policy</FooterLink>
+          <FooterLink as={motion.a} href="#" whileHover={{ x: 5 }}>Terms of Service</FooterLink>
+          <FooterLink as={motion.a} href="#" whileHover={{ x: 5 }}>Returns</FooterLink>
         </FooterSection>
       </FooterContent>
 

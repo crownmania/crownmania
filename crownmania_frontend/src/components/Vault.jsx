@@ -1,4 +1,4 @@
-// Vault Component - Build v2.0.2
+// Vault Component - Build v2.0.3
 import { useState, useEffect, Suspense, lazy, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
@@ -113,7 +113,7 @@ const TopPanelsRow = styled.div`
   }
 `;
 
-const Panel = styled(motion.div)`
+const Panel = styled.div`
   background: linear-gradient(145deg, rgba(0, 30, 50, 0.8), rgba(0, 15, 30, 0.9));
   border: 1px solid rgba(0, 166, 251, 0.2);
   border-radius: 12px;
@@ -133,8 +133,24 @@ const Panel = styled(motion.div)`
 `;
 
 // Welcome Panel with background image
-const WelcomePanel = styled(Panel)`
+const WelcomePanel = styled.div`
+  background: linear-gradient(145deg, rgba(0, 30, 50, 0.8), rgba(0, 15, 30, 0.9));
+  border: 1px solid rgba(0, 166, 251, 0.2);
+  border-radius: 12px;
+  padding: 2rem;
+  position: relative;
+  min-height: 250px;
   overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.6), transparent);
+  }
   
   &::after {
     content: '';
@@ -199,7 +215,7 @@ const SerialInput = styled.input`
   }
 `;
 
-const ActionButton = styled(motion.button)`
+const ActionButton = styled.button`
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-family: 'Designer', sans-serif;
@@ -235,11 +251,11 @@ const ActionButton = styled(motion.button)`
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
+    transform: none !important;
   }
 `;
 
-const StatusMessage = styled(motion.div)`
+const StatusMessage = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -284,7 +300,7 @@ const MiddleRow = styled.div`
   }
 `;
 
-const PreviewCard = styled(motion.div)`
+const PreviewCard = styled.div`
   background: linear-gradient(145deg, rgba(0, 30, 50, 0.8), rgba(0, 15, 30, 0.9));
   border: 1px solid rgba(0, 166, 251, 0.2);
   border-radius: 12px;
@@ -329,7 +345,7 @@ const EditionBadge = styled.div`
   }
 `;
 
-const ModelViewerPanel = styled(motion.div)`
+const ModelViewerPanel = styled.div`
   background: linear-gradient(145deg, rgba(0, 30, 50, 0.8), rgba(0, 15, 30, 0.9));
   border: 1px solid rgba(0, 166, 251, 0.2);
   border-radius: 12px;
@@ -345,23 +361,6 @@ const ModelViewerPanel = styled(motion.div)`
     right: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.6), transparent);
-  }
-
-  /* Background image - 
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 80%;
-    background-image: url('https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy4.webp?alt=media');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: right center;
-    opacity: 0.15;
-    pointer-events: none;
-    z-index: 0;
   }
 `;
 
@@ -433,7 +432,7 @@ const CharacterGridWrapper = styled.div`
   }
 `;
 
-const NavArrow = styled(motion.button)`
+const NavArrow = styled.button`
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
@@ -471,7 +470,7 @@ const CharacterGrid = styled.div`
   }
 `;
 
-const CharacterSlot = styled(motion.div)`
+const CharacterSlot = styled.div`
   width: 100px;
   height: 130px;
   border-radius: 8px;
@@ -705,6 +704,7 @@ export default function Vault() {
       <TopPanelsRow>
         {/* Left Panel: Verify & Unlock */}
         <Panel
+          as={motion.div}
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
@@ -722,6 +722,7 @@ export default function Vault() {
           />
 
           <ActionButton
+            as={motion.button}
             onClick={handleVerify}
             disabled={isVerifying || !serialNumber.trim()}
             whileHover={{ scale: 1.02 }}
@@ -738,6 +739,7 @@ export default function Vault() {
 
           {verificationResult && (
             <StatusMessage
+              as={motion.div}
               className={verificationResult.status}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -752,6 +754,7 @@ export default function Vault() {
 
         {/* Right Panel: Welcome & Connect */}
         <WelcomePanel
+          as={motion.div}
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
@@ -770,6 +773,7 @@ export default function Vault() {
 
           {user && walletAddress ? (
             <ActionButton
+              as={motion.button}
               onClick={handleDisconnect}
               disabled={isLoading}
               whileHover={{ scale: 1.02 }}
@@ -779,6 +783,7 @@ export default function Vault() {
             </ActionButton>
           ) : (
             <ActionButton
+              as={motion.button}
               className="primary"
               onClick={handleConnect}
               disabled={isLoading || !isWeb3Available}
@@ -803,6 +808,7 @@ export default function Vault() {
       <MiddleRow>
         {/* Product Preview Card */}
         <PreviewCard
+          as={motion.div}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
@@ -817,6 +823,7 @@ export default function Vault() {
 
         {/* 3D Model Viewer */}
         <ModelViewerPanel
+          as={motion.div}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
@@ -863,6 +870,7 @@ export default function Vault() {
 
         <CharacterGridWrapper>
           <NavArrow
+            as={motion.button}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             disabled
@@ -876,6 +884,7 @@ export default function Vault() {
                 <EmptySlot key={char.id} />
               ) : (
                 <CharacterSlot
+                  as={motion.div}
                   key={char.id}
                   className={`${char.isCenter ? 'center' : ''} ${isOwned(char.id) ? 'unlocked' : ''}`}
                   whileHover={{ scale: 1.05 }}

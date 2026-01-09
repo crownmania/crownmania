@@ -59,7 +59,7 @@ const WindowsContainer = styled.div`
   }
 `;
 
-const ShopWindow = styled(motion.div)`
+const ShopWindow = styled.div`
   aspect-ratio: 1/1;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 12px;
@@ -105,15 +105,6 @@ const ShopWindow = styled(motion.div)`
   }
 `;
 
-const ModelWindow = styled(ShopWindow)`
-  position: relative;
-  height: 400px;
-  
-  canvas {
-    width: 100% !important;
-    height: 100% !important;
-  }
-`;
 
 const ModelContainer = styled.div`
   width: 100%;
@@ -125,7 +116,7 @@ const ModelContainer = styled.div`
   }
 `;
 
-const ExpandedWindow = styled(motion.div)`
+const ExpandedWindow = styled.div`
   position: fixed;
   top: 0;
   left: 0;
@@ -142,7 +133,7 @@ const ExpandedWindow = styled(motion.div)`
   border: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
-const ProductInfo = styled(motion.div)`
+const ProductInfo = styled.div`
   position: absolute;
   bottom: 0;
   left: 0;
@@ -177,7 +168,7 @@ const ProductPrice = styled.div`
   text-align: center;
 `;
 
-const BuyButton = styled(motion.button)`
+const BuyButton = styled.button`
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
@@ -224,7 +215,7 @@ const ComingSoonWindow = styled.div`
   position: relative;
 `;
 
-const CloseButton = styled(motion.button)`
+const CloseButton = styled.button`
   position: absolute;
   top: 2rem;
   right: 2rem;
@@ -424,6 +415,7 @@ export default function Shop() {
       <WindowsContainer>
         {PRODUCTS.map((product, index) => (
           <ShopWindow
+            as={motion.div}
             key={product.id}
             layoutId={`window-${product.id}`}
             onClick={() => !product.comingSoon && setSelectedWindow(product)}
@@ -448,6 +440,7 @@ export default function Shop() {
             {!product.comingSoon && <ProductTitle>{product.name}</ProductTitle>}
             {!product.comingSoon && (
               <BuyButton
+                as={motion.button}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={(e) => handleBuyClick(e, product)}
@@ -462,11 +455,12 @@ export default function Shop() {
       <AnimatePresence>
         {selectedWindow && (
           <ExpandedWindow
+            as={motion.div}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <CloseButton onClick={() => setSelectedWindow(null)}>×</CloseButton>
+            <CloseButton as={motion.button} onClick={() => setSelectedWindow(null)}>×</CloseButton>
 
             <motion.div layoutId={`window-${selectedWindow.id}`} style={{ width: '80%', height: '70%' }}>
               <ProductWindow type={selectedWindow.type} imageId={selectedWindow.imageId} />
@@ -486,6 +480,7 @@ export default function Shop() {
               </div>
               {!selectedWindow.comingSoon && (
                 <BuyButton
+                  as={motion.button}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={(e) => handleBuyClick(e, selectedWindow)}
