@@ -18,6 +18,10 @@ const HeaderContainer = styled(motion.header)`
   justify-content: space-between;
   align-items: center;
   
+  @media (max-width: 600px) {
+    padding: 0.75rem 1rem;
+  }
+  
   &::before {
     content: '';
     position: absolute;
@@ -102,6 +106,11 @@ const LogoLink = styled.a`
   margin-left: 0.5rem;
   margin-top: 0.25rem;
 
+  @media (max-width: 600px) {
+    gap: 0.5rem;
+    margin-left: 0;
+  }
+
   &:hover {
     filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
   }
@@ -110,6 +119,11 @@ const LogoLink = styled.a`
 const LogoIcon = styled.img`
   height: 36px;
   width: 36px;
+  
+  @media (max-width: 600px) {
+    height: 28px;
+    width: 28px;
+  }
 `;
 
 const Logo = styled.div`
