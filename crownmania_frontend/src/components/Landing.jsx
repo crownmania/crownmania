@@ -41,32 +41,33 @@ const ContentWrapper = styled.div`
 
 
 const MainTagline = styled(motion.h1)`
-  font-size: clamp(0.7rem, 3.5vw, 2.5rem);
+  font-size: clamp(1.2rem, 5vw, 2.5rem);
   font-family: 'Designer', sans-serif;
   font-style: italic;
   color: white;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   text-align: center;
-  white-space: nowrap;
+  max-width: 90vw;
+  line-height: 1.2;
 `;
 
 const SubTagline = styled(motion.h2)`
-  font-size: 2vw;
+  font-size: clamp(0.7rem, 3vw, 1.2rem);
   font-family: 'Designer', sans-serif;
   color: white;
   text-transform: uppercase;
-  letter-spacing: 0;
+  letter-spacing: 0.05em;
   opacity: 0.8;
   line-height: 1.4;
   text-align: center;
-  white-space: nowrap;
+  max-width: 85vw;
   
-  @media (min-width: 768px) {
+  @media (max-width: 480px) {
     font-size: 0.8rem;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
   }
 `;
 
