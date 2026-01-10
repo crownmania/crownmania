@@ -41,22 +41,48 @@ const ContentWrapper = styled.div`
 
 
 const MainTagline = styled(motion.h1)`
-  font-size: clamp(0.7rem, 4vw, 2.5rem);
   font-family: 'Designer', sans-serif;
   font-style: italic;
   color: white;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
   text-align: center;
-  max-width: 100vw;
-  line-height: 1.2;
-  white-space: nowrap;
+  width: 100%;
+  line-height: 1.1;
+
+  /* Desktop View */
+  @media (min-width: 601px) {
+    font-size: clamp(1.5rem, 4vw, 3rem);
+    white-space: nowrap;
+    
+    .divider {
+      margin: 0 0.5rem;
+    }
+  }
+
+  /* Mobile View - Stacked */
+  @media (max-width: 600px) {
+    font-size: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    white-space: normal;
+    
+    .divider {
+      display: none;
+    }
+
+    .word {
+      display: block;
+    }
+  }
 `;
 
 const SubTagline = styled(motion.h2)`
-  font-size: clamp(0.7rem, 3vw, 1.2rem);
+  font-size: clamp(0.7rem, 2.5vw, 1.1rem);
   font-family: 'Designer', sans-serif;
   color: white;
   text-transform: uppercase;
@@ -64,11 +90,13 @@ const SubTagline = styled(motion.h2)`
   opacity: 0.8;
   line-height: 1.4;
   text-align: center;
-  max-width: 85vw;
+  max-width: 90vw;
+  margin: 0 auto;
   
-  @media (max-width: 480px) {
-    font-size: 0.8rem;
+  @media (max-width: 600px) {
+    font-size: 0.85rem;
     letter-spacing: 0.02em;
+    max-width: 80vw;
   }
 `;
 
@@ -157,7 +185,11 @@ export default function Landing() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
         >
-          INNOVATE • COLLECT • CONNECT
+          <span className="word">INNOVATE</span>
+          <span className="divider">•</span>
+          <span className="word">COLLECT</span>
+          <span className="divider">•</span>
+          <span className="word">CONNECT</span>
         </MainTagline>
         <SubTagline
           initial={{ opacity: 0, y: 20 }}
