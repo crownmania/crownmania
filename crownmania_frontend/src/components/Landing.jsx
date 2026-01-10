@@ -33,14 +33,13 @@ const ContentWrapper = styled.div`
 
 
 const MainTagline = styled(motion.h1)`
-  font-size: 2.5rem;
   font-family: 'Designer', sans-serif;
-  font-style: italic;
+  font-size: 2.8rem;
   color: white;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
   text-align: center;
   line-height: 1.1;
   display: flex;
@@ -50,10 +49,10 @@ const MainTagline = styled(motion.h1)`
 
   @media (max-width: 600px) {
     flex-direction: column;
-    font-size: 3.5rem;
-    gap: 0.2rem;
-    white-space: nowrap;
-    margin-bottom: 1.5rem;
+    font-size: 3.8rem;
+    gap: 0.4rem;
+    margin-bottom: 2rem;
+    letter-spacing: 0.05em;
   }
 
   .dot {
