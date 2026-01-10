@@ -126,18 +126,6 @@ export const GlobalStyles = createGlobalStyle`
       font-size: 14px;
     }
 
-    h1 {
-      font-size: 2rem !important;
-    }
-
-    h2 {
-      font-size: 1.5rem !important;
-    }
-
-    h3 {
-      font-size: 1.25rem !important;
-    }
-
     body {
       padding: 0;
     }
@@ -146,14 +134,6 @@ export const GlobalStyles = createGlobalStyle`
   @media (max-width: 480px) {
     html {
       font-size: 13px;
-    }
-
-    h1 {
-      font-size: 1.75rem !important;
-    }
-
-    h2 {
-      font-size: 1.35rem !important;
     }
   }
 
