@@ -41,7 +41,7 @@ const ContentWrapper = styled.div`
 
 
 const MainTagline = styled(motion.h1)`
-  font-size: clamp(1.2rem, 5vw, 2.5rem);
+  font-size: clamp(0.7rem, 4vw, 2.5rem);
   font-family: 'Designer', sans-serif;
   font-style: italic;
   color: white;
@@ -50,8 +50,9 @@ const MainTagline = styled(motion.h1)`
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
   margin-bottom: 0.75rem;
   text-align: center;
-  max-width: 90vw;
+  max-width: 100vw;
   line-height: 1.2;
+  white-space: nowrap;
 `;
 
 const SubTagline = styled(motion.h2)`
