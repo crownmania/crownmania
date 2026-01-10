@@ -191,17 +191,13 @@ const ConnectButton = styled(motion.button)`
   }
   
   @media (max-width: 600px) {
-    padding: 0.25rem 0.4rem;
-    font-size: 0.55rem;
-    gap: 0.2rem;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.6rem;
+    gap: 0;
     border-width: 1px;
     
     span {
-      display: none;
-    }
-    
-    svg {
-      font-size: 0.7rem;
+      display: inline-block;
     }
   }
 `;
@@ -465,12 +461,7 @@ export default function Header() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            {isLoading || isConnecting ? (
-              <FaSpinner className="spin" />
-            ) : (
-              <FaWallet />
-            )}
-            <span>{user ? 'Connected' : 'Connect'}</span>
+            <span>{isLoading || isConnecting ? '...' : (user ? 'Connected' : 'Connect')}</span>
           </ConnectButton>
 
           <HamburgerButton
