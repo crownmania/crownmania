@@ -3,10 +3,11 @@ import { createGlobalStyle } from 'styled-components';
 export const GlobalStyles = createGlobalStyle`
   @font-face {
     font-family: 'Designer';
-    src: url('/fonts/Designer.otf') format('opentype');
+    src: url('/fonts/Designer.otf?v=1') format('opentype'),
+         url('/fonts/Designer.otf?v=1') format('otf');
     font-weight: normal;
     font-style: normal;
-    font-display: swap;
+    font-display: block;
   }
 
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Sans+Pro:wght@300;400;500;600&display=swap');
@@ -17,7 +18,7 @@ export const GlobalStyles = createGlobalStyle`
     --light-blue-rgb: 0, 102, 255;
     --white: #FFFFFF;
     --black: #000000;
-    --font-primary: 'Designer', sans-serif;
+    --font-primary: 'Designer', 'Arial Black', sans-serif;
     --font-secondary: 'Source Sans Pro', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --title-glow: 0 0 10px rgba(255, 255, 255, 0.5);
   }
