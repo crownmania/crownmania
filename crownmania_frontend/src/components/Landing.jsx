@@ -33,7 +33,7 @@ const ContentWrapper = styled.div`
 
 
 const MainTagline = styled(motion.h1)`
-  font-family: var(--font-primary);
+  font-family: 'Designer', 'Arial Black', sans-serif;
   font-size: 2.8rem;
   color: white;
   text-transform: uppercase;
