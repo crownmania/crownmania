@@ -36,8 +36,12 @@ export const GlobalStyles = createGlobalStyle`
     -webkit-tap-highlight-color: transparent;
   }
 
-  p, span, label, input, textarea, select {
+  p, label, input, textarea, select {
     font-family: var(--font-secondary);
+  }
+
+  span {
+    font-family: inherit;
   }
 
   #root {
