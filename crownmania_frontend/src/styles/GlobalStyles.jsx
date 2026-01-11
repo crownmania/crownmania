@@ -1,15 +1,6 @@
 import { createGlobalStyle } from 'styled-components';
 
 export const GlobalStyles = createGlobalStyle`
-  @font-face {
-    font-family: 'Designer';
-    src: url('/fonts/Designer.otf?v=1') format('opentype'),
-         url('/fonts/Designer.otf?v=1') format('otf');
-    font-weight: normal;
-    font-style: normal;
-    font-display: block;
-  }
-
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Sans+Pro:wght@300;400;500;600&display=swap');
 
   :root {
@@ -60,7 +51,7 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Designer', sans-serif;
+    font-family: var(--font-primary);
     font-weight: normal;
     letter-spacing: 0.1em;
   }

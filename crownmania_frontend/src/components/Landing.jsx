@@ -66,7 +66,7 @@ const MainTagline = styled(motion.h1)`
 
 const SubTagline = styled(motion.h2)`
   font-size: 1.2rem;
-  font-family: 'Designer', sans-serif;
+  font-family: var(--font-primary);
   color: white;
   text-transform: uppercase;
   letter-spacing: 0.05em;
