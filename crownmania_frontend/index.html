@@ -9,6 +9,9 @@
   <meta name="description"
     content="Revolutionary collectibles platform combining physical artistry with digital innovation" />
 
+  <!-- Preload Designer font for faster loading -->
+  <link rel="preload" href="/fonts/Designer.otf?v=2" as="font" type="font/otf" crossorigin />
+
   <!-- Polyfills for Web3Auth -->
   <script>
     if (typeof global === 'undefined') { window.global = window; }
@@ -30,10 +33,10 @@
   <style>
     @font-face {
       font-family: 'Designer';
-      src: url('/fonts/Designer.otf?v=1') format('opentype');
+      src: url('/fonts/Designer.otf?v=2') format('opentype');
       font-weight: normal;
       font-style: normal;
-      font-display: block;
+      font-display: swap;
     }
   </style>
 
