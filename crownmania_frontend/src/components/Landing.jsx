@@ -168,11 +168,7 @@ export default function Landing() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
         >
-          <span>INNOVATE</span>
-          <span className="dot">•</span>
-          <span>COLLECT</span>
-          <span className="dot">•</span>
-          <span>CONNECT</span>
+          CROWNMANIA
         </MainTagline>
         <SubTagline
           initial={{ opacity: 0, y: 20 }}
