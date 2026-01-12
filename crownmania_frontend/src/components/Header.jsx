@@ -312,11 +312,12 @@ const menuItemVariants = {
 
 export default function Header() {
   const navigate = useNavigate();
-  const { isInitialized, isWeb3Available, user, isLoading, login } = useWeb3Auth();
+  const { isInitialized, isWeb3Available, user, isLoading, login, logout, getAddress } = useWeb3Auth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [walletAddress, setWalletAddress] = useState(null);
   const { scrollY } = useScroll();
   const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.8]);
   const menuRef = useRef(null);
@@ -333,13 +334,32 @@ export default function Header() {
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
+  // Fetch wallet address when user connects
+  useEffect(() => {
+    const fetchAddress = async () => {
+      if (user && getAddress) {
+        const address = await getAddress();
+        setWalletAddress(address);
+      } else {
+        setWalletAddress(null);
+      }
+    };
+    fetchAddress();
+  }, [user, getAddress]);
+
+  // Format wallet address for display (0x1234...5678)
+  const formatAddress = (address) => {
+    if (!address) return '';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
   const handleConnect = async () => {
     if (user) {
-      // Already connected, go to vault
-      navigate('/#vault');
-      const vaultSection = document.getElementById('vault');
-      if (vaultSection) {
-        vaultSection.scrollIntoView({ behavior: 'smooth' });
+      // Already connected - show disconnect option
+      const confirmDisconnect = window.confirm('Disconnect wallet?');
+      if (confirmDisconnect) {
+        await logout();
+        setWalletAddress(null);
       }
       return;
     }
@@ -460,8 +480,17 @@ export default function Header() {
             $connected={!!user}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            title={walletAddress || (user ? 'Click to disconnect' : 'Connect wallet')}
           >
-            <span>{isLoading || isConnecting ? '...' : (user ? 'Connected' : 'Connect')}</span>
+            <span>
+              {isLoading || isConnecting
+                ? '...'
+                : (user
+                  ? (walletAddress ? formatAddress(walletAddress) : 'Connected')
+                  : 'Connect'
+                )
+              }
+            </span>
           </ConnectButton>
 
           <HamburgerButton
