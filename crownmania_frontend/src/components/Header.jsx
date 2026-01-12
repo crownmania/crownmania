@@ -246,7 +246,7 @@ const MenuItem = styled(motion.a)`
   display: flex;
   align-items: center;
   gap: 8px;
-  color: white;
+  color: ${props => props.$active ? 'var(--light-blue)' : 'white'};
   text-decoration: none;
   font-family: 'Designer', sans-serif;
   font-size: 0.9rem;
@@ -256,6 +256,8 @@ const MenuItem = styled(motion.a)`
   z-index: 2;
   transition: all 0.3s ease;
   cursor: pointer;
+  background: ${props => props.$active ? 'rgba(0, 102, 255, 0.1)' : 'transparent'};
+  border-left: ${props => props.$active ? '2px solid var(--light-blue)' : '2px solid transparent'};
 
   svg {
     font-size: 1rem;
@@ -318,6 +320,7 @@ export default function Header() {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isConnecting, setIsConnecting] = useState(false);
   const [walletAddress, setWalletAddress] = useState(null);
+  const [activeSection, setActiveSection] = useState('landing');
   const { scrollY } = useScroll();
   const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.8]);
   const menuRef = useRef(null);
@@ -389,6 +392,31 @@ export default function Header() {
     });
   };
 
+  // Handle menu item click with smooth scrolling
+  const handleMenuClick = (e, link) => {
+    e.preventDefault();
+    setIsMenuOpen(false);
+
+    if (link === '/') {
+      scrollToTop();
+      navigate('/');
+      return;
+    }
+
+    if (link.startsWith('/#')) {
+      const sectionId = link.substring(2);
+      navigate('/');
+      setTimeout(() => {
+        const section = document.getElementById(sectionId);
+        if (section) {
+          section.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      navigate(link);
+    }
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -402,6 +430,21 @@ export default function Header() {
       }
 
       setLastScrollY(currentScrollY);
+
+      // Detect active section
+      const sections = ['landing', 'gallery', 'shop', 'about', 'vault'];
+      const offset = 200; // Offset from top to trigger section
+
+      for (const sectionId of sections) {
+        const section = document.getElementById(sectionId);
+        if (section) {
+          const rect = section.getBoundingClientRect();
+          if (rect.top <= offset && rect.bottom >= offset) {
+            setActiveSection(sectionId);
+            break;
+          }
+        }
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -530,18 +573,25 @@ export default function Header() {
               exit="closed"
               variants={menuVariants}
             >
-              {menuItems.map((item, i) => (
-                <MenuItem
-                  key={item.text}
-                  href={item.link}
-                  custom={i}
-                  variants={menuItemVariants}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.icon}
-                  <MenuItemText>{item.text}</MenuItemText>
-                </MenuItem>
-              ))}
+              {menuItems.map((item, i) => {
+                // Determine if this menu item is active
+                const sectionId = item.link === '/' ? 'landing' : item.link.replace('/#', '');
+                const isActive = activeSection === sectionId || (item.link === '/' && activeSection === 'landing');
+
+                return (
+                  <MenuItem
+                    key={item.text}
+                    href={item.link}
+                    custom={i}
+                    variants={menuItemVariants}
+                    onClick={(e) => handleMenuClick(e, item.link)}
+                    $active={isActive}
+                  >
+                    {item.icon}
+                    <MenuItemText>{item.text}</MenuItemText>
+                  </MenuItem>
+                );
+              })}
             </MenuOverlay>
           </>
         )}
