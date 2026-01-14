@@ -29,11 +29,12 @@ const MainTitle = styled.div`
   }
 
   .subtitle {
-    font-size: clamp(0.6rem, 2vw, 0.8rem);
-    opacity: 0.8;
-    letter-spacing: 0.05em;
-    font-family: 'Source Sans Pro', sans-serif;
+    font-size: clamp(0.7rem, 2vw, 0.9rem);
+    opacity: 0.7;
+    letter-spacing: 0.4em;
+    font-family: 'Avenir Next', sans-serif;
     text-transform: uppercase;
+    font-weight: 500;
   }
 `;
 
@@ -86,14 +87,14 @@ const WindowTitle = styled.h3`
 `;
 
 const WindowSubtitle = styled.p`
-  font-family: 'Source Sans Pro', sans-serif;
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Avenir Next', sans-serif;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   line-height: 1.6;
   text-align: center;
-  max-width: 80%;
+  max-width: 90%;
   margin: 0 auto;
   position: relative;
   z-index: 2;
@@ -133,11 +134,12 @@ const VisionParagraph = styled.div`
   margin-top: 4rem;
 
   p {
-    font-family: 'Designer', sans-serif;
+    font-family: 'Avenir Next', sans-serif;
     font-size: 1.1rem;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.8;
+    color: rgba(255, 255, 255, 0.8);
     margin-bottom: 2rem;
+    font-weight: 400;
   }
 `;
 

@@ -3,6 +3,7 @@ import { verificationService } from '../services/verificationService.js';
 import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
 import { sendClaimConfirmationEmail } from '../config/email.js';
 import { sendScanAttemptEmail, sendCodeEntryEmail, sendClaimAttemptEmail } from '../services/notificationService.js';
+import { serialNumberLimiter, claimLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get('/nonce', getNonceHandler);
  * @desc Verify a product serial number
  * @access Public
  */
-router.post('/verify-serial', async (req, res) => {
+router.post('/verify-serial', serialNumberLimiter, async (req, res) => {
   try {
     const { serialNumber } = req.body;
 
@@ -79,7 +80,7 @@ router.get('/verify-product/:id', async (req, res) => {
  * @desc Claim a product to a wallet address
  * @access Private (authenticated wallet)
  */
-router.post('/claim', authenticateWallet, async (req, res) => {
+router.post('/claim', claimLimiter, authenticateWallet, async (req, res) => {
   try {
     const { productId, walletAddress, signature, message, email } = req.body;
 

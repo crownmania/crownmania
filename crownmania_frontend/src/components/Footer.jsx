@@ -46,7 +46,7 @@ const FooterLink = styled(motion.a)`
   margin: 0.5rem 0;
   opacity: 0.8;
   transition: opacity 0.3s ease;
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Avenir Next', sans-serif;
   font-size: 0.9rem;
 
   &:hover {
@@ -92,7 +92,7 @@ const NewsletterInput = styled.input`
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
   color: white;
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Avenir Next', sans-serif;
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.3s ease;
@@ -132,7 +132,7 @@ const NewsletterButton = styled(motion.button)`
 const SuccessMessage = styled.p`
   color: #00ff88;
   font-size: 0.85rem;
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Avenir Next', sans-serif;
 `;
 
 const Copyright = styled.div`
@@ -141,7 +141,7 @@ const Copyright = styled.div`
   padding-top: 2rem;
   border-top: 1px solid rgba(0, 166, 251, 0.2);
   opacity: 0.8;
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Avenir Next', sans-serif;
   font-size: 0.85rem;
 `;
 

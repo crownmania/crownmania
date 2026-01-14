@@ -13,19 +13,18 @@ const scroll = keyframes`
 
 const GallerySection = styled.section`
   width: 100%;
-  min-height: 60vh;
+  min-height: auto;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem 0;
-  background: rgba(0, 0, 0, 0.3);
+  padding: 0;
+  background: transparent;
   
   @media (max-width: 768px) {
-    min-height: auto;
-    padding: 1rem 0;
+    padding: 0;
   }
 `;
 
@@ -43,11 +42,11 @@ const GalleryTitle = styled.div`
   }
   
   .subtitle {
-    font-family: 'Source Sans Pro', sans-serif;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.7);
+    font-family: 'Avenir Next', sans-serif;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.3em;
     margin-top: 0.5rem;
   }
 `;
@@ -125,26 +124,6 @@ const images = [
 export default function Gallery() {
   return (
     <GallerySection id="gallery">
-      <GalleryTitle>
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          THE GALLERY
-        </motion.h2>
-        <motion.div
-          className="subtitle"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          Explore the Collection
-        </motion.div>
-      </GalleryTitle>
-
       <CarouselWrapper>
         <CarouselTrack>
           {/* Double the images for seamless loop */}

@@ -1,7 +1,7 @@
 import { createGlobalStyle } from 'styled-components';
 
 export const GlobalStyles = createGlobalStyle`
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Source+Sans+Pro:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
   :root {
     --dark-blue: rgb(2, 6, 23);
@@ -10,7 +10,8 @@ export const GlobalStyles = createGlobalStyle`
     --white: #FFFFFF;
     --black: #000000;
     --font-primary: 'Designer', 'Arial Black', sans-serif;
-    --font-secondary: 'Source Sans Pro', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-secondary: 'Avenir Next', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-avenir: 'Avenir Next', sans-serif;
     --title-glow: 0 0 10px rgba(255, 255, 255, 0.5);
   }
 

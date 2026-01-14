@@ -96,7 +96,9 @@ const db = getFirestore(admin.app(), 'crownmania');
 const functions = getFunctions();
 const messaging = getMessaging();
 const storage = getStorage();
-const adminStorage = storage.bucket(); // Get the default bucket for admin operations
+const adminStorage = {
+  bucket: (name) => name ? storage.bucket(name) : (process.env.FIREBASE_STORAGE_BUCKET ? storage.bucket() : null)
+};
 
 console.log('📊 Using Firestore database: crownmania');
 

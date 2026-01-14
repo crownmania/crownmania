@@ -193,6 +193,7 @@ export const verificationService = {
 
   /**
    * Claim a product to a wallet address by claim code ID
+   * Uses a single Firestore transaction to prevent race conditions and duplicate claims.
    * @param {string} claimCodeId - The unique claim code ID from QR sticker
    * @param {string} walletAddress - The wallet address to claim to
    * @param {string} signature - Signed proof of ownership
@@ -214,91 +215,116 @@ export const verificationService = {
         hasMessage: !!message
       }, clientIP, sanitizedWallet);
 
-      // Look up the claim code
+      // Generate token ID before transaction (no DB dependency)
+      const tokenId = `NFT-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+
+      // Prepare document references
       const claimCodeRef = db.collection('claimCodes').doc(sanitizedCodeId.toLowerCase());
-      const claimCodeDoc = await claimCodeRef.get();
+      const collectibleRef = db.collection('collectibles').doc();
 
-      if (!claimCodeDoc.exists) {
-        // Log failed claim
-        contentSecurity.logSecurityEvent('nft_claim_failed', {
-          claimCodeId: sanitizedCodeId?.substring(0, 8) + '...',
-          walletAddress: sanitizedWallet?.substring(0, 10) + '...',
-          reason: 'invalid_claim_code'
-        }, clientIP, sanitizedWallet);
+      // Result object to be populated by transaction
+      let claimResult = null;
 
-        return {
-          success: false,
-          tokenId: null,
-          message: 'Invalid claim code'
-        };
-      }
-
-      const claimCodeData = claimCodeDoc.data();
-
-      // Check if already claimed
-      if (claimCodeData.claimed || claimCodeData.claimedBy) {
-        return {
-          success: false,
-          tokenId: null,
-          message: 'This product has already been claimed'
-        };
-      }
-
-      // Get product details
-      const productRef = db.collection('products').doc(claimCodeData.productId);
-      const productDoc = await productRef.get();
-      const productData = productDoc.exists ? productDoc.data() : {};
-
-      // Get next edition number using atomic counter
-      const counterRef = db.collection('counters').doc(claimCodeData.productId);
-      let editionNumber;
-
+      // Execute entire claim in a single atomic transaction
       await db.runTransaction(async (transaction) => {
+        // Step 1: Get and validate claim code
+        const claimCodeDoc = await transaction.get(claimCodeRef);
+
+        if (!claimCodeDoc.exists) {
+          contentSecurity.logSecurityEvent('nft_claim_failed', {
+            claimCodeId: sanitizedCodeId?.substring(0, 8) + '...',
+            walletAddress: sanitizedWallet?.substring(0, 10) + '...',
+            reason: 'invalid_claim_code'
+          }, clientIP, sanitizedWallet);
+
+          throw new Error('CLAIM_ERROR:Invalid claim code');
+        }
+
+        const claimCodeData = claimCodeDoc.data();
+
+        // Step 2: Check if already claimed (race condition prevention)
+        if (claimCodeData.claimed || claimCodeData.claimedBy) {
+          throw new Error('CLAIM_ERROR:This product has already been claimed');
+        }
+
+        // Step 3: Get product details
+        const productRef = db.collection('products').doc(claimCodeData.productId);
+        const productDoc = await transaction.get(productRef);
+
+        if (!productDoc.exists) {
+          throw new Error('CLAIM_ERROR:Product not found for the given claim code');
+        }
+
+        const productData = productDoc.data();
+        const totalEditions = productData.totalEditions || 500;
+
+        // Step 4: Get and increment edition counter atomically
+        const counterRef = db.collection('counters').doc(claimCodeData.productId);
         const counterDoc = await transaction.get(counterRef);
+
+        let editionNumber;
         if (counterDoc.exists) {
-          editionNumber = (counterDoc.data().currentEdition || 0) + 1;
+          const currentData = counterDoc.data();
+          editionNumber = (currentData.currentEdition || 0) + 1;
+
+          if (editionNumber > (currentData.totalEditions || totalEditions)) {
+            throw new Error('CLAIM_ERROR:All editions for this product have been claimed');
+          }
+
           transaction.update(counterRef, { currentEdition: editionNumber });
         } else {
           editionNumber = 1;
-          transaction.set(counterRef, { currentEdition: 1, totalEditions: 500 });
+          transaction.set(counterRef, {
+            currentEdition: 1,
+            totalEditions: totalEditions
+          });
         }
+
+        // Step 5: Create Collectible record (source of truth for owned items)
+        const collectibleData = {
+          serialNumber: claimCodeId,
+          productId: claimCodeData.productId,
+          ownerId: walletAddress.toLowerCase(),
+          status: 'claimed',
+          tokenId: tokenId,
+          edition: editionNumber,
+          totalEditions: totalEditions,
+          productName: productData.name,
+          productType: productData.type,
+          signature: signature || null,
+          message: message || null,
+          metadata: {
+            name: `${productData.name || 'Crownmania Collectible'} #${editionNumber}`,
+            description: productData.description,
+            image: productData.imageUrl || productData.images?.[0],
+            modelUrl: productData.modelUrl
+          },
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        transaction.set(collectibleRef, collectibleData);
+
+        // Step 6: Mark claim code as claimed
+        transaction.update(claimCodeRef, {
+          claimed: true,
+          tokenId: tokenId,
+          edition: editionNumber,
+          claimedBy: walletAddress.toLowerCase(),
+          claimedAt: new Date()
+        });
+
+        // Store result for use after transaction
+        claimResult = {
+          tokenId,
+          editionNumber,
+          totalEditions,
+          productName: productData.name,
+          collectibleId: collectibleRef.id
+        };
       });
 
-      // Create Collectible record (source of truth for owned items)
-      const tokenId = `NFT-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-      const collectibleRef = db.collection('collectibles').doc();
-      await collectibleRef.set({
-        serialNumber: claimCodeId,
-        productId: claimCodeData.productId,
-        ownerId: walletAddress,
-        status: 'claimed',
-        tokenId: tokenId,
-        edition: editionNumber,
-        totalEditions: 500,
-        productName: productData.name,
-        productType: productData.type,
-        signature: signature || null,
-        message: message || null,
-        metadata: {
-          name: `${productData.name || 'Crownmania Collectible'} #${editionNumber}`,
-          description: productData.description,
-          image: productData.imageUrl || productData.images?.[0],
-          modelUrl: productData.modelUrl
-        },
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-
-      // Mark claim code as claimed with edition number
-      await claimCodeRef.update({
-        claimed: true,
-        tokenId: tokenId,
-        edition: editionNumber,
-        claimedBy: walletAddress,
-        claimedAt: new Date()
-      });
-
-      // Transfer the actual NFT on Polygon via Thirdweb
+      // Transaction succeeded - now attempt NFT transfer (outside transaction)
+      // NFT transfer is idempotent and can be retried if it fails
       let nftTransferResult = null;
       try {
         nftTransferResult = await transferNFTToWallet(walletAddress);
@@ -323,24 +349,31 @@ export const verificationService = {
 
       return {
         success: true,
-        tokenId: tokenId,
+        tokenId: claimResult.tokenId,
         blockchainTokenId: nftTransferResult?.tokenId || null,
         transactionHash: nftTransferResult?.transactionHash || null,
-        edition: editionNumber,
-        totalEditions: 500,
-        productName: productData.name,
+        edition: claimResult.editionNumber,
+        totalEditions: claimResult.totalEditions,
+        productName: claimResult.productName,
         nftTransferred: !!nftTransferResult,
         message: nftTransferResult
-          ? `NFT transferred successfully! You own Edition #${editionNumber} of 500. TX: ${nftTransferResult.transactionHash?.substring(0, 10)}...`
-          : `Claim recorded! NFT transfer pending - Edition #${editionNumber} of 500.`
+          ? `NFT transferred successfully! You own Edition #${claimResult.editionNumber} of ${claimResult.totalEditions}. TX: ${nftTransferResult.transactionHash?.substring(0, 10)}...`
+          : `Claim recorded! NFT transfer pending - Edition #${claimResult.editionNumber} of ${claimResult.totalEditions}.`
       };
 
-      // Note: Email notification would be sent here if user email is available
-      // The frontend can trigger this via a separate endpoint if needed
-
     } catch (error) {
+      // Handle known claim errors with user-friendly messages
+      if (error.message?.startsWith('CLAIM_ERROR:')) {
+        const userMessage = error.message.replace('CLAIM_ERROR:', '');
+        return {
+          success: false,
+          tokenId: null,
+          message: userMessage
+        };
+      }
+
       console.error('Error claiming product:', error);
-      throw new Error('Failed to claim product');
+      throw error;
     }
   },
 

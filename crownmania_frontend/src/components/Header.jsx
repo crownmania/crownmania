@@ -231,7 +231,9 @@ const MenuOverlay = styled(motion.div)`
   right: 0;
   width: 200px;
   height: 100vh;
-  background: transparent;
+  background: rgba(2, 6, 23, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   z-index: 101;
@@ -314,12 +316,10 @@ const menuItemVariants = {
 
 export default function Header() {
   const navigate = useNavigate();
-  const { isInitialized, isWeb3Available, user, isLoading, login, logout, getAddress } = useWeb3Auth();
+  const { isInitialized, isWeb3Available, user, isLoading, login, logout, walletAddress } = useWeb3Auth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [walletAddress, setWalletAddress] = useState(null);
   const [activeSection, setActiveSection] = useState('landing');
   const { scrollY } = useScroll();
   const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.8]);
@@ -337,19 +337,6 @@ export default function Header() {
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  // Fetch wallet address when user connects
-  useEffect(() => {
-    const fetchAddress = async () => {
-      if (user && getAddress) {
-        const address = await getAddress();
-        setWalletAddress(address);
-      } else {
-        setWalletAddress(null);
-      }
-    };
-    fetchAddress();
-  }, [user, getAddress]);
-
   // Format wallet address for display (0x1234...5678)
   const formatAddress = (address) => {
     if (!address) return '';
@@ -362,13 +349,11 @@ export default function Header() {
       const confirmDisconnect = window.confirm('Disconnect wallet?');
       if (confirmDisconnect) {
         await logout();
-        setWalletAddress(null);
       }
       return;
     }
 
     try {
-      setIsConnecting(true);
       await login();
       // After successful login, navigate to vault
       navigate('/#vault');
@@ -380,8 +365,6 @@ export default function Header() {
       }, 500);
     } catch (err) {
       console.error('Connection failed:', err);
-    } finally {
-      setIsConnecting(false);
     }
   };
 
@@ -519,18 +502,18 @@ export default function Header() {
         <HeaderActions>
           <ConnectButton
             onClick={handleConnect}
-            disabled={isLoading || isConnecting || !isWeb3Available}
+            disabled={isLoading || !isWeb3Available}
             $connected={!!user}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             title={walletAddress || (user ? 'Click to disconnect' : 'Connect wallet')}
           >
             <span>
-              {isLoading || isConnecting
+              {isLoading
                 ? '...'
                 : (user
-                  ? (walletAddress ? formatAddress(walletAddress) : 'Connected')
-                  : 'Connect'
+                  ? (walletAddress ? <><FaWallet style={{ fontSize: '0.8rem' }} /> {formatAddress(walletAddress)}</> : 'Connected')
+                  : <><FaWallet style={{ fontSize: '0.8rem' }} /> Connect</>
                 )
               }
             </span>

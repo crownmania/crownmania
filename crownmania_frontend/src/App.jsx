@@ -1,22 +1,25 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import styled from 'styled-components';
 import { GlobalStyles } from './styles/GlobalStyles';
 import Header from './components/Header';
-import Landing from './components/Landing';
-import Gallery from './components/Gallery';
-import Shop from './components/Shop';
-import About from './components/About';
-import Vault from './components/Vault';
-import Footer from './components/Footer';
-import ForumPage from './pages/ForumPage';
-import ContactPage from './pages/ContactPage';
-import ProductPage from './components/ProductPage';
-import VerifyPage from './pages/VerifyPage';
-import MintNFTPage from './pages/MintNFTPage';
-import SuccessPage from './pages/SuccessPage';
-import CancelPage from './pages/CancelPage';
+import LoadingSpinner from './components/common/LoadingSpinner';
 import { verifyStorageSetup } from './utils/storageUtils';
+
+// Lazy load components
+const Landing = React.lazy(() => import('./components/Landing'));
+const Gallery = React.lazy(() => import('./components/Gallery'));
+const Shop = React.lazy(() => import('./components/Shop'));
+const About = React.lazy(() => import('./components/About'));
+const Vault = React.lazy(() => import('./components/Vault'));
+const Footer = React.lazy(() => import('./components/Footer'));
+const ForumPage = React.lazy(() => import('./pages/ForumPage'));
+const ContactPage = React.lazy(() => import('./pages/ContactPage'));
+const ProductPage = React.lazy(() => import('./components/ProductPage'));
+const VerifyPage = React.lazy(() => import('./pages/VerifyPage'));
+const MintNFTPage = React.lazy(() => import('./pages/MintNFTPage'));
+const SuccessPage = React.lazy(() => import('./pages/SuccessPage'));
+const CancelPage = React.lazy(() => import('./pages/CancelPage'));
 // Password protection removed
 
 const AppContainer = styled.div`
@@ -84,16 +87,18 @@ function App() {
       <Router>
         <Header />
         <MainContent>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/forum" element={<ForumPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/product/:id" element={<ProductPage />} />
-            <Route path="/verify/:serial" element={<VerifyPage />} />
-            <Route path="/mintNFT" element={<MintNFTPage />} />
-            <Route path="/success" element={<SuccessPage />} />
-            <Route path="/cancel" element={<CancelPage />} />
-          </Routes>
+          <Suspense fallback={<LoadingSpinner fullScreen />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/forum" element={<ForumPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/product/:id" element={<ProductPage />} />
+              <Route path="/verify/:serial" element={<VerifyPage />} />
+              <Route path="/mintNFT" element={<MintNFTPage />} />
+              <Route path="/success" element={<SuccessPage />} />
+              <Route path="/cancel" element={<CancelPage />} />
+            </Routes>
+          </Suspense>
         </MainContent>
       </Router>
     </AppContainer>

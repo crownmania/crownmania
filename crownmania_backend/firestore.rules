@@ -82,5 +82,40 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
+
+    // Claim codes - server-side only via Admin SDK
+    // These contain sensitive serial number mappings
+    match /claimCodes/{codeId} {
+      allow read, write: if false;
+    }
+
+    // Edition counters - server-side only via Admin SDK
+    // Critical for atomic edition number assignment
+    match /counters/{counterId} {
+      allow read, write: if false;
+    }
+
+    // Verification tokens - server-side only via Admin SDK
+    // Used for email verification flow
+    match /verificationTokens/{tokenId} {
+      allow read, write: if false;
+    }
+
+    // Products catalog - public read, admin write
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Token-gated content metadata
+    match /content/{contentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Legacy tokens collection - server-side only
+    match /tokens/{tokenId} {
+      allow read, write: if false;
+    }
   }
 }
