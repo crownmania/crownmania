@@ -1,6 +1,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { authenticateUser } from '../middleware/auth.js';
+import { orderFulfillmentService } from '../services/orderFulfillmentService.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -160,12 +161,27 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     case 'checkout.session.completed':
       const session = event.data.object;
       logger.info(`Payment successful for session: ${session.id}`);
-      // TODO: Fulfill the order, update database, send confirmation email
+
+      try {
+        // Fulfill the order: create order record, allocate serials, send email
+        const result = await orderFulfillmentService.fulfillOrder(session);
+        logger.info(`Order fulfillment complete: ${result.orderId}`, {
+          skipped: result.skipped,
+          serialsAllocated: result.allocatedSerials?.length || 0
+        });
+      } catch (fulfillmentError) {
+        // Log error but return 200 to acknowledge receipt
+        // Stripe will retry if we return error, but we want to handle manually
+        logger.error('Order fulfillment failed:', fulfillmentError);
+        // Could add to a dead-letter queue for manual handling
+      }
       break;
+
     case 'payment_intent.payment_failed':
       const paymentIntent = event.data.object;
       logger.warn(`Payment failed: ${paymentIntent.id}`);
       break;
+
     default:
       logger.debug(`Unhandled event type: ${event.type}`);
   }
@@ -181,13 +197,13 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 router.get('/session/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params;
-    
+
     if (!sessionId || typeof sessionId !== 'string' || !sessionId.startsWith('cs_')) {
       return res.status(400).json({ error: 'Invalid session ID' });
     }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    
+
     // Only return safe information
     res.json({
       id: session.id,

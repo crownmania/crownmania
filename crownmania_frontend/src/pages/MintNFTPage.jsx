@@ -241,33 +241,57 @@ export default function MintNFTPage() {
 
     const handleMint = async () => {
         if (!walletAddress) {
-            setError('Wallet not connected');
+            setError('Wallet not connected. Please sign in again.');
             return;
         }
 
-        try {
-            // Sign a message to prove wallet ownership
-            const message = `I claim ownership of product ${id} on Crownmania. Timestamp: ${Date.now()}`;
-            const signature = await signMessage(message);
+        setStatus('claiming');
+        setError(null);
 
-            if (!signature) {
-                setError('Failed to sign ownership proof. Please try again.');
-                setStatus('valid');
-                return;
+        try {
+            // 1. Fetch secure nonce and message template
+            let nonceData;
+            try {
+                nonceData = await verificationAPI.getNonce();
+            } catch (nonceError) {
+                console.error('Failed to fetch nonce:', nonceError);
+                throw new Error('Security initialization failed. Please try again.');
             }
 
-            // Call real API to claim product
+            // 2. Prepare the message
+            const message = nonceData.messageTemplate
+                .replace('{ACTION}', 'claim')
+                .replace('{WALLET_ADDRESS}', walletAddress);
+
+            // 3. Request signature from wallet
+            let signature;
+            try {
+                signature = await signMessage(message);
+            } catch (signError) {
+                console.error('Signing error:', signError);
+                throw new Error('Message signing was cancelled or failed.');
+            }
+
+            if (!signature) {
+                throw new Error('Failed to sign ownership proof. Please try again.');
+            }
+
+            // 4. Submit claim to backend
             const result = await verificationAPI.claimProduct(id, walletAddress, signature, message);
 
             if (result.success) {
                 setStatus('claimed');
 
-                // Also save to local storage for vault display
+                // Update local storage for vault display
                 const owned = JSON.parse(localStorage.getItem('my_collectibles') || '[]');
                 if (!owned.find(item => item.id === id)) {
                     owned.push({
                         id,
                         tokenId: result.tokenId,
+                        blockchainTokenId: result.blockchainTokenId,
+                        transactionHash: result.transactionHash,
+                        edition: result.edition,
+                        totalEditions: result.totalEditions,
                         type,
                         name: product?.name || PRODUCT_TYPES[type] || 'Crownmania Collectible',
                         description: product?.description || `Product ID: ${id.substring(0, 8)}...`,
@@ -278,27 +302,12 @@ export default function MintNFTPage() {
                     localStorage.setItem('my_collectibles', JSON.stringify(owned));
                 }
             } else {
-                setError(result.message);
-                setStatus('valid');
+                throw new Error(result.message || 'Failed to claim product');
             }
         } catch (err) {
             console.error('Claim error:', err);
-            // Fallback to mock claiming for demo
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            setStatus('claimed');
-
-            const owned = JSON.parse(localStorage.getItem('my_collectibles') || '[]');
-            if (!owned.find(item => item.id === id)) {
-                owned.push({
-                    id,
-                    type,
-                    name: product?.name || PRODUCT_TYPES[type] || 'Crownmania Collectible',
-                    description: `Product ID: ${id.substring(0, 8)}...`,
-                    claimedDate: new Date().toISOString(),
-                    walletAddress
-                });
-                localStorage.setItem('my_collectibles', JSON.stringify(owned));
-            }
+            setError(err.message || 'Failed to claim product');
+            setStatus('valid');
         }
     };
 

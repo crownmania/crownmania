@@ -57,8 +57,7 @@ jest.mock('@sendgrid/mail', () => ({
 
 // Mock Redis
 jest.mock('ioredis', () => {
-  const RedisMock = require('ioredis-mock');
-  return RedisMock;
+  return import('ioredis-mock').then(m => m.default);
 });
 
 // Global test timeout

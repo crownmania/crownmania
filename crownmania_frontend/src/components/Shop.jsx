@@ -35,10 +35,11 @@ const MainTitle = styled.div`
 
   .subtitle {
     font-size: 0.8rem;
-    opacity: 0.8;
-    letter-spacing: 0.1em;
-    font-family: 'Source Sans Pro', sans-serif;
+    opacity: 0.7;
+    letter-spacing: 0.3em;
+    font-family: 'Avenir Next', sans-serif;
     text-transform: uppercase;
+    font-weight: 500;
   }
 `;
 
@@ -199,10 +200,11 @@ const BuyButton = styled(motion.button)`
 
 const ComingSoonText = styled.div`
   font-family: 'Avenir Next', sans-serif;
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.3em;
+  margin-top: 0.5rem;
   display: flex;
   justify-content: center;
   align-items: center;

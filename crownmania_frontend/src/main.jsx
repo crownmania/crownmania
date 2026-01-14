@@ -68,6 +68,10 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
+// Fonts: Using Google Fonts (Inter, Source Sans Pro) via GlobalStyles @import
+// Designer font loaded from public/fonts/Designer.otf
+// Avenir Next is a system font on macOS/iOS with fallback chain in GlobalStyles
+
 const container = document.getElementById('root');
 const root = createRoot(container);
 

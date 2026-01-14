@@ -11,7 +11,12 @@ class Order {
     this.shippingAddress = data.shippingAddress;
     this.trackingNumber = data.trackingNumber;
     this.stripePaymentId = data.stripePaymentId;
+    this.stripeSessionId = data.stripeSessionId; // For webhook idempotency
     this.shipstationOrderId = data.shipstationOrderId;
+    this.customerEmail = data.customerEmail;
+    this.allocatedSerials = data.allocatedSerials || []; // Serial numbers allocated to this order
+    this.collectibleEntitlements = data.collectibleEntitlements || []; // Collectible IDs created
+    this.entitlementStatus = data.entitlementStatus || 'pending'; // pending, allocated, claimed
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = new Date();
   }
@@ -27,7 +32,12 @@ class Order {
         shippingAddress: order.shippingAddress,
         trackingNumber: order.trackingNumber,
         stripePaymentId: order.stripePaymentId,
+        stripeSessionId: order.stripeSessionId,
         shipstationOrderId: order.shipstationOrderId,
+        customerEmail: order.customerEmail,
+        allocatedSerials: order.allocatedSerials,
+        collectibleEntitlements: order.collectibleEntitlements,
+        entitlementStatus: order.entitlementStatus,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt
       });
