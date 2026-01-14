@@ -11,10 +11,6 @@ const HAS_WEB3_KEYS = Boolean(
 
 const WEB3_ENABLED = HAS_WEB3_KEYS;
 
-if (isDev) {
-  console.log('Web3Auth config:', { WEB3_ENABLED, HAS_WEB3_KEYS });
-}
-
 // Lazy-initialized instance
 let web3authInstance = null;
 let moralisInstance = null;
@@ -84,21 +80,16 @@ const waitForCDN = (timeout = 15000) => {
 
 // Initialize Web3Auth from CDN
 const getWeb3Auth = async () => {
-  const hasClientId = Boolean(import.meta.env.VITE_WEB3AUTH_CLIENT_ID);
-  const hasRpcTarget = Boolean(import.meta.env.VITE_WEB3_RPC_TARGET);
-  const hasKeys = hasClientId && hasRpcTarget;
-
-  if (isDev) {
-    console.log('Web3Auth getWeb3Auth:', { hasClientId, hasRpcTarget, hasKeys });
-  }
-
-  if (!hasKeys) {
-    if (isDev) console.warn('Web3Auth: No credentials, returning mock');
-    return mockWeb3Auth;
-  }
-
   if (web3authInstance && isInitialized) {
     return web3authInstance;
+  }
+
+  const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID;
+  const rpcTarget = import.meta.env.VITE_WEB3_RPC_TARGET;
+
+  if (!clientId || !rpcTarget) {
+    if (isDev) console.warn('Web3Auth: No credentials, returning mock');
+    return mockWeb3Auth;
   }
 
   try {
@@ -115,17 +106,8 @@ const getWeb3Auth = async () => {
     const { Web3Auth } = window.Modal;
     const { EthereumPrivateKeyProvider } = window.EthereumProvider;
 
-    const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID;
-    const rpcTarget = import.meta.env.VITE_WEB3_RPC_TARGET;
     const chainId = import.meta.env.VITE_WEB3_CHAIN_ID || "0x89";
 
-    if (isDev) {
-      console.log('Web3Auth: ClientID:', clientId?.substring(0, 20) + '...');
-      console.log('Web3Auth: RPC:', rpcTarget);
-      console.log('Web3Auth: ChainID:', chainId);
-    }
-
-    // Chain configurations
     const chainNames = {
       "0x1": { name: "Ethereum Mainnet", explorer: "https://etherscan.io", ticker: "ETH", tickerName: "Ethereum" },
       "0x89": { name: "Polygon Mainnet", explorer: "https://polygonscan.com", ticker: "MATIC", tickerName: "Polygon" },
@@ -144,14 +126,10 @@ const getWeb3Auth = async () => {
       tickerName: chainInfo.tickerName
     };
 
-    // Create the private key provider
     const privateKeyProvider = new EthereumPrivateKeyProvider({
       config: { chainConfig }
     });
 
-    if (isDev) console.log('Web3Auth: Provider created, creating Web3Auth instance...');
-
-    // Use environment variable for network, default to sapphire_devnet for testing
     const web3AuthNetwork = import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_devnet";
 
     web3authInstance = new Web3Auth({
@@ -204,8 +182,8 @@ const isWeb3AuthReady = () => isInitialized;
 const initializeModal = async () => {
   if (isInitialized) return true;
 
-  const web3auth = await getWeb3Auth();
-  return !web3auth.isMock && isInitialized;
+  const instance = await getWeb3Auth();
+  return isInitialized;
 };
 
 // Export for Moralis
@@ -215,14 +193,30 @@ const Moralis = {
   }
 };
 
+// Unified getter for the instance
+const getWeb3AuthInstance = () => {
+  return web3authInstance || mockWeb3Auth;
+};
+
 // Proxy for backward compatibility
 const web3auth = new Proxy(mockWeb3Auth, {
   get(target, prop) {
-    if (web3authInstance) {
-      return web3authInstance[prop];
+    const instance = web3authInstance || target;
+    const value = instance[prop];
+    if (typeof value === 'function') {
+      return value.bind(instance);
     }
-    return target[prop];
+    return value;
   }
 });
 
-export { web3auth, Moralis, initMoralis, getWeb3Auth, initializeModal, isWeb3AuthReady, WEB3_ENABLED };
+export {
+  web3auth,
+  Moralis,
+  initMoralis,
+  getWeb3Auth,
+  initializeModal,
+  isWeb3AuthReady,
+  WEB3_ENABLED,
+  getWeb3AuthInstance
+};
