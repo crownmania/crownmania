@@ -124,10 +124,6 @@ const images = [
 export default function Gallery() {
   return (
     <GallerySection id="gallery">
-      <GalleryTitle>
-        <h2>CROWNMANIA</h2>
-        <div className="subtitle">THE FUTURE OF COLLECTIBLES</div>
-      </GalleryTitle>
       <CarouselWrapper>
         <CarouselTrack>
           {/* Double the images for seamless loop */}
