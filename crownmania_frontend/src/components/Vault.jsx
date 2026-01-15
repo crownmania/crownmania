@@ -156,8 +156,12 @@ const SelectGrid = styled.div`
   background-color: rgba(0, 166, 251, 0.3);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   
-  @media (max-width: 600px) {
-    grid-template-columns: repeat(4, 1fr);
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(4, 1fr); /* 4 cols on tablet/large phone */
+  }
+
+  @media (max-width: 500px) {
+    grid-template-columns: repeat(3, 1fr); /* 3 cols on small mobile */
   }
 `;
 
@@ -170,7 +174,7 @@ const SelectSlot = styled.div`
   justify-content: center;
   overflow: hidden;
   transition: all 0.2s ease;
-  aspect-ratio: 1; /* Keep slots square */
+  aspect-ratio: 1.25; /* Make slots slightly wider/shorter to reduce overall grid height */
 
   &:hover {
     background: rgba(20, 30, 50, 0.95);
@@ -278,7 +282,13 @@ const MiddleRow = styled.div`
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
-    > div:nth-child(2) { grid-column: 1; }
+    
+    // Stack everything vertically
+    > div:nth-child(1),
+    > div:nth-child(2),
+    > div:nth-child(3) {
+      grid-column: 1;
+    }
   }
 `;
 
@@ -348,6 +358,8 @@ const IDFooter = styled.div`
   background: rgba(0,0,0,0.8);
   border-top: 1px solid rgba(255,255,255,0.1);
   text-align: center;
+  font-family: 'Designer', sans-serif;
+  color: #00c8ff;
 `;
 
 // [NEW] Details Panel
@@ -369,19 +381,19 @@ const DetailHeader = styled.div`
 `;
 
 const DetailGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  display: flex; /* Changed from grid to flex column for cleaner vertical stack if needed, or refine grid */
+  flex-direction: column;
+  gap: 1.25rem;
 `;
 
 const DetailItem = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem; /* Tighter gap */
 
   label {
     font-family: 'Source Sans Pro', sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* Smaller label */
     color: rgba(255, 255, 255, 0.5);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -389,8 +401,11 @@ const DetailItem = styled.div`
 
   div {
     font-family: 'Designer', sans-serif;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     color: white;
+    white-space: nowrap; /* Prevent wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis;
     
     &.highlight {
       color: #00ff88;
@@ -407,8 +422,8 @@ const OwnerBadge = styled.div`
   background: ${props => props.$owned ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 50, 50, 0.1)'};
   border: 1px solid ${props => props.$owned ? '#00ff88' : '#ff3333'};
   color: ${props => props.$owned ? '#00ff88' : '#ff3333'};
-  padding: 1rem;
-  border-radius: 8px;
+  padding: 0.8rem;
+  border-radius: 6px;
   text-align: center;
   font-family: 'Designer', sans-serif;
   text-transform: uppercase;
@@ -659,31 +674,99 @@ export default function Vault() {
 
       {/* TOP ROW: ACTIVATE & CONNECT */}
       <TopPanelsRow>
-        <Panel initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-          <PanelTitle><FaLock /> Access Protocol</PanelTitle>
-          <SerialInput
-            placeholder="Enter Product Code"
-            value={serialNumber}
-            onChange={(e) => setSerialNumber(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleVerify()}
-          />
-          <ActionButton onClick={handleVerify} disabled={isVerifying}>
-            {isVerifying ? <FaSpinner className="spin" /> : 'VERIFY CODE'}
-          </ActionButton>
+        {/* VERIFY & AUTHENTICATE PANEL */}
+        <Panel
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          style={{ display: 'flex', flexDirection: 'column', minHeight: '260px' }}
+        >
+          <PanelTitle><FaLock /> Verify & Authenticate</PanelTitle>
+
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', marginTop: '1rem' }}>
+              <SerialInput
+                placeholder="Enter Product Code"
+                value={serialNumber}
+                onChange={(e) => setSerialNumber(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleVerify()}
+                style={{ marginBottom: 0 }}
+              />
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  background: 'rgba(0, 200, 255, 0.1)',
+                  border: '1px solid rgba(0, 200, 255, 0.3)',
+                  borderRadius: '8px',
+                  color: '#00c8ff',
+                  padding: '0 1rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title="Scan QR Code"
+              >
+                <FaQrcode size={20} />
+              </motion.button>
+            </div>
+
+            <ActionButton
+              onClick={handleVerify}
+              disabled={isVerifying}
+              $primary // Use primary (filled) style
+              style={{
+                background: 'linear-gradient(90deg, #0055ff, #00aaff)', // Custom blue gradient
+                border: 'none',
+                color: 'white',
+                boxShadow: '0 0 15px rgba(0, 100, 255, 0.3)',
+                marginTop: 'auto'
+              }}
+            >
+              {isVerifying ? <FaSpinner className="spin" /> : 'VERIFY CODE'}
+            </ActionButton>
+          </div>
         </Panel>
 
-        <WelcomePanel initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-          <PanelTitle><FaWallet /> Wallet Connection</PanelTitle>
-          <WelcomeText>
-            {user ? `Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connect wallet to view your owned assets.'}
-          </WelcomeText>
-          {user ? (
-            <ActionButton onClick={handleDisconnect}><FaSignOutAlt /> Disconnect</ActionButton>
-          ) : (
-            <ActionButton $primary onClick={handleConnect} disabled={isLoading}>
-              {isLoading ? <FaSpinner className="spin" /> : 'CONNECT WALLET'}
-            </ActionButton>
-          )}
+        {/* VAULT CONNECTION PANEL */}
+        <WelcomePanel
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+          style={{ display: 'flex', flexDirection: 'column', minHeight: '260px' }}
+        >
+          <PanelTitle><FaWallet /> Vault Connection</PanelTitle>
+
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <WelcomeText style={{ marginBottom: '1rem', textAlign: 'center', marginTop: '1rem' }}>
+              {user ? `Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connect wallet to view your owned assets.'}
+            </WelcomeText>
+
+            {user ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: 'auto' }}>
+                <ActionButton onClick={handleDisconnect} style={{ background: 'rgba(255, 50, 50, 0.2)', borderColor: '#ff4444', color: '#ff4444' }}>
+                  <FaSignOutAlt /> Disconnect
+                </ActionButton>
+
+                {/* User Actions Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <ActionButton style={{ fontSize: '0.75rem', padding: '0.5rem' }}>View Wallet Address</ActionButton>
+                  <ActionButton style={{ fontSize: '0.75rem', padding: '0.5rem' }}>Transfer Asset</ActionButton>
+                  <ActionButton style={{ fontSize: '0.75rem', padding: '0.5rem', gridColumn: 'span 2' }}>View on PolygonScan</ActionButton>
+                </div>
+              </div>
+            ) : (
+              <ActionButton
+                $primary
+                onClick={handleConnect}
+                disabled={isLoading}
+                style={{ marginTop: 'auto' }}
+              >
+                {isLoading ? <FaSpinner className="spin" /> : 'CONNECT'}
+              </ActionButton>
+            )}
+          </div>
         </WelcomePanel>
       </TopPanelsRow>
 
@@ -742,7 +825,14 @@ export default function Vault() {
 
             {/* RIGHT: Front View (New Image) */}
             <IDImageHalf $owned={isDurkOwned} $label="FRONT VIEW">
-              <img src={DURK_FRONT_IMG} alt="Lil Durk Front" style={{ objectPosition: 'center top' }} />
+              <img
+                src={DURK_FRONT_IMG}
+                alt="Lil Durk Front"
+                style={{
+                  objectPosition: 'center 20%',
+                  transform: 'scale(1.15)'
+                }}
+              />
             </IDImageHalf>
           </IDImageContainer>
           <IDFooter>
