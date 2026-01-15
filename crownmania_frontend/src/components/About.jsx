@@ -134,7 +134,7 @@ const VisionParagraph = styled.div`
   margin-top: 4rem;
 
   p {
-    font-family: 'Avenir Next', sans-serif;
+    font-family: 'Designer', sans-serif;
     font-size: 1.1rem;
     line-height: 1.8;
     color: rgba(255, 255, 255, 0.8);
