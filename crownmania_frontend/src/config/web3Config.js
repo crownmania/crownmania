@@ -159,17 +159,29 @@ const initMoralis = async () => {
     return null;
   }
 
+  // Use a global flag to prevent re-initialization during HMR
+  if (window.__MORALIS_INITIALIZED__) {
+    return moralisInstance;
+  }
+
   if (!moralisInstance) {
     try {
       const Moralis = (await import('moralis')).default;
-      if (!Moralis.Core.isStarted) {
+
+      // Check both our flag and Moralis internal state
+      if (!window.__MORALIS_INITIALIZED__) {
         try {
           await Moralis.start({
             apiKey: import.meta.env.VITE_MORALIS_API_KEY
           });
+          window.__MORALIS_INITIALIZED__ = true;
         } catch (e) {
-          // Ignore if already started to prevent HMR errors
-          if (e.code !== 'C0009') console.warn('Moralis start error:', e);
+          // If C0009 error (already started), just mark as initialized
+          if (e.code === 'C0009' || e.message?.includes('started already')) {
+            window.__MORALIS_INITIALIZED__ = true;
+          } else {
+            console.warn('Moralis start error:', e);
+          }
         }
       }
       moralisInstance = Moralis;
