@@ -49,7 +49,7 @@ const WindowsContainer = styled.div`
   gap: 2rem;
   width: 100%;
   max-width: 1200px;
-  margin-top: 8rem;
+  margin-top: 4rem;
 
   @media (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
@@ -67,8 +67,7 @@ const ShopWindow = styled(motion.div)`
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-  padding: 0;
+  padding: 0 0 2rem 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -430,7 +429,7 @@ export default function Shop() {
   return (
     <ShopSection id="shop">
       <MainTitle>
-        <h1>SHOP</h1>
+        <h1>THE SHOP</h1>
         <div className="subtitle">EXPLORE THE COLLECTION</div>
       </MainTitle>
 
