@@ -67,7 +67,8 @@ const ShopWindow = styled(motion.div)`
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-  padding: 2rem;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  padding: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -278,13 +279,22 @@ const Window = styled.div`
 
 const ModelPreview = styled.div`
   width: 100%;
-  height: 300px;
-  position: relative;
-  margin-bottom: 1rem;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 2rem 2rem 8rem 2rem; /* Top/Side padding, Large Bottom padding for info panel */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  canvas {
-    width: 100% !important;
-    height: 100% !important;
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center center;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+    transition: transform 0.3s ease;
   }
 `;
 
@@ -444,7 +454,6 @@ export default function Shop() {
                 <img
                   src={product.mainImage}
                   alt={product.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
               )}
             </ModelPreview>
