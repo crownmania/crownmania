@@ -162,9 +162,16 @@ const initMoralis = async () => {
   if (!moralisInstance) {
     try {
       const Moralis = (await import('moralis')).default;
-      await Moralis.start({
-        apiKey: import.meta.env.VITE_MORALIS_API_KEY
-      });
+      if (!Moralis.Core.isStarted) {
+        try {
+          await Moralis.start({
+            apiKey: import.meta.env.VITE_MORALIS_API_KEY
+          });
+        } catch (e) {
+          // Ignore if already started to prevent HMR errors
+          if (e.code !== 'C0009') console.warn('Moralis start error:', e);
+        }
+      }
       moralisInstance = Moralis;
       if (isDev) console.log('Moralis initialized successfully');
     } catch (err) {
