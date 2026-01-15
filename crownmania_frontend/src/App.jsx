@@ -35,11 +35,10 @@ const MainContent = styled.main`
 
 const HomePage = () => (
   <>
-    <Landing />
     <Gallery />
+    <Vault />
     <Shop />
     <About />
-    <Vault />
     <Footer />
   </>
 );

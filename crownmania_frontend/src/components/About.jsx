@@ -196,12 +196,23 @@ export default function About() {
 
         <VisionParagraph>
           <p>
-            CrownMania is a revolutionary platform that bridges the gap between physical collectibles and the digital world through cutting-edge blockchain technology.
-            Born from the vision to transform how fans connect with their favorite artists and cultural icons, CrownMania represents the future of collectibles.
-            By combining limited-edition physical figures with authenticated digital ownership, we're creating a seamless ecosystem where collectors can truly own,
-            trade, and experience their passion in ways never before possible. This futuristic approach not only ensures authenticity and provenance but also
-            opens up entirely new possibilities for fan engagement, from exclusive experiences to community-driven storytelling.
-            CrownMania is set to revolutionize the collectibles industry by making it more accessible, transparent, and immersive than ever before.
+            CrownMania is where real life meets the digital world.
+          </p>
+          <p>
+            It was created for people who don’t just want to look at collectibles — they want to own a piece of a moment, a voice, a story that matters to them. Whether it’s an artist who got them through dark days, a figure that represents resilience, or a symbol of where they came from, CrownMania turns that connection into something real you can hold and something digital that proves it’s yours.
+          </p>
+          <p>
+            Every CrownMania collectible is more than a figure.
+            <br />
+            It’s a limited-edition artifact tied to a Digital Crown — a permanent record of ownership on the blockchain that lives beyond the box, beyond resale, and beyond time. When you scan your physical collectible, you’re not just checking if it’s real… you’re unlocking its story, and your place in it.
+          </p>
+          <p>
+            We believe the future of collectibles isn’t about speculation or hype.
+            <br />
+            It’s about belonging, authenticity, and culture that lives on.
+          </p>
+          <p>
+            CrownMania gives people a new way to connect with the artists, creators, and icons they believe in — not just by watching from the outside, but by owning their crown in the mania.
           </p>
         </VisionParagraph>
       </ContentContainer>
