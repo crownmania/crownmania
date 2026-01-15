@@ -430,8 +430,8 @@ export default function Shop() {
   return (
     <ShopSection id="shop">
       <MainTitle>
-        <h1>THE COLLECTION</h1>
-        <div className="subtitle">EXPLORE • SHOP</div>
+        <h1>SHOP</h1>
+        <div className="subtitle">EXPLORE THE COLLECTION</div>
       </MainTitle>
 
       <WindowsContainer>
