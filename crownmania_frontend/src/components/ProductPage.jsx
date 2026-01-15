@@ -139,11 +139,13 @@ const ProductImages = styled.div`
   img {
     width: 100%;
     height: 120px;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center top;
     border-radius: 12px;
     cursor: pointer;
     border: 1px solid rgba(255, 255, 255, 0.05);
     transition: all 0.3s ease;
+    background: rgba(0, 0, 0, 0.2);
 
     &:hover {
       transform: translateY(-5px);

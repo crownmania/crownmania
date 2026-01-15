@@ -4,7 +4,7 @@ import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
-import { FaLock, FaCheck, FaTimes, FaSpinner, FaWallet, FaSignOutAlt, FaCube, FaChevronLeft, FaChevronRight, FaKeyboard, FaQrcode, FaDiscord, FaGift, FaTag, FaInfoCircle } from 'react-icons/fa';
+import { FaLock, FaCheck, FaTimes, FaSpinner, FaWallet, FaSignOutAlt, FaCube, FaChevronLeft, FaChevronRight, FaKeyboard, FaQrcode, FaDiscord, FaGift, FaTag, FaInfoCircle, FaCopy, FaExternalLinkAlt, FaExchangeAlt } from 'react-icons/fa';
 
 import useWeb3Auth from '../hooks/useWeb3Auth';
 import { verificationAPI } from '../services/api';
@@ -13,11 +13,8 @@ import crownLogo from '../assets/crown_logo_white.svg';
 
 // Firebase Storage image URLs
 const DURK_PREVIEW_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy7.webp?alt=media';
-// [NEW] Face close-up for grid
 const DURK_FACE_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy2.webp?alt=media';
-// [NEW] Front view for ID Card (Right side)
 const DURK_FRONT_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy1.webp?alt=media';
-
 const DURK_BACKGROUND_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy4.webp?alt=media';
 
 // Animations
@@ -30,6 +27,79 @@ const packAPunchGlow = keyframes`
     box-shadow: 0 0 30px rgba(0, 200, 255, 0.5), 0 0 60px rgba(0, 200, 255, 0.3);
     border-color: rgba(0, 200, 255, 0.8);
   }
+`;
+
+// Toast notification
+const ToastContainer = styled(motion.div)`
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 255, 136, 0.9);
+  color: black;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-family: 'Avenir Next', sans-serif;
+  font-weight: 600;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
+`;
+
+// Modal overlay
+const ModalOverlay = styled(motion.div)`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 2rem;
+`;
+
+const ModalContent = styled(motion.div)`
+  background: linear-gradient(145deg, rgba(0, 30, 50, 0.95), rgba(0, 15, 30, 0.98));
+  border: 1px solid rgba(0, 166, 251, 0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  
+  h3 {
+    font-family: 'Designer', sans-serif;
+    color: #00c8ff;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+`;
+
+const ModalInput = styled.input`
+  width: 100%;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: white;
+  font-family: 'Avenir Next', monospace;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  
+  &:focus {
+    outline: none;
+    border-color: #00c8ff;
+  }
+  
+  &:read-only {
+    cursor: default;
+    background: rgba(0, 0, 0, 0.6);
+  }
+`;
+
+const ModalButtonRow = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
 `;
 
 // ============================================
@@ -45,7 +115,6 @@ const VaultSection = styled.section`
   overflow-x: hidden;
 `;
 
-// Background Logo Watermark
 const LogoWatermark = styled.div`
   position: absolute;
   top: 50%;
@@ -85,7 +154,7 @@ const MainTitle = styled.div`
     font-size: 0.85rem;
     opacity: 0.7;
     letter-spacing: 0.15em;
-    font-family: 'Source Sans Pro', sans-serif;
+    font-family: 'Avenir Next', sans-serif;
     text-transform: uppercase;
   }
 `;
@@ -108,7 +177,6 @@ const Panel = styled(motion.div)`
   }
 `;
 
-// Top Row: Verify & Connect Panels
 const TopPanelsRow = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -123,7 +191,6 @@ const TopPanelsRow = styled.div`
   }
 `;
 
-// [NEW] Control Deck Row (Identity + Grid)
 const ControlDeckRow = styled.div`
   display: grid;
   grid-template-columns: 500px 1fr;
@@ -139,7 +206,6 @@ const ControlDeckRow = styled.div`
   }
 `;
 
-// [NEW] Character Select Grid
 const CharacterSelectSection = styled.div`
   width: 100%;
   height: 100%;
@@ -153,15 +219,16 @@ const SelectGrid = styled.div`
   grid-template-rows: repeat(2, 1fr);
   gap: 1px;
   height: 100%;
-  background-color: rgba(0, 166, 251, 0.3);
+  background-color: ${props => props.$verified ? 'rgba(0, 255, 136, 0.3)' : 'rgba(0, 166, 251, 0.3)'};
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  transition: background-color 0.5s ease;
   
   @media (max-width: 768px) {
-    grid-template-columns: repeat(4, 1fr); /* 4 cols on tablet/large phone */
+    grid-template-columns: repeat(4, 1fr);
   }
 
   @media (max-width: 500px) {
-    grid-template-columns: repeat(3, 1fr); /* 3 cols on small mobile */
+    grid-template-columns: repeat(3, 1fr);
   }
 `;
 
@@ -174,7 +241,7 @@ const SelectSlot = styled.div`
   justify-content: center;
   overflow: hidden;
   transition: all 0.2s ease;
-  aspect-ratio: 1.25; /* Make slots slightly wider/shorter to reduce overall grid height */
+  aspect-ratio: 1.25;
 
   &:hover {
     background: rgba(20, 30, 50, 0.95);
@@ -184,7 +251,6 @@ const SelectSlot = styled.div`
     }
   }
 
-  /* Current Active/Selected Item */
   ${props => props.$active && css`
     background: rgba(20, 40, 60, 0.95);
     box-shadow: inset 0 0 15px rgba(0, 200, 255, 0.1);
@@ -193,7 +259,7 @@ const SelectSlot = styled.div`
       content: '';
       position: absolute;
       inset: 0;
-      border: 2px solid #00c8ff;
+      border: 2px solid ${props.$verified ? '#00ff88' : '#00c8ff'};
       pointer-events: none;
     }
   `}
@@ -215,14 +281,13 @@ const UnknownAvatar = styled.div`
   user-select: none;
 `;
 
-// [MODIFIED] Identity Panel
 const IdentityPanel = styled(Panel)`
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 1.5rem 2rem;
   z-index: 1;
-  height: 100%; /* Match height of neighbor */
+  height: 100%;
   
   @media (max-width: 1200px) {
     text-align: center;
@@ -247,7 +312,7 @@ const IdentityName = styled.h2`
 `;
 
 const IdentityTagline = styled.span`
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Avenir Next', sans-serif;
   font-size: 0.9rem;
   color: #00c8ff;
   text-transform: uppercase;
@@ -255,7 +320,6 @@ const IdentityTagline = styled.span`
   margin-top: 0.5rem;
 `;
 
-// MiddleRow: Preview | Details | 3D
 const MiddleRow = styled.div`
   display: grid;
   grid-template-columns: 500px 300px 1fr; 
@@ -270,11 +334,9 @@ const MiddleRow = styled.div`
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
     
-    // Details panel moves to second row, full width or shared
     > div:nth-child(2) {
       grid-column: 2;
     }
-    // 3D viewer moves to bottom full width
     > div:nth-child(3) {
       grid-column: 1 / -1;
     }
@@ -283,7 +345,6 @@ const MiddleRow = styled.div`
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
     
-    // Stack everything vertically
     > div:nth-child(1),
     > div:nth-child(2),
     > div:nth-child(3) {
@@ -292,7 +353,6 @@ const MiddleRow = styled.div`
   }
 `;
 
-// [MODIFIED] ID Card Style
 const IDCard = styled(Panel)`
   padding: 0;
   overflow: hidden;
@@ -302,6 +362,7 @@ const IDCard = styled(Panel)`
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   display: flex;
   flex-direction: column;
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
 
   ${props => props.$owned && css`
     border-color: #00ff88;
@@ -337,7 +398,6 @@ const IDImageHalf = styled.div`
     transition: filter 0.5s ease;
   }
 
-  /* Label for Front/Back */
   &::after {
     content: '${props => props.$label}';
     position: absolute;
@@ -345,7 +405,7 @@ const IDImageHalf = styled.div`
     left: 0;
     width: 100%;
     text-align: center;
-    font-family: 'Source Sans Pro', sans-serif;
+    font-family: 'Avenir Next', sans-serif;
     font-size: 0.7rem;
     color: rgba(255,255,255,0.5);
     text-transform: uppercase;
@@ -362,7 +422,6 @@ const IDFooter = styled.div`
   color: #00c8ff;
 `;
 
-// [NEW] Details Panel
 const DetailsPanel = styled(Panel)`
   display: flex;
   flex-direction: column;
@@ -381,7 +440,7 @@ const DetailHeader = styled.div`
 `;
 
 const DetailGrid = styled.div`
-  display: flex; /* Changed from grid to flex column for cleaner vertical stack if needed, or refine grid */
+  display: flex;
   flex-direction: column;
   gap: 1.25rem;
 `;
@@ -389,11 +448,11 @@ const DetailGrid = styled.div`
 const DetailItem = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.25rem; /* Tighter gap */
+  gap: 0.25rem;
 
   label {
-    font-family: 'Source Sans Pro', sans-serif;
-    font-size: 0.75rem; /* Smaller label */
+    font-family: 'Avenir Next', sans-serif;
+    font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.5);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -403,7 +462,7 @@ const DetailItem = styled.div`
     font-family: 'Designer', sans-serif;
     font-size: 1.4rem;
     color: white;
-    white-space: nowrap; /* Prevent wrapping */
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     
@@ -433,9 +492,9 @@ const OwnerBadge = styled.div`
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  transition: all 0.3s ease;
 `;
 
-// [MODIFIED] 3D Panel
 const ModelViewerPanel = styled(Panel)`
   padding: 0;
   overflow: hidden;
@@ -468,7 +527,6 @@ const ModelCanvas = styled.div`
   background: radial-gradient(circle at center, rgba(0, 100, 150, 0.1), transparent 70%);
 `;
 
-// [NEW] Exclusive Access Panel
 const ExclusivePanel = styled(Panel)`
   max-width: 1400px;
   margin: 0 auto;
@@ -481,6 +539,7 @@ const ExclusivePanel = styled(Panel)`
   gap: 1.5rem;
   background: linear-gradient(145deg, rgba(10, 15, 25, 0.9), rgba(5, 10, 20, 0.95));
   border: 1px solid rgba(0, 166, 251, 0.2);
+  transition: all 0.5s ease;
   
   ${props => props.$unlocked && css`
     border-color: rgba(0, 255, 136, 0.4);
@@ -502,7 +561,7 @@ const ExclusiveContent = styled.div`
   }
   
   p {
-    font-family: 'Source Sans Pro', sans-serif;
+    font-family: 'Avenir Next', sans-serif;
     font-size: 1.1rem;
     line-height: 1.6;
     margin-bottom: 1rem;
@@ -519,6 +578,7 @@ const LockIconLarge = styled.div`
   font-size: 3.5rem;
   color: rgba(255, 255, 255, 0.1);
   margin-bottom: 0.5rem;
+  transition: all 0.5s ease;
   
   ${props => props.$unlocked && css`
     color: #00ff88;
@@ -526,7 +586,6 @@ const LockIconLarge = styled.div`
   `}
 `;
 
-// Helper Components
 const PanelTitle = styled.h3`
   font-family: 'Designer', sans-serif;
   font-size: 1rem;
@@ -541,7 +600,6 @@ const PanelTitle = styled.h3`
 
 const WelcomePanel = styled(Panel)`
   overflow: hidden;
-  // ... existing styles ...
 `;
 
 const SerialInput = styled.input`
@@ -552,6 +610,7 @@ const SerialInput = styled.input`
   border-radius: 8px;
   color: white;
   margin-bottom: 1rem;
+  font-family: 'Avenir Next', sans-serif;
   &:focus { outline: none; border-color: #00ff88; }
 `;
 
@@ -566,12 +625,18 @@ const ActionButton = styled(motion.button)`
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  transition: all 0.2s ease;
   
   ${props => props.$primary ? css`
     background: #0055ff; border: none; color: white;
   ` : css`
     background: transparent; border: 1px solid #00ff88; color: #00ff88;
   `}
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const StatusMessage = styled(motion.div)`
@@ -586,6 +651,7 @@ const WelcomeText = styled.p`
   color: rgba(255,255,255,0.7);
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
+  font-family: 'Avenir Next', sans-serif;
 `;
 
 // ============================================
@@ -602,6 +668,13 @@ export default function Vault() {
   const [verificationResult, setVerificationResult] = useState(null);
   const [currentEdition, setCurrentEdition] = useState(null);
 
+  // UI State
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferAddress, setTransferAddress] = useState('');
+
   // Fetch wallet data when authenticated
   useEffect(() => {
     const fetchData = async () => {
@@ -613,7 +686,6 @@ export default function Vault() {
             try {
               const result = await verificationAPI.getWalletTokens(address);
               setUserTokens(result.tokens || []);
-              // Get edition number from tokens
               const durkToken = result.tokens?.find(t => t.productId === 'lil-durk-figure');
               if (durkToken) {
                 setCurrentEdition(durkToken.edition || durkToken.editionNumber);
@@ -623,6 +695,12 @@ export default function Vault() {
               setUserTokens([]);
             }
           }
+        } else {
+          // Clear state when user disconnects
+          setWalletAddress('');
+          setUserTokens([]);
+          setCurrentEdition(null);
+          setVerificationResult(null);
         }
       } catch (err) {
         console.error('Error in Vault data fetch:', err);
@@ -637,24 +715,81 @@ export default function Vault() {
     return userTokens.some(token => token.productId === characterId);
   }, [userTokens]);
 
-  const handleConnect = async () => { /* ... */ await login(); };
+  // Derived state - asset is verified if owned OR verification succeeded
+  const isAssetVerified = verificationResult?.status === 'success' || isOwned('lil-durk-figure');
+  const displayEdition = verificationResult?.editionNumber || currentEdition;
+
+  const handleConnect = async () => {
+    await login();
+  };
+
   const handleDisconnect = async () => {
     await logout();
     setWalletAddress('');
     setUserTokens([]);
     setCurrentEdition(null);
+    setVerificationResult(null);
   };
 
   const handleVerify = async () => {
     if (!serialNumber.trim()) return;
     setIsVerifying(true);
+    setVerificationResult(null);
+
     try {
-      navigate(`/mintNFT?id=${serialNumber.trim()}&type=1`);
+      // Call verification API
+      const result = await verificationAPI.verifySerial(serialNumber.trim());
+
+      if (result.valid) {
+        setVerificationResult({
+          status: 'success',
+          message: 'Product verified successfully!',
+          editionNumber: result.editionNumber || result.edition,
+          productId: result.productId
+        });
+
+        // Show success toast
+        showToastMessage('✓ Product Verified Successfully!');
+      } else {
+        setVerificationResult({
+          status: 'error',
+          message: result.message || 'Invalid product code'
+        });
+      }
     } catch (err) {
-      setVerificationResult({ status: 'error', message: err.message || 'Verification failed' });
+      setVerificationResult({
+        status: 'error',
+        message: err.message || 'Verification failed'
+      });
     } finally {
       setIsVerifying(false);
     }
+  };
+
+  const showToastMessage = (message) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handleCopyAddress = () => {
+    if (walletAddress) {
+      navigator.clipboard.writeText(walletAddress);
+      showToastMessage('Address copied to clipboard!');
+      setShowAddressModal(false);
+    }
+  };
+
+  const handleViewOnPolygon = () => {
+    if (walletAddress) {
+      window.open(`https://polygonscan.com/address/${walletAddress}`, '_blank');
+    }
+  };
+
+  const handleTransfer = () => {
+    // Transfer not implemented yet - show coming soon
+    showToastMessage('Transfer feature coming soon!');
+    setShowTransferModal(false);
   };
 
   const isDurkOwned = isOwned('lil-durk-figure');
@@ -712,19 +847,34 @@ export default function Vault() {
               </motion.button>
             </div>
 
+            {verificationResult && (
+              <StatusMessage
+                $status={verificationResult.status}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                {verificationResult.status === 'success' ? <FaCheck /> : <FaTimes />}
+                {verificationResult.message}
+              </StatusMessage>
+            )}
+
             <ActionButton
               onClick={handleVerify}
-              disabled={isVerifying}
-              $primary // Use primary (filled) style
+              disabled={isVerifying || !serialNumber.trim()}
+              $primary
               style={{
-                background: 'linear-gradient(90deg, #0055ff, #00aaff)', // Custom blue gradient
+                background: isAssetVerified
+                  ? 'linear-gradient(90deg, #00aa55, #00ff88)'
+                  : 'linear-gradient(90deg, #0055ff, #00aaff)',
                 border: 'none',
                 color: 'white',
-                boxShadow: '0 0 15px rgba(0, 100, 255, 0.3)',
+                boxShadow: isAssetVerified
+                  ? '0 0 15px rgba(0, 255, 136, 0.3)'
+                  : '0 0 15px rgba(0, 100, 255, 0.3)',
                 marginTop: 'auto'
               }}
             >
-              {isVerifying ? <FaSpinner className="spin" /> : 'VERIFY CODE'}
+              {isVerifying ? <FaSpinner className="spin" /> : isAssetVerified ? 'VERIFIED ✓' : 'VERIFY CODE'}
             </ActionButton>
           </div>
         </Panel>
@@ -745,15 +895,33 @@ export default function Vault() {
 
             {user ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: 'auto' }}>
-                <ActionButton onClick={handleDisconnect} style={{ background: 'rgba(255, 50, 50, 0.2)', borderColor: '#ff4444', color: '#ff4444' }}>
+                <ActionButton
+                  onClick={handleDisconnect}
+                  style={{ background: 'rgba(255, 50, 50, 0.2)', borderColor: '#ff4444', color: '#ff4444' }}
+                >
                   <FaSignOutAlt /> Disconnect
                 </ActionButton>
 
                 {/* User Actions Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
-                  <ActionButton style={{ fontSize: '0.75rem', padding: '0.5rem' }}>View Wallet Address</ActionButton>
-                  <ActionButton style={{ fontSize: '0.75rem', padding: '0.5rem' }}>Transfer Asset</ActionButton>
-                  <ActionButton style={{ fontSize: '0.75rem', padding: '0.5rem', gridColumn: 'span 2' }}>View on PolygonScan</ActionButton>
+                  <ActionButton
+                    onClick={() => setShowAddressModal(true)}
+                    style={{ fontSize: '0.75rem', padding: '0.5rem' }}
+                  >
+                    <FaCopy /> View Address
+                  </ActionButton>
+                  <ActionButton
+                    onClick={() => setShowTransferModal(true)}
+                    style={{ fontSize: '0.75rem', padding: '0.5rem', opacity: 0.6 }}
+                  >
+                    <FaExchangeAlt /> Transfer
+                  </ActionButton>
+                  <ActionButton
+                    onClick={handleViewOnPolygon}
+                    style={{ fontSize: '0.75rem', padding: '0.5rem', gridColumn: 'span 2' }}
+                  >
+                    <FaExternalLinkAlt /> View on PolygonScan
+                  </ActionButton>
                 </div>
               </div>
             ) : (
@@ -778,16 +946,22 @@ export default function Vault() {
             <IdentityName>LIL DURK</IdentityName>
             <IdentityTagline>10" Collectible Resin Figure</IdentityTagline>
           </IdentityInfo>
-          <div style={{ color: isDurkOwned ? '#00ff88' : 'rgba(255,255,255,0.3)', fontFamily: 'Designer', fontSize: '1.2rem', marginTop: '1rem' }}>
-            {isDurkOwned ? '• ASSET VERIFIED' : '• ASSET LOCKED'}
+          <div style={{
+            color: isAssetVerified ? '#00ff88' : 'rgba(255,255,255,0.3)',
+            fontFamily: 'Designer',
+            fontSize: '1.2rem',
+            marginTop: '1rem',
+            transition: 'color 0.3s ease'
+          }}>
+            {isAssetVerified ? '• ASSET VERIFIED' : '• ASSET LOCKED'}
           </div>
         </IdentityPanel>
 
         {/* CHARACTER SELECT GRID */}
         <CharacterSelectSection>
-          <SelectGrid>
+          <SelectGrid $verified={isAssetVerified}>
             {/* Slot 1: Lil Durk (Active) - FACE SHOT */}
-            <SelectSlot $active={true} $owned={isDurkOwned}>
+            <SelectSlot $active={true} $owned={isAssetVerified} $verified={isAssetVerified}>
               <img
                 src={DURK_FACE_IMG}
                 alt="Lil Durk Face"
@@ -812,19 +986,17 @@ export default function Vault() {
       <MiddleRow>
         {/* 1. ID CARD PREVIEW */}
         <IDCard
-          $owned={isDurkOwned}
+          $owned={isAssetVerified}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.5 }}
         >
           <IDImageContainer>
-            {/* LEFT: Back View (using original image 7 which is a back/side view usually, or reusing existing logic) */}
-            <IDImageHalf $owned={isDurkOwned} $label="BACK VIEW">
+            <IDImageHalf $owned={isAssetVerified} $label="BACK VIEW">
               <img src={DURK_PREVIEW_IMG} alt="Lil Durk Back" style={{ objectPosition: 'center top' }} />
             </IDImageHalf>
 
-            {/* RIGHT: Front View (New Image) */}
-            <IDImageHalf $owned={isDurkOwned} $label="FRONT VIEW">
+            <IDImageHalf $owned={isAssetVerified} $label="FRONT VIEW">
               <img
                 src={DURK_FRONT_IMG}
                 alt="Lil Durk Front"
@@ -849,8 +1021,8 @@ export default function Vault() {
           <DetailGrid>
             <DetailItem>
               <label>Edition Number</label>
-              <div className={isDurkOwned ? 'highlight' : 'dim'}>
-                {isDurkOwned ? `#${currentEdition}` : '---'}
+              <div className={isAssetVerified ? 'highlight' : 'dim'}>
+                {isAssetVerified && displayEdition ? `#${displayEdition}` : '—'}
               </div>
             </DetailItem>
 
@@ -870,11 +1042,11 @@ export default function Vault() {
             </DetailItem>
           </DetailGrid>
 
-          <OwnerBadge $owned={isDurkOwned}>
-            {isDurkOwned ? <><FaCheck /> OWNER VERIFIED</> : <><FaLock /> UNOWNED</>}
+          <OwnerBadge $owned={isAssetVerified}>
+            {isAssetVerified ? <><FaCheck /> OWNER VERIFIED</> : <><FaLock /> UNOWNED</>}
           </OwnerBadge>
 
-          {!isDurkOwned && (
+          {!isAssetVerified && (
             <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: '1rem' }}>
               Claim your physical figure to unlock full details and benefits.
             </div>
@@ -888,7 +1060,7 @@ export default function Vault() {
             <FaCube style={{ color: '#00c8ff' }} />
           </ModelHeader>
           <ModelCanvas>
-            {isDurkOwned ? (
+            {isAssetVerified ? (
               <Canvas camera={{ position: [0, 0, 3.5], fov: 45 }}>
                 <ambientLight intensity={0.6} />
                 <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
@@ -909,15 +1081,15 @@ export default function Vault() {
       </MiddleRow>
 
       {/* EXCLUSIVE ACCESS PANEL */}
-      <ExclusivePanel $unlocked={isDurkOwned}>
-        <LockIconLarge $unlocked={isDurkOwned}>
-          {isDurkOwned ? <FaGift /> : <FaLock />}
+      <ExclusivePanel $unlocked={isAssetVerified}>
+        <LockIconLarge $unlocked={isAssetVerified}>
+          {isAssetVerified ? <FaGift /> : <FaLock />}
         </LockIconLarge>
 
-        <ExclusiveContent $unlocked={isDurkOwned}>
+        <ExclusiveContent $unlocked={isAssetVerified}>
           <h2>Exclusive Access & Unlockables</h2>
 
-          {isDurkOwned ? (
+          {isAssetVerified ? (
             <>
               <p>
                 Congratulations! As a verified owner, you have unlocked this section.
@@ -942,6 +1114,96 @@ export default function Vault() {
           )}
         </ExclusiveContent>
       </ExclusivePanel>
+
+      {/* TOAST NOTIFICATION */}
+      <AnimatePresence>
+        {showToast && (
+          <ToastContainer
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+          >
+            {toastMessage}
+          </ToastContainer>
+        )}
+      </AnimatePresence>
+
+      {/* ADDRESS MODAL */}
+      <AnimatePresence>
+        {showAddressModal && (
+          <ModalOverlay
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowAddressModal(false)}
+          >
+            <ModalContent
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <h3>Wallet Address</h3>
+              <ModalInput
+                type="text"
+                value={walletAddress}
+                readOnly
+              />
+              <ModalButtonRow>
+                <ActionButton onClick={handleCopyAddress} $primary style={{ flex: 1 }}>
+                  <FaCopy /> Copy Address
+                </ActionButton>
+                <ActionButton onClick={() => setShowAddressModal(false)} style={{ flex: 1 }}>
+                  Close
+                </ActionButton>
+              </ModalButtonRow>
+            </ModalContent>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
+
+      {/* TRANSFER MODAL */}
+      <AnimatePresence>
+        {showTransferModal && (
+          <ModalOverlay
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowTransferModal(false)}
+          >
+            <ModalContent
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+            >
+              <h3>Transfer Asset</h3>
+              <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1rem', fontFamily: 'Avenir Next' }}>
+                Enter the recipient wallet address to transfer your collectible.
+              </p>
+              <ModalInput
+                type="text"
+                placeholder="0x..."
+                value={transferAddress}
+                onChange={(e) => setTransferAddress(e.target.value)}
+              />
+              <ModalButtonRow>
+                <ActionButton
+                  onClick={handleTransfer}
+                  $primary
+                  style={{ flex: 1, opacity: 0.5 }}
+                  disabled
+                >
+                  Coming Soon
+                </ActionButton>
+                <ActionButton onClick={() => setShowTransferModal(false)} style={{ flex: 1 }}>
+                  Cancel
+                </ActionButton>
+              </ModalButtonRow>
+            </ModalContent>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
