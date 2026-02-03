@@ -76,10 +76,6 @@ const TokenShowcase = () => {
       image: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2FGenerated%20Image%20January%2016%2C%202026%20-%202_50AM.jpeg?alt=media'
     },
     {
-      id: 2,
-      image: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2FGenerated%20Image%20January%2016%2C%202026%20-%203_36AM.jpeg?alt=media'
-    },
-    {
       id: 3,
       image: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2FGenerated%20Image%20January%2016%2C%202026%20-%208_55AM%20(1).jpeg?alt=media'
     },
@@ -90,14 +86,6 @@ const TokenShowcase = () => {
     {
       id: 5,
       image: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2FGenerated%20Image%20January%2015%2C%202026%20-%206_00PM%20(1).jpeg?alt=media'
-    },
-    {
-      id: 6,
-      image: '/images/Generated Image January 17, 2026 - 2_39PM.jpeg'
-    },
-    {
-      id: 7,
-      image: '/images/Generated Image February 03, 2026 - 9_07AM.jpeg'
     }
   ];
 

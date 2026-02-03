@@ -31,7 +31,7 @@ const MainTitle = styled.div`
     font-weight: 800;
     letter-spacing: -0.02em;
     color: white;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.5), 0 0 60px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3), 0 0 20px rgba(255, 255, 255, 0.15);
   }
 
   .subtitle {
