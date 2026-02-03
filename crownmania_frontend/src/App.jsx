@@ -12,6 +12,7 @@ const Gallery = React.lazy(() => import('./components/Gallery'));
 const Shop = React.lazy(() => import('./components/Shop'));
 const About = React.lazy(() => import('./components/About'));
 const Vault = React.lazy(() => import('./components/Vault'));
+const TokenShowcase = React.lazy(() => import('./components/TokenShowcase'));
 const Footer = React.lazy(() => import('./components/Footer'));
 const ForumPage = React.lazy(() => import('./pages/ForumPage'));
 const ContactPage = React.lazy(() => import('./pages/ContactPage'));
@@ -36,10 +37,10 @@ const MainContent = styled.main`
 const HomePage = () => (
   <>
     <Landing />
-    <Gallery />
     <Vault />
-    <Shop />
+    <TokenShowcase />
     <About />
+    <Shop />
     <Footer />
   </>
 );

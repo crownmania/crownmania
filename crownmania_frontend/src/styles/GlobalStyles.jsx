@@ -1,40 +1,63 @@
 import { createGlobalStyle } from 'styled-components';
+import blueprintBg from '../assets/crownmania_blueprint.svg';
 
 export const GlobalStyles = createGlobalStyle`
 
   :root {
-    --dark-blue: rgb(2, 6, 23);
-    --light-blue: #0066FF;
-    --light-blue-rgb: 0, 102, 255;
+    /* Colors - Royal Blue Vault Palette */
+    --bg-deep: #000000;
+    --bg-vault: rgba(0, 5, 25, 0.85); /* Slightly blueish dark background */
+    --vault-border: rgba(65, 105, 225, 0.15);
+    --vault-accent: #4169E1; /* Royal Blue */
+    --vault-accent-bright: #6B8DD6;
+    --vault-accent-rgb: 65, 105, 225;
+    --vault-success: #34C759;
+    --vault-error: #FF3B30;
+    --vault-glow: rgba(65, 105, 225, 0.25);
+    
+    /* Legacy compatibility */
+    --dark-blue: #00050f;
+    --light-blue: var(--vault-accent);
+    --light-blue-rgb: var(--vault-accent-rgb);
     --white: #FFFFFF;
     --black: #000000;
+    
+    /* Typography */
     --font-primary: 'Designer', 'Arial Black', sans-serif;
-    --font-secondary: 'Avenir Next', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-secondary: 'Inter', -apple-system, BlinkMacSystemFont, 'Avenir Next', sans-serif;
     --font-avenir: 'Avenir Next', sans-serif;
-    --title-glow: 0 0 10px rgba(255, 255, 255, 0.5);
+    
+    /* Effects */
+    --title-glow: 0 0 10px rgba(0, 242, 255, 0.2), 0 0 20px rgba(0, 242, 255, 0.1);
+    --glass-blur: blur(20px) saturate(120%);
+    --glass-border: 1px solid var(--vault-border);
+    --vault-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
   }
 
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    background-color: var(--bg-deep);
   }
 
   body {
     font-family: var(--font-secondary);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background-color: #000000;
+    background-color: var(--bg-deep);
     color: var(--white);
     line-height: 1.6;
     overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Blueprint background moved to BackgroundBeams.jsx */
 
   p, label, input, textarea, select {
     font-family: var(--font-secondary);
@@ -57,18 +80,27 @@ export const GlobalStyles = createGlobalStyle`
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-primary);
     font-weight: normal;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
   }
 
   a {
     color: inherit;
     text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+  
+  a:hover {
+    opacity: 0.8;
   }
 
   button {
     font-family: inherit;
     cursor: pointer;
     touch-action: manipulation;
+    border: none;
+    outline: none;
+    background: none;
   }
 
   img {
@@ -76,12 +108,15 @@ export const GlobalStyles = createGlobalStyle`
     height: auto;
   }
 
-  /* Mobile-friendly button sizing */
-  button, a[role="button"], input[type="submit"] {
-    min-height: 44px;
-    min-width: 44px;
+  /* Utility: Glassmorphism */
+  .glass-panel {
+    background: var(--bg-vault);
+    backdrop-filter: var(--glass-blur);
+    border: var(--glass-border);
+    box-shadow: var(--vault-shadow);
   }
 
+  /* Animations - Refined */
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -99,30 +134,17 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   .fade-in {
-    animation: fadeIn 0.5s ease-in-out;
+    animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .slide-up {
-    animation: slideUp 0.5s ease-in-out;
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  .spin {
-    animation: spin 1s linear infinite;
+    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   /* Mobile Responsive Typography */
   @media (max-width: 768px) {
     html {
       font-size: 14px;
-    }
-
-    body {
-      padding: 0;
     }
   }
 

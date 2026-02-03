@@ -41,7 +41,7 @@ const ProductContainer = styled.div`
 
 const ModelViewer = styled.div`
   height: 600px;
-  background: radial-gradient(circle at center, rgba(0, 102, 255, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at center, rgba(200, 0, 0, 0.1) 0%, transparent 70%);
   border-radius: 20px;
   overflow: hidden;
   position: relative;
@@ -69,7 +69,7 @@ const ProductTitle = styled.h1`
 const ProductPrice = styled.div`
   font-family: 'Designer', sans-serif;
   font-size: 2.22rem;
-  color: var(--light-blue);
+  color: var(--vault-accent);
   letter-spacing: 0.1em;
 
   @media (max-width: 768px) {
@@ -104,13 +104,13 @@ const Button = styled(motion.button)`
   }
 
   &.checkout {
-    background: var(--light-blue);
+    background: var(--vault-accent);
     border: none;
-    box-shadow: 0 4px 15px rgba(0, 102, 255, 0.3);
+    box-shadow: 0 4px 15px rgba(200, 0, 0, 0.3);
 
     &:hover {
-      background: #0080FF;
-      box-shadow: 0 6px 20px rgba(0, 102, 255, 0.5);
+      background: #D00000;
+      box-shadow: 0 6px 20px rgba(200, 0, 0, 0.5);
     }
     
     &:disabled {
@@ -129,6 +129,7 @@ const ButtonGroup = styled.div`
 const ProductImages = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: auto auto;
   gap: 1rem;
   margin-top: 2rem;
 
@@ -149,7 +150,13 @@ const ProductImages = styled.div`
 
     &:hover {
       transform: translateY(-5px);
-      border-color: var(--light-blue);
+      border-color: var(--vault-accent);
+    }
+
+    /* Fifth image spans 2 columns in the second row */
+    &:nth-child(5) {
+      grid-column: span 2;
+      grid-row: 2;
     }
   }
 `;

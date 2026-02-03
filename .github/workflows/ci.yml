@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend Tests & Linting
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crownmania_backend
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: crownmania_backend/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linting
+        run: npm run lint --if-present
+      
+      - name: Run tests
+        run: npm test --if-present
+        env:
+          NODE_ENV: test
+      
+      - name: Secret scanning
+        run: |
+          echo "Scanning for leaked secrets..."
+          if grep -rE "(sk_live_|sk_test_|PRIVATE_KEY=)" --include="*.js" --include="*.ts" src/; then
+            echo "ERROR: Potential secrets found in source code!"
+            exit 1
+          fi
+          echo "No secrets found in source code"
+
+  frontend:
+    name: Frontend Build & Linting
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crownmania_frontend
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: crownmania_frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+        env:
+          # Placeholder values for build (real values in Vercel)
+          VITE_WEB3AUTH_CLIENT_ID: placeholder
+          VITE_WEB3_RPC_TARGET: https://polygon-rpc.com
+          VITE_API_URL: https://crownmania-backend-production.up.railway.app
+      
+      - name: Run linting
+        run: npm run lint --if-present
+
+  env-check:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check no .env files committed
+        run: |
+          echo "Checking for committed .env files..."
+          ENV_FILES=$(find . -name ".env" -o -name ".env.local" -o -name ".env.production" | grep -v node_modules | grep -v ".env.example" || true)
+          if [ -n "$ENV_FILES" ]; then
+            echo "ERROR: .env files found in repository!"
+            echo "$ENV_FILES"
+            exit 1
+          fi
+          echo "No .env files found (good!)"
+      
+      - name: Check .gitignore includes .env
+        run: |
+          if ! grep -q "^\.env$" .gitignore 2>/dev/null; then
+            echo "WARNING: .env not in root .gitignore"
+          fi
+          echo "Gitignore check complete"
+      
+      - name: Dependency audit
+        run: |
+          cd crownmania_backend && npm audit --audit-level=high || echo "Backend audit complete"
+          cd ../crownmania_frontend && npm audit --audit-level=high || echo "Frontend audit complete"

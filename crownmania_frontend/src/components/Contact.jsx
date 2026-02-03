@@ -5,119 +5,144 @@ import { FaPaperPlane } from 'react-icons/fa';
 
 const ContactSection = styled.section`
   min-height: 100vh;
-  padding: 6rem 2rem;
+  padding: 12rem 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background-color: rgb(2, 6, 23);
   position: relative;
+  background: radial-gradient(circle at 50% 10%, rgba(0, 163, 255, 0.05) 0%, transparent 50%);
   overflow: hidden;
 `;
 
-const ContactContainer = styled.div`
-  max-width: 800px;
+const ContactContainer = styled(motion.div)`
+  max-width: 600px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
+  background: var(--vault-bg);
+  backdrop-filter: blur(var(--vault-blur));
+  -webkit-backdrop-filter: blur(var(--vault-blur));
+  border: 1px solid var(--vault-border);
   border-radius: 24px;
-  padding: 3rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4rem;
+  position: relative;
+  z-index: 2;
+
+  @media (max-width: 768px) {
+    padding: 2.5rem 1.5rem;
+  }
 `;
 
-const Title = styled.h2`
-  font-size: 2.5rem;
-  margin-bottom: 2rem;
+const TitleHeader = styled.div`
   text-align: center;
-  background: linear-gradient(135deg, #FFFFFF, #0066FF);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  margin-bottom: 4rem;
+  z-index: 2;
+
+  h2 {
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-family: var(--font-primary);
+    margin-bottom: 1rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  p {
+    font-family: var(--font-secondary);
+    color: var(--vault-accent);
+    letter-spacing: 0.3em;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
 `;
 
 const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
 `;
 
 const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 `;
 
 const Label = styled.label`
-  color: #FFFFFF;
-  font-size: 1rem;
+  font-family: var(--font-secondary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
 `;
 
 const Input = styled.input`
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 1.25rem 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: #FFFFFF;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+  border-radius: 12px;
+  color: #fff;
+  font-family: var(--font-secondary);
+  font-size: 0.95rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:focus {
     outline: none;
-    border-color: #0066FF;
-    box-shadow: 0 0 10px rgba(0, 102, 255, 0.2);
+    border-color: var(--vault-accent);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 20px rgba(0, 163, 255, 0.1);
   }
 `;
 
 const TextArea = styled.textarea`
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 1.25rem 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: #FFFFFF;
-  font-size: 1rem;
-  min-height: 150px;
-  resize: vertical;
-  transition: all 0.3s ease;
+  border-radius: 12px;
+  color: #fff;
+  font-family: var(--font-secondary);
+  font-size: 0.95rem;
+  min-height: 180px;
+  resize: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:focus {
     outline: none;
-    border-color: #0066FF;
-    box-shadow: 0 0 10px rgba(0, 102, 255, 0.2);
+    border-color: var(--vault-accent);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 20px rgba(0, 163, 255, 0.1);
   }
 `;
 
 const SubmitButton = styled(motion.button)`
-  padding: 1rem 2rem;
-  background: #0066FF;
+  padding: 1.25rem;
+  background: var(--vault-accent);
   border: none;
-  border-radius: 8px;
-  color: #FFFFFF;
-  font-size: 1rem;
+  border-radius: 12px;
+  color: #000;
+  font-family: var(--font-secondary);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  align-self: flex-end;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: #0052CC;
-  }
-
+  gap: 1rem;
+  margin-top: 1rem;
+  
   &:disabled {
-    opacity: 0.7;
+    opacity: 0.5;
     cursor: not-allowed;
   }
-`;
 
-const GlowOrb = styled(motion.div)`
-  position: absolute;
-  width: 300px;
-  height: 300px;
-  border-radius: 50%;
-  background: radial-gradient(circle at center, rgba(0, 102, 255, 0.2), transparent 70%);
-  filter: blur(40px);
-  z-index: 0;
+  &:hover:not(:disabled) {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 163, 255, 0.2);
+  }
 `;
 
 export default function Contact() {
@@ -149,53 +174,65 @@ export default function Contact() {
 
   return (
     <ContactSection id="contact">
-      <GlowOrb
-        initial={{ x: -200, y: -200 }}
-        animate={{
-          x: [-200, 200, -200],
-          y: [-200, 200, -200]
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-      />
+      <TitleHeader>
+        <motion.p
+          initial={{ opacity: 0, y: -10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          Direct Communication
+        </motion.p>
+        <motion.h2
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          CONTACT THE ARCHIVE
+        </motion.h2>
+      </TitleHeader>
 
-      <ContactContainer>
-        <Title>Get in Touch</Title>
+      <ContactContainer
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+      >
         <Form onSubmit={handleSubmit}>
           <InputGroup>
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">Full Identity</Label>
             <Input
               type="text"
               id="name"
               name="name"
               value={formData.name}
               onChange={handleChange}
+              placeholder="Your Name"
               required
             />
           </InputGroup>
 
           <InputGroup>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Nexus Address</Label>
             <Input
               type="email"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
+              placeholder="email@example.com"
               required
             />
           </InputGroup>
 
           <InputGroup>
-            <Label htmlFor="message">Message</Label>
+            <Label htmlFor="message">Transmission</Label>
             <TextArea
               id="message"
               name="message"
               value={formData.message}
               onChange={handleChange}
+              placeholder="Describe your inquiry..."
               required
             />
           </InputGroup>
@@ -203,13 +240,13 @@ export default function Contact() {
           <SubmitButton
             type="submit"
             disabled={isSubmitting}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
           >
-            {isSubmitting ? 'Sending...' : (
+            {isSubmitting ? 'TRANSMITTING...' : (
               <>
-                Send Message
-                <FaPaperPlane />
+                SEND TRANSMISSION
+                <FaPaperPlane size={14} />
               </>
             )}
           </SubmitButton>

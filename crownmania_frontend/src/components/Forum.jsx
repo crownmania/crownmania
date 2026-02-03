@@ -5,168 +5,187 @@ import { FaThumbsUp, FaThumbsDown, FaFire, FaClock } from 'react-icons/fa';
 
 const ForumSection = styled.section`
   min-height: 100vh;
-  padding: 6rem 2rem;
+  padding: 10rem 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   position: relative;
+  background: radial-gradient(circle at 10% 30%, rgba(0, 163, 255, 0.03) 0%, transparent 40%);
   overflow: hidden;
 `;
 
-const ForumContainer = styled.div`
-  max-width: 1200px;
+const ForumContainer = styled(motion.div)`
+  max-width: 1000px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border-radius: 24px;
-  padding: 3rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
-  z-index: 1;
+  z-index: 2;
 `;
 
 const ForumHeader = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  align-items: flex-end;
+  margin-bottom: 4rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--vault-border);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2rem;
+  }
 `;
 
-const Title = styled.h2`
-  font-size: 2.5rem;
-  margin: 0;
-  background: linear-gradient(135deg, #FFFFFF, #0066FF);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+const TitleGroup = styled.div`
+  h2 {
+    font-size: clamp(2.5rem, 6vw, 3.5rem);
+    font-family: var(--font-primary);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: #fff;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    font-family: var(--font-secondary);
+    font-size: 0.8rem;
+    color: var(--vault-accent);
+    letter-spacing: 0.3em;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
 `;
 
 const FilterContainer = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
 `;
 
 const FilterButton = styled(motion.button)`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: ${props => props.$active ? 'rgba(0, 102, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
-  border: 1px solid ${props => props.$active ? 'rgba(0, 102, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'};
+  gap: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  background: ${props => props.$active ? 'rgba(0, 163, 255, 0.1)' : 'rgba(255, 255, 255, 0.03)'};
+  border: 1px solid ${props => props.$active ? 'var(--vault-accent)' : 'rgba(255, 255, 255, 0.1)'};
   border-radius: 8px;
-  color: white;
+  color: ${props => props.$active ? 'var(--vault-accent)' : 'rgba(255, 255, 255, 0.6)'};
+  font-family: var(--font-secondary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(0, 102, 255, 0.15);
-    border-color: rgba(0, 102, 255, 0.2);
+    border-color: var(--vault-accent);
+    color: #fff;
   }
 `;
 
 const PostForm = styled.form`
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  margin-bottom: 4rem;
+  padding: 2.5rem;
+  background: var(--vault-bg);
+  backdrop-filter: blur(var(--vault-blur));
+  -webkit-backdrop-filter: blur(var(--vault-blur));
+  border: 1px solid var(--vault-border);
+  border-radius: 20px;
 `;
 
 const TextArea = styled.textarea`
   width: 100%;
-  min-height: 100px;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
+  min-height: 120px;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: white;
-  margin-bottom: 1rem;
-  resize: vertical;
+  border-radius: 12px;
+  color: #fff;
+  font-family: var(--font-secondary);
   font-size: 1rem;
+  margin-bottom: 1.5rem;
+  resize: none;
   transition: all 0.3s ease;
 
   &:focus {
     outline: none;
-    border-color: #0066FF;
-    box-shadow: 0 0 10px rgba(0, 102, 255, 0.2);
+    border-color: var(--vault-accent);
+    background: rgba(255, 255, 255, 0.05);
   }
 `;
 
 const SubmitButton = styled(motion.button)`
-  padding: 1rem 2rem;
-  background: #0066FF;
+  padding: 1rem 2.5rem;
+  background: var(--vault-accent);
   border: none;
-  border-radius: 8px;
-  color: white;
-  font-size: 1rem;
+  border-radius: 10px;
+  color: #000;
+  font-family: var(--font-secondary);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: #0052CC;
-  }
 
   &:disabled {
-    opacity: 0.7;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 `;
 
-const PostsContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
 const Post = styled(motion.div)`
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  padding: 2.5rem;
+  background: var(--vault-bg);
+  backdrop-filter: blur(var(--vault-blur));
+  -webkit-backdrop-filter: blur(var(--vault-blur));
+  border: 1px solid var(--vault-border);
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
+  transition: all 0.4s ease;
 
   &:hover {
-    border-color: rgba(0, 102, 255, 0.2);
-    box-shadow: 0 0 20px rgba(0, 102, 255, 0.1);
+    border-color: var(--vault-accent);
+    transform: translateX(10px);
+    background: rgba(0, 163, 255, 0.05);
   }
 `;
 
 const PostContent = styled.p`
-  margin-bottom: 1rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--font-secondary);
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: #fff;
+  margin-bottom: 1.5rem;
+  font-weight: 400;
 `;
 
 const PostActions = styled.div`
   display: flex;
-  gap: 1rem;
-  color: rgba(255, 255, 255, 0.6);
+  gap: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 `;
 
 const ActionButton = styled(motion.button)`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
+  gap: 0.75rem;
   background: none;
   border: none;
-  color: inherit;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: var(--font-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: color 0.3s ease;
+  transition: all 0.3s ease;
 
   &:hover {
-    color: #0066FF;
+    color: var(--vault-accent);
   }
-`;
 
-const GlowOrb = styled(motion.div)`
-  position: absolute;
-  width: 300px;
-  height: 300px;
-  border-radius: 50%;
-  background: radial-gradient(circle at center, rgba(0, 102, 255, 0.2), transparent 70%);
-  filter: blur(40px);
-  z-index: 0;
+  ${props => props.$active && `
+    color: var(--vault-accent);
+  `}
 `;
 
 const Forum = () => {
@@ -241,22 +260,27 @@ const Forum = () => {
 
   return (
     <ForumSection id="forum">
-      <GlowOrb
-        initial={{ x: 200, y: -200 }}
-        animate={{
-          x: [200, -200, 200],
-          y: [-200, 200, -200]
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-      />
-
-      <ForumContainer>
+      <ForumContainer
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+      >
         <ForumHeader>
-          <Title>Community Forum</Title>
+          <TitleGroup>
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              Public Access Ledger
+            </motion.p>
+            <motion.h2
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              COMMUNITY ARCHIVE
+            </motion.h2>
+          </TitleGroup>
           <FilterContainer>
             <FilterButton
               $active={filter === 'trending'}
@@ -264,7 +288,7 @@ const Forum = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <FaFire /> Trending
+              <FaFire size={12} /> High Frequency
             </FilterButton>
             <FilterButton
               $active={filter === 'current'}
@@ -272,7 +296,7 @@ const Forum = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <FaClock /> Current
+              <FaClock size={12} /> Genesis Order
             </FilterButton>
           </FilterContainer>
         </ForumHeader>
@@ -281,7 +305,7 @@ const Forum = () => {
           <TextArea
             value={newPost}
             onChange={(e) => setNewPost(e.target.value)}
-            placeholder="Share your thoughts..."
+            placeholder="Log your transmission to the community ledger..."
           />
           <SubmitButton
             type="submit"
@@ -289,7 +313,7 @@ const Forum = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Post
+            AUTHORIZE POST
           </SubmitButton>
         </PostForm>
 
@@ -298,17 +322,24 @@ const Forum = () => {
             {sortedPosts.map(post => (
               <Post
                 key={post.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
               >
                 <PostContent>{post.content}</PostContent>
                 <PostActions>
-                  <ActionButton onClick={() => handleVote(post.id, 'like')}>
-                    <FaThumbsUp /> {post.likes}
+                  <ActionButton
+                    onClick={() => handleVote(post.id, 'like')}
+                    $active={post.userVote === 'like'}
+                  >
+                    <FaThumbsUp size={14} /> {post.likes}
                   </ActionButton>
-                  <ActionButton onClick={() => handleVote(post.id, 'dislike')}>
-                    <FaThumbsDown /> {post.dislikes}
+                  <ActionButton
+                    onClick={() => handleVote(post.id, 'dislike')}
+                    $active={post.userVote === 'dislike'}
+                  >
+                    <FaThumbsDown size={14} /> {post.dislikes}
                   </ActionButton>
                 </PostActions>
               </Post>

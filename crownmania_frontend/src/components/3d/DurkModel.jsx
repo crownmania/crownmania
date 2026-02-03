@@ -8,25 +8,14 @@ import { ref, getDownloadURL } from '@firebase/storage';
 import styled, { keyframes } from 'styled-components';
 import * as THREE from 'three';
 
-const spin = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-`;
-
-const LoaderSpinner = styled.div`
-  width: 30px;
-  height: 30px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-top: 2px solid rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  animation: ${spin} 1s linear infinite;
-`;
-
 function Loader() {
+  const mesh = useRef();
+  useFrame((state, delta) => (mesh.current.rotation.x = mesh.current.rotation.y += delta));
   return (
-    <Html center>
-      <LoaderSpinner />
-    </Html>
+    <mesh ref={mesh} visible position={[0, 0, 0]} rotation={[0, 0, 0]} castShadow>
+      <boxGeometry args={[0.2, 0.2, 0.2]} />
+      <meshStandardMaterial color="#333333" wireframe />
+    </mesh>
   );
 }
 
@@ -41,18 +30,11 @@ function Model({ url }) {
     loader.setDRACOLoader(dracoLoader);
   });
 
-  // Apply premium material to all meshes
+  // Material overrides removed to show original model colors
   useEffect(() => {
     if (gltf.scene) {
       gltf.scene.traverse((child) => {
         if (child.isMesh) {
-          // Create a premium metallic material
-          child.material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color('#B8860B'), // Medium dark gold
-            metalness: 0.6,
-            roughness: 0.25,
-            envMapIntensity: 1.2,
-          });
           child.castShadow = true;
           child.receiveShadow = true;
         }
@@ -63,8 +45,8 @@ function Model({ url }) {
   return (
     <primitive
       object={gltf.scene}
-      scale={[0.008, 0.008, 0.008]}
-      position={[0, -1, 0]}
+      scale={[0.018, 0.018, 0.018]}
+      position={[0, -0.3, 0]}
       rotation={[0, 0, 0]}
     />
   );
@@ -241,7 +223,7 @@ function PlaceholderFigure({ isUnlocked = false }) {
   );
 }
 
-export function DurkModel({ usePlaceholder = true, isUnlocked = false }) {
+export function DurkModel({ usePlaceholder = false, isUnlocked = false }) {
   const [modelUrl, setModelUrl] = useState(null);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -261,15 +243,10 @@ export function DurkModel({ usePlaceholder = true, isUnlocked = false }) {
         if (storage) {
           console.log('Attempting to fetch model from Firebase Storage...');
 
-          // Common path variations to try
+          // Final production model path
           const modelPaths = [
-            'models/durk-model.glb',
-            'models/Durk_Model.glb',
-            'models/durk.glb',
-            'models/LilDurk.glb',
-            '3d-models/durk-model.glb',
-            'durk-model.glb',
-            'models/lil-durk-figure.glb'
+            'models/DURK Action Figure Low Poly FINAL .glb',
+            'models/LIL DURK HEAD and HAIR4 .glb' // Backup
           ];
 
           for (const path of modelPaths) {

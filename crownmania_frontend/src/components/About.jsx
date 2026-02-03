@@ -4,218 +4,279 @@ import { motion } from 'framer-motion';
 import BlockchainMatrix from './BlockchainMatrix';
 import CobeGlobe from './CobeGlobe';
 
+import { FaShieldAlt, FaLink, FaCrown } from 'react-icons/fa';
+
 const AboutSection = styled.section`
   min-height: 100vh;
-  color: white;
-  padding: 2rem;
-  position: relative;
-`;
-
-const MainTitle = styled.div`
-  position: absolute;
-  top: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 1rem;
-  text-align: center;
-  width: 100%;
-
-  h1 {
-    font-size: clamp(1.8rem, 6vw, 3rem);
-    font-family: 'Designer', sans-serif;
-    margin-bottom: 0.5rem;
-    font-weight: bold;
-    text-shadow: var(--title-glow);
-  }
-
-  .subtitle {
-    font-size: clamp(0.7rem, 2vw, 0.9rem);
-    opacity: 0.7;
-    letter-spacing: 0.4em;
-    font-family: 'Avenir Next', sans-serif;
-    text-transform: uppercase;
-    font-weight: 500;
-  }
-`;
-
-const WindowsContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  padding: 2rem;
-  margin-top: 8rem;
-  
-  @media (max-width: 1024px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    padding: 1rem;
-    gap: 1rem;
-  }
-`;
-
-const Window = styled.div`
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 2rem;
-  height: 400px;
+  padding: 10rem 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10px);
-`;
-
-const GlobeWindow = styled(Window)`
-  canvas {
-    width: 100% !important;
-    height: 100% !important;
-  }
-`;
-
-const WindowTitle = styled.h3`
-  font-family: 'Designer', sans-serif;
-  font-size: clamp(1.2rem, 4vw, 1.8rem);
-  color: white;
-  margin-bottom: 1rem;
-  text-align: center;
   position: relative;
-  z-index: 2;
-`;
-
-const WindowSubtitle = styled.p`
-  font-family: 'Avenir Next', sans-serif;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  line-height: 1.6;
-  text-align: center;
-  max-width: 90%;
-  margin: 0 auto;
-  position: relative;
-  z-index: 2;
-`;
-
-const WindowContent = styled.div`
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  padding: 2rem;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(5px);
-  border-radius: inherit;
-`;
-
-const MatrixBackground = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.15;
-  z-index: 1;
-  border-radius: inherit;
+  background: radial-gradient(circle at 50% 90%, rgba(200, 0, 0, 0.08) 0%, transparent 60%);
   overflow: hidden;
 `;
 
-const VisionParagraph = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
+const MainTitle = styled.div`
   text-align: center;
-  margin-top: 4rem;
+  margin-bottom: 6rem;
+  z-index: 2;
 
-  p {
-    font-family: 'Designer', sans-serif;
-    font-size: 1.1rem;
-    line-height: 1.8;
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 2rem;
-    font-weight: 400;
+  h1 {
+    font-size: clamp(3rem, 10vw, 5rem);
+    font-family: var(--font-primary);
+    margin-bottom: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: white;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.5), 0 0 60px rgba(255, 255, 255, 0.3);
+    line-height: 1;
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
+    color: var(--vault-accent);
+    letter-spacing: 0.5em;
+    font-family: var(--font-secondary);
+    text-transform: uppercase;
+    font-weight: 700;
+    opacity: 0.9;
   }
 `;
 
-const ContentContainer = styled.div`
-  /* Add styles for ContentContainer if needed */
+const VisionGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3rem;
+  width: 100%;
+  max-width: 1200px;
+  margin-bottom: 8rem;
+  z-index: 2;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const VisionCard = styled(motion.div)`
+  background: var(--vault-bg);
+  border: 1px solid var(--vault-border);
+  border-radius: 24px;
+  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  backdrop-filter: blur(var(--vault-blur));
+  -webkit-backdrop-filter: blur(var(--vault-blur));
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+
+  &:hover {
+    border-color: var(--vault-accent);
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    
+    .icon-wrapper {
+      transform: scale(1.1) rotate(5deg);
+      color: var(--vault-accent);
+    }
+  }
+`;
+
+const IconWrapper = styled.div`
+  font-size: 2.5rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 2rem;
+  transition: all 0.4s ease;
+`;
+
+const CardTitle = styled.h3`
+  font-family: var(--font-secondary);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+`;
+
+const CardDescription = styled.p`
+  font-family: var(--font-secondary);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 240px;
+`;
+
+const VisionManifesto = styled(motion.div)`
+  max-width: 900px;
+  margin: 0 auto;
+  z-index: 2;
+  position: relative;
+
+  &::before {
+    content: '"';
+    position: absolute;
+    top: -4rem;
+    left: -2rem;
+    font-size: 10rem;
+    font-family: var(--font-primary);
+    color: var(--vault-accent);
+    opacity: 0.1;
+  }
+`;
+
+const ManifestoParagraph = styled(motion.p)`
+  font-family: var(--font-secondary);
+  font-size: clamp(1.1rem, 3vw, 1.35rem);
+  line-height: 1.9;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 3rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+
+  strong {
+    color: var(--vault-accent);
+    font-weight: 700;
+  }
+
+  span.highlight {
+    background: linear-gradient(120deg, rgba(200, 0, 0, 0.2) 0%, rgba(200, 0, 0, 0.2) 100%);
+    background-repeat: no-repeat;
+    background-size: 100% 0.3em;
+    background-position: 0 88%;
+  }
+`;
+
+const MatrixOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  filter: grayscale(1);
+  pointer-events: none;
 `;
 
 export default function About() {
   return (
     <AboutSection id="about">
       <MainTitle>
-        <h1>THE VISION</h1>
-        <div className="subtitle">INNOVATE • COLLECT • CONNECT</div>
+        <motion.h1
+          initial={{ opacity: 0, scale: 0.9 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          THE VISION
+        </motion.h1>
+        <motion.div
+          className="subtitle"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          viewport={{ once: true }}
+        >
+          INNOVATE • COLLECT • CONNECT
+        </motion.div>
       </MainTitle>
 
-      <ContentContainer style={{ marginTop: "0px" }}>
-        <WindowsContainer>
-          <Window>
-            <MatrixBackground>
-              <BlockchainMatrix />
-            </MatrixBackground>
-            <WindowContent>
-              <WindowTitle>EXCLUSIVE ACCESS</WindowTitle>
-              <WindowSubtitle>
-                EXCLUSIVE PERKS - YOUR KEY TO LOYALTY REWARDS, VIP EXPERIENCES, AND MORE.
-              </WindowSubtitle>
-            </WindowContent>
-          </Window>
+      <VisionGrid>
+        <VisionCard
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2 }}
+        >
+          <MatrixOverlay>
+            <BlockchainMatrix />
+          </MatrixOverlay>
+          <IconWrapper className="icon-wrapper">
+            <FaShieldAlt />
+          </IconWrapper>
+          <CardTitle>AUTHENTICITY</CardTitle>
+          <CardDescription>
+            Guaranteed proof of ownership and verified provenance through secure
+            blockchain ledger technology.
+          </CardDescription>
+        </VisionCard>
 
-          <Window>
-            <MatrixBackground>
-              <BlockchainMatrix />
-            </MatrixBackground>
-            <WindowContent>
-              <WindowTitle>AUTHENTICITY</WindowTitle>
-              <WindowSubtitle>
-                GUARANTEED PROOF OF OWNERSHIP AND AUTHENTICITY THROUGH BLOCKCHAIN TECHNOLOGY.
-              </WindowSubtitle>
-            </WindowContent>
-          </Window>
+        <VisionCard
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4 }}
+        >
+          <MatrixOverlay>
+            <BlockchainMatrix />
+          </MatrixOverlay>
+          <IconWrapper className="icon-wrapper">
+            <FaCrown />
+          </IconWrapper>
+          <CardTitle>EXCLUSIVE ACCESS</CardTitle>
+          <CardDescription>
+            Your key to loyalty rewards, VIP experiences, and high-fidelity
+            digital assets in the identity vault.
+          </CardDescription>
+        </VisionCard>
 
-          <Window>
-            <MatrixBackground>
-              <BlockchainMatrix />
-            </MatrixBackground>
-            <WindowContent>
-              <WindowTitle>CONNECTION</WindowTitle>
-              <WindowSubtitle>
-                BRIDGING PHYSICAL & DIGITAL - EXPERIENCE THE SEAMLESS LINK BETWEEN REAL-WORLD COLLECTIBLES AND THE DIGITAL FUTURE.
-              </WindowSubtitle>
-            </WindowContent>
-          </Window>
-        </WindowsContainer>
+        <VisionCard
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.6 }}
+        >
+          <MatrixOverlay>
+            <BlockchainMatrix />
+          </MatrixOverlay>
+          <IconWrapper className="icon-wrapper">
+            <FaLink />
+          </IconWrapper>
+          <CardTitle>HYBRID ECONOMY</CardTitle>
+          <CardDescription>
+            Bridging the gap between luxury physical collectibles and the
+            evolving digital ownership landscape.
+          </CardDescription>
+        </VisionCard>
+      </VisionGrid>
 
-        <VisionParagraph>
-          <p>
-            CrownMania is where real life meets the digital world.
-          </p>
-          <p>
-            It was created for people who don’t just want to look at collectibles — they want to own a piece of a moment, a voice, a story that matters to them. Whether it’s an artist who got them through dark days, a figure that represents resilience, or a symbol of where they came from, CrownMania turns that connection into something real you can hold and something digital that proves it’s yours.
-          </p>
-          <p>
-            Every CrownMania collectible is more than a figure.
-            <br />
-            It’s a limited-edition artifact tied to a Digital Crown — a permanent record of ownership on the blockchain that lives beyond the box, beyond resale, and beyond time. When you scan your physical collectible, you’re not just checking if it’s real… you’re unlocking its story, and your place in it.
-          </p>
-          <p>
-            We believe the future of collectibles isn’t about speculation or hype.
-            <br />
-            It’s about belonging, authenticity, and culture that lives on.
-          </p>
-          <p>
-            CrownMania gives people a new way to connect with the artists, creators, and icons they believe in — not just by watching from the outside, but by owning their crown in the mania.
-          </p>
-        </VisionParagraph>
-      </ContentContainer>
+      <VisionManifesto>
+        <ManifestoParagraph
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          CrownMania is where <span className="highlight">culture meets the ledger</span>.
+          It was created for people who don’t just want to look at collectibles — they want
+          to own a piece of a moment, a voice, a story that matters.
+        </ManifestoParagraph>
+
+        <ManifestoParagraph
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2 }}
+        >
+          Every Genesis fragment is more than a figure. It’s a <strong>limited-edition artifact</strong>
+          tied to a permanent record on the blockchain. When you scan your physical
+          collectible, you’re not just checking if it’s real… you’re <span className="highlight">unlocking its history</span>.
+        </ManifestoParagraph>
+
+        <ManifestoParagraph
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4 }}
+          style={{ textAlign: 'center', fontSize: '1.5rem', fontFamily: 'var(--font-primary)' }}
+        >
+          AUTHENTICITY. CULTURE. THE FUTURE.
+        </ManifestoParagraph>
+      </VisionManifesto>
     </AboutSection>
   );
 }

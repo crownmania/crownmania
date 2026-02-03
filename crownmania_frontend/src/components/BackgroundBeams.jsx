@@ -10,29 +10,43 @@ const BackgroundContainer = styled.div`
   height: 100vh;
   z-index: -1;
   overflow: hidden;
-  background: radial-gradient(circle at center, #0f172a 0%, #000000 100%);
+  background: #000000;
 `;
 
-const Background = styled.div`
-  position: fixed;
+const BlueprintLayer = styled.div`
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   background-image: url(${blueprintSvg});
-  background-size: 33%;
-  background-position: center;
   background-repeat: repeat;
-  opacity: 0.05;
+  background-size: 800px auto;
+  opacity: 0.15;
   pointer-events: none;
-  background-color: transparent;
-  transform: none;
+  z-index: -1;
+  filter: invert(1) brightness(2.5) contrast(1.2); /* Makes blue lines white with better visibility */
+`;
+
+const DotOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.2) 2px, transparent 2px);
+  background-size: 40px 40px;
+  mask-image: linear-gradient(to bottom, black 0%, transparent 80%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 80%);
+  z-index: -1;
+  pointer-events: none;
 `;
 
 const BackgroundBeams = () => {
   return (
     <BackgroundContainer>
-      <Background />
+      <BlueprintLayer />
+      <DotOverlay />
     </BackgroundContainer>
   );
 };

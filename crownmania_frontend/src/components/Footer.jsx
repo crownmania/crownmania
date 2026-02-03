@@ -1,149 +1,176 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
-import { FaTwitter, FaInstagram, FaDiscord, FaTiktok } from 'react-icons/fa';
+import { FaTwitter, FaInstagram, FaDiscord, FaTiktok, FaPaperPlane } from 'react-icons/fa';
 
 const FooterContainer = styled.footer`
-  padding: 4rem 2rem 2rem;
-  background: linear-gradient(to top, var(--dark-blue), transparent);
+  padding: 8rem 2rem 4rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.4) 100%);
   position: relative;
+  border-top: 1px solid var(--vault-border);
   overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 200px;
+    background: radial-gradient(ellipse at center, rgba(0, 163, 255, 0.1), transparent 70%);
+    pointer-events: none;
+  }
 `;
 
 const FooterContent = styled.div`
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
+  grid-template-columns: 1.5fr 1fr 1fr 1.5fr;
+  gap: 4rem;
+  z-index: 2;
+  position: relative;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
-    gap: 2rem;
+    gap: 3rem;
   }
 
-  @media (max-width: 480px) {
+  @media (max-width: 600px) {
     grid-template-columns: 1fr;
-    gap: 2rem;
+    gap: 2.5rem;
   }
 `;
 
 const FooterSection = styled(motion.div)`
   h3 {
-    color: var(--light-blue);
-    margin-bottom: 1rem;
-    font-size: 1rem;
-    font-family: 'Designer', sans-serif;
+    color: #fff;
+    margin-bottom: 2rem;
+    font-size: 0.75rem;
+    font-family: var(--font-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.3em;
+    font-weight: 800;
+    opacity: 0.9;
   }
 `;
 
 const FooterLink = styled(motion.a)`
   display: block;
-  color: var(--text-color);
+  color: rgba(255, 255, 255, 0.5);
   text-decoration: none;
-  margin: 0.5rem 0;
-  opacity: 0.8;
-  transition: opacity 0.3s ease;
-  font-family: 'Avenir Next', sans-serif;
-  font-size: 0.9rem;
+  margin: 0.8rem 0;
+  transition: all 0.3s ease;
+  font-family: var(--font-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
 
   &:hover {
-    opacity: 1;
-    color: var(--light-blue);
+    color: var(--vault-accent);
+    transform: translateX(5px);
   }
 `;
 
 const SocialLinks = styled.div`
   display: flex;
   gap: 1rem;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
 `;
 
 const SocialIcon = styled(motion.a)`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: rgba(255, 255, 255, 0.8);
   transition: all 0.3s ease;
   
   &:hover {
-    background: var(--light-blue);
-    color: white;
-    transform: translateY(-3px);
+    background: var(--vault-accent);
+    border-color: var(--vault-accent);
+    color: #000;
+    transform: translateY(-5px) rotate(5deg);
+    box-shadow: 0 10px 20px rgba(0, 163, 255, 0.2);
   }
 `;
 
 const NewsletterForm = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: 1rem;
 `;
 
 const NewsletterInput = styled.input`
-  padding: 0.75rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   color: white;
-  font-family: 'Avenir Next', sans-serif;
+  font-family: var(--font-secondary);
   font-size: 0.9rem;
   outline: none;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
   
   &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.3);
   }
   
   &:focus {
-    border-color: var(--light-blue);
+    border-color: var(--vault-accent);
+    background: rgba(255, 255, 255, 0.05);
   }
 `;
 
 const NewsletterButton = styled(motion.button)`
-  padding: 0.75rem 1.5rem;
+  padding: 1rem;
+  background: var(--vault-accent);
   border: none;
-  border-radius: 8px;
-  background: var(--light-blue);
-  color: white;
-  font-family: 'Designer', sans-serif;
-  font-size: 0.85rem;
+  border-radius: 12px;
+  color: #000;
+  font-family: var(--font-secondary);
+  font-size: 0.8rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.15em;
   cursor: pointer;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    background: #0077ff;
-  }
   
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
-`;
 
-const SuccessMessage = styled.p`
-  color: #00ff88;
-  font-size: 0.85rem;
-  font-family: 'Avenir Next', sans-serif;
+  &:hover:not(:disabled) {
+    background: #fff;
+    transform: scale(1.02);
+  }
 `;
 
 const Copyright = styled.div`
   text-align: center;
-  margin-top: 3rem;
-  padding-top: 2rem;
-  border-top: 1px solid rgba(0, 166, 251, 0.2);
-  opacity: 0.8;
-  font-family: 'Avenir Next', sans-serif;
-  font-size: 0.85rem;
+  margin-top: 6rem;
+  padding-top: 3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-family: var(--font-secondary);
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.05em;
 `;
+
+const SuccessMessage = styled.p`
+  color: var(--vault-accent);
+  font-family: var(--font-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-top: 1rem;
+`;
+
 
 export default function Footer() {
   const [email, setEmail] = useState('');

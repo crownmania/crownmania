@@ -133,6 +133,7 @@ export default function Gallery() {
               src={img.src}
               alt={img.alt}
               loading="lazy"
+              decoding="async"
             />
           ))}
         </CarouselTrack>
