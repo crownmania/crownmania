@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import styled from 'styled-components';
 import { GlobalStyles } from './styles/GlobalStyles';
 import Header from './components/Header';
+import BackgroundBeams from './components/BackgroundBeams';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import { verifyStorageSetup } from './utils/storageUtils';
 
@@ -85,6 +86,7 @@ function App() {
   return (
     <AppContainer>
       <GlobalStyles />
+      <BackgroundBeams />
       <Router>
         <Header />
         <MainContent>
