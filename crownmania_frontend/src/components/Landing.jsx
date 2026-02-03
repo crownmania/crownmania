@@ -35,7 +35,7 @@ const MainTagline = styled(motion.h1)`
   color: white;
   text-transform: uppercase;
   letter-spacing: 0.25em;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.5), 0 0 60px rgba(255, 255, 255, 0.3);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3), 0 0 20px rgba(255, 255, 255, 0.15);
   margin-bottom: 0.5rem;
   line-height: 1.1;
   font-weight: normal;
