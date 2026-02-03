@@ -2,342 +2,334 @@ import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import styled from 'styled-components';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaHome, FaShoppingBag, FaLock, FaInfoCircle, FaEnvelope, FaComments, FaWallet, FaSpinner } from 'react-icons/fa';
+import { FaHome, FaShoppingBag, FaLock, FaInfoCircle, FaEnvelope, FaComments, FaWallet, FaSpinner, FaSun, FaMoon } from 'react-icons/fa';
 import crownLogo from '../assets/crown_logo_white.svg';
 import BackgroundBeams from './BackgroundBeams';
 import useWeb3Auth from '../hooks/useWeb3Auth';
+import { StickyHalfToneSeparator } from './HalfToneSeparator';
 
 const HeaderContainer = styled(motion.header)`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
-  padding: 1rem 2rem;
+  z-index: 2000;
+  padding: 1.25rem 3rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #000;
+  border-bottom: none;
   
-  @media (max-width: 600px) {
-    padding: 0.75rem 1rem;
-  }
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 150px;
-    background: linear-gradient(
-      180deg,
-      rgba(2, 6, 23, 0.95) 0%,
-      rgba(2, 6, 23, 0.8) 25%,
-      rgba(2, 6, 23, 0.4) 50%,
-      rgba(2, 6, 23, 0.2) 75%,
-      rgba(2, 6, 23, 0) 100%
-    );
-    pointer-events: none;
-    z-index: -1;
-  }
+  ${props => props.$scrolled && `
+    background: #000;
+    border-bottom: none;
+    padding: 1rem 3rem;
+  `}
 
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      rgba(0, 102, 255, 0) 0%,
-      rgba(0, 102, 255, 0.2) 25%,
-      rgba(0, 102, 255, 0.4) 50%,
-      rgba(0, 102, 255, 0.2) 75%,
-      rgba(0, 102, 255, 0) 100%
-    );
-    z-index: -1;
+  @media (max-width: 768px) {
+    padding: 1rem 1.5rem;
   }
 `;
 
-const BlurOverlay = styled(motion.div)`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(2, 6, 23, 0.3);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 100;
-  transition: opacity 0.3s ease;
-
-  &.active {
-    opacity: 1;
-    pointer-events: auto;
-  }
-`;
-
-const HalftoneOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 150px;
-  background-color: transparent;
-  background-image: radial-gradient(transparent 1px, var(--dark-blue) 1px);
-  background-size: 4px 4px;
-  mask: linear-gradient(rgb(0, 0, 0) 60%, rgba(0, 0, 0, 0) 100%);
-  opacity: 0.3;
-  pointer-events: none;
-  z-index: 99;
-`;
-
-const LogoLink = styled.a`
+const LogoContainer = styled.a`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
   text-decoration: none;
-  color: white;
-  transition: all 0.3s ease;
   cursor: pointer;
-  margin-left: 0.5rem;
-  margin-top: 0.25rem;
+  z-index: 2100;
 
-  @media (max-width: 600px) {
-    gap: 0.5rem;
-    margin-left: 0;
-  }
-
-  &:hover {
-    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+  &:hover .logo-text {
+    color: var(--white);
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.4));
   }
 `;
 
 const LogoIcon = styled.img`
-  height: 36px;
-  width: 36px;
-  
-  @media (max-width: 600px) {
-    height: 28px;
-    width: 28px;
+  height: 40px;
+  width: auto;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+  transition: all 0.4s ease;
+
+  @media (max-width: 768px) {
+    height: 32px;
   }
 `;
 
-const Logo = styled.div`
-  font-family: 'Designer', sans-serif;
-  font-size: 2.0rem;
-  font-weight: normal;
-  letter-spacing: 0.1em;
+const LogoText = styled.span`
+  font-family: var(--font-primary);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #fff;
   text-transform: uppercase;
-  margin: 0;
-  color: white;
-  
-  @media (max-width: 480px) {
-    font-size: 1.4rem;
-    letter-spacing: 0.08em;
+  transition: all 0.4s ease;
+
+  @media (max-width: 768px) {
+    font-size: 1.25rem;
   }
 `;
 
-const HeaderActions = styled.div`
+const NavLinks = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  
-  @media (max-width: 600px) {
-    gap: 0.5rem;
+  gap: 2.5rem;
+
+  @media (max-width: 1024px) {
+    display: none;
   }
 `;
 
-const ConnectButton = styled(motion.button)`
-  background: transparent;
-  border: 1px solid ${props => props.$connected ? 'rgba(0, 255, 136, 0.6)' : 'rgba(255, 255, 255, 0.6)'};
-  color: ${props => props.$connected ? '#00ff88' : 'white'};
-  padding: 0.35rem 0.75rem;
-  border-radius: 4px;
-  font-family: 'Designer', sans-serif;
-  font-size: 0.7rem;
-  letter-spacing: 0.05em;
+const NavItem = styled.a`
+  font-family: var(--font-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
+  letter-spacing: 0.2em;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--vault-accent);
+    transition: all 0.3s ease;
+  }
+
+  &:hover {
+    color: #fff;
+    &::after {
+      width: 100%;
+    }
+  }
+
+  ${props => props.$active && `
+    color: var(--vault-accent);
+    &::after {
+      width: 100%;
+    }
+  `}
+`;
+
+const ActionsContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+`;
+
+const AccessButton = styled(motion.button)`
+  background: ${props => props.$connected ? 'rgba(0, 163, 255, 0.1)' : 'var(--vault-accent)'};
+  border: 1px solid ${props => props.$connected ? 'var(--vault-accent)' : 'transparent'};
+  color: ${props => props.$connected ? 'var(--vault-accent)' : '#000'};
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-family: var(--font-secondary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  transition: all 0.3s ease;
-  ${props => props.$connected && `
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
-  `}
-  
+  gap: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+
   &:hover {
-    background: ${props => props.$connected ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 255, 255, 0.1)'};
-    border-color: ${props => props.$connected ? '#00ff88' : 'white'};
-    box-shadow: 0 0 15px ${props => props.$connected ? 'rgba(0, 255, 136, 0.3)' : 'rgba(255, 255, 255, 0.2)'};
+    background: #fff;
+    color: #000;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
   }
-  
+
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
-  
-  svg.spin {
-    animation: spin 1s linear infinite;
-  }
-  
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  
-  @media (max-width: 600px) {
-    padding: 0.25rem 0.6rem;
-    font-size: 0.6rem;
-    gap: 0;
-    border-width: 1px;
-    
-    span {
-      display: inline-block;
-    }
+
+  @media (max-width: 768px) {
+    padding: 0.6rem 1rem;
+    font-size: 0.7rem;
   }
 `;
 
-const HamburgerButton = styled(motion.button)`
+const MenuToggle = styled(motion.button)`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   background: none;
   border: none;
   cursor: pointer;
-  width: 44px;
-  height: 44px;
-  position: relative;
-  z-index: 102;
-  padding: 8px;
+  padding: 10px;
+  z-index: 2100;
+
+  span {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background: #fff;
+    transition: all 0.3s ease;
+  }
+
+  ${props => props.$isOpen && `
+    span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+    span:nth-child(2) { opacity: 0; }
+    span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+  `}
+`;
+
+const MobileMenu = styled(motion.div)`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 2050;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  align-items: flex-end;
+  padding: 8rem 3rem;
+  gap: 2rem;
 `;
 
-const HamburgerLine = styled(motion.span)`
-  display: block;
-  width: 24px;
-  height: 2px;
-  background: white;
-  margin: 4px 0;
-`;
-
-const MenuOverlay = styled(motion.div)`
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 200px;
-  height: 100vh;
-  background: rgba(2, 6, 23, 0.9);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-  z-index: 101;
-  padding: 5rem 0.5rem 2rem;
-  opacity: ${props => (props.$isOpen ? 1 : 0)};
-  transform: translateY(${props => (props.$isOpen ? '0' : '-10px')});
-  pointer-events: ${props => (props.$isOpen ? 'auto' : 'none')};
-  transition: all 0.3s ease;
-`;
-
-const MenuItem = styled(motion.a)`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: ${props => props.$active ? 'var(--light-blue)' : 'white'};
+const MobileNavItem = styled(motion.a)`
+  font-family: var(--font-primary);
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #fff;
+  text-transform: uppercase;
   text-decoration: none;
-  font-family: 'Designer', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 500;
-  padding: 0.6rem 1rem;
-  position: relative;
-  z-index: 2;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  background: ${props => props.$active ? 'rgba(0, 102, 255, 0.1)' : 'transparent'};
-  border-left: ${props => props.$active ? '2px solid var(--light-blue)' : '2px solid transparent'};
-
-  svg {
-    font-size: 1rem;
-    min-width: 16px;
-  }
+  letter-spacing: -0.02em;
+  text-align: right;
 
   &:hover {
-    color: var(--light-blue);
-    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--vault-accent);
   }
-`;
 
-const MenuItemText = styled.span`
-  display: inline-block;
-  letter-spacing: 0.02em;
+  ${props => props.$active && `
+    color: var(--vault-accent);
+  `}
 `;
 
 const menuVariants = {
   closed: {
-    x: "100%",
+    opacity: 0,
+    y: -20,
     transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 30
+      duration: 0.3,
+      ease: "easeInOut"
     }
   },
   open: {
-    x: 0,
+    opacity: 1,
+    y: 0,
     transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 30,
-      staggerChildren: 0.04,
-      delayChildren: 0.1
+      duration: 0.5,
+      ease: "easeOut",
+      staggerChildren: 0.1,
+      delayChildren: 0.2
     }
   }
 };
 
-const menuItemVariants = {
-  closed: {
-    x: 20,
-    opacity: 0
-  },
-  open: {
-    x: 0,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 30
-    }
-  }
+const mobileItemVariants = {
+  closed: { opacity: 0, x: 20 },
+  open: { opacity: 1, x: 0 }
 };
+
+const CloseButton = styled(motion.button)`
+  position: absolute;
+  top: 2rem;
+  right: 3rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  color: #fff;
+  font-size: 2rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    color: var(--vault-accent);
+    transform: rotate(90deg);
+  }
+`;
+
+const ThemeToggle = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  color: #fff;
+  font-family: var(--font-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 2rem;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--vault-accent);
+    color: var(--vault-accent);
+  }
+  
+  svg {
+    font-size: 1.1rem;
+  }
+`;
+
+const MenuDivider = styled.div`
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 1rem 0;
+`;
 
 export default function Header() {
   const navigate = useNavigate();
   const { isInitialized, isWeb3Available, user, isLoading, login, logout, walletAddress } = useWeb3Auth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('landing');
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const { scrollY } = useScroll();
-  const headerOpacity = useTransform(scrollY, [0, 100], [1, 0.8]);
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+    // Note: Full light mode implementation would require global state/context
+    // For now, this shows the toggle UI - full implementation can be added later
+    document.body.classList.toggle('light-mode', !isDarkMode);
+  };
+
   const menuItems = [
-    { text: 'Home', icon: <FaHome size={16} />, link: '/' },
-    { text: 'Shop', icon: <FaShoppingBag size={16} />, link: '/#shop' },
-    { text: 'Vault', icon: <FaLock size={16} />, link: '/#vault' },
-    { text: 'About', icon: <FaInfoCircle size={16} />, link: '/#about' },
-    { text: 'Forum', icon: <FaComments size={16} />, link: '/forum' },
-    { text: 'Contact', icon: <FaEnvelope size={16} />, link: '/contact' }
+    { text: 'Identity', link: '/' },
+    { text: 'Archival Shop', link: '/#shop' },
+    { text: 'The Vision', link: '/#about' },
+    { text: 'Access Vault', link: '/#vault' },
+    { text: 'Contact', link: '/contact' }
   ];
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  // Format wallet address for display (0x1234...5678)
   const formatAddress = (address) => {
     if (!address) return '';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -345,8 +337,7 @@ export default function Header() {
 
   const handleConnect = async () => {
     if (user) {
-      // Already connected - show disconnect option
-      const confirmDisconnect = window.confirm('Disconnect wallet?');
+      const confirmDisconnect = window.confirm('Disconnect session?');
       if (confirmDisconnect) {
         await logout();
       }
@@ -355,7 +346,6 @@ export default function Header() {
 
     try {
       await login();
-      // After successful login, navigate to vault
       navigate('/#vault');
       setTimeout(() => {
         const vaultSection = document.getElementById('vault');
@@ -369,13 +359,9 @@ export default function Header() {
   };
 
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Handle menu item click with smooth scrolling
   const handleMenuClick = (e, link) => {
     e.preventDefault();
     setIsMenuOpen(false);
@@ -402,21 +388,10 @@ export default function Header() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+      setScrolled(window.scrollY > 50);
 
-      if (currentScrollY < lastScrollY || currentScrollY < 50) {
-        // Scrolling up or at the top
-        setShowHeader(true);
-      } else {
-        // Scrolling down
-        setShowHeader(false);
-      }
-
-      setLastScrollY(currentScrollY);
-
-      // Detect active section
-      const sections = ['landing', 'gallery', 'shop', 'about', 'vault'];
-      const offset = 200; // Offset from top to trigger section
+      const sections = ['landing', 'shop', 'about', 'vault'];
+      const offset = 200;
 
       for (const sectionId of sections) {
         const section = document.getElementById(sectionId);
@@ -431,152 +406,79 @@ export default function Header() {
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [lastScrollY]);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        isMenuOpen &&
-        menuRef.current &&
-        !menuRef.current.contains(event.target) &&
-        !buttonRef.current.contains(event.target)
-      ) {
+      if (isMenuOpen && menuRef.current && !menuRef.current.contains(event.target) && !buttonRef.current.contains(event.target)) {
         setIsMenuOpen(false);
       }
     };
-
-    const handleScroll = () => {
-      if (isMenuOpen) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    const handleTouchStart = (event) => {
-      if (
-        isMenuOpen &&
-        menuRef.current &&
-        !menuRef.current.contains(event.target) &&
-        !buttonRef.current.contains(event.target)
-      ) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event) => {
-      if (event.key === 'Escape' && isMenuOpen) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    // Add event listeners
     document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('scroll', handleScroll);
-    document.addEventListener('touchstart', handleTouchStart);
-    document.addEventListener('keydown', handleEscape);
-
-    // Clean up event listeners
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('scroll', handleScroll);
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('keydown', handleEscape);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMenuOpen]);
 
   return (
     <>
-      <BackgroundBeams />
-      <HeaderContainer style={{ opacity: headerOpacity }} $show={showHeader}>
-        <LogoLink href="#" onClick={(e) => {
-          e.preventDefault();
-          scrollToTop();
-        }}>
+      <HeaderContainer $scrolled={scrolled}>
+        <LogoContainer href="#" onClick={(e) => { e.preventDefault(); scrollToTop(); }}>
           <LogoIcon src={crownLogo} alt="Crownmania Logo" />
-          <Logo>CROWNMANIA</Logo>
-        </LogoLink>
+          <LogoText className="logo-text">CROWNMANIA</LogoText>
+        </LogoContainer>
 
-        <HeaderActions>
-          <ConnectButton
-            onClick={handleConnect}
-            disabled={isLoading || !isWeb3Available}
-            $connected={!!user}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            title={walletAddress || (user ? 'Click to disconnect' : 'Connect wallet')}
-          >
-            <span>
-              {isLoading
-                ? '...'
-                : (user
-                  ? (walletAddress ? <><FaWallet style={{ fontSize: '0.8rem' }} /> {formatAddress(walletAddress)}</> : 'Connected')
-                  : <><FaWallet style={{ fontSize: '0.8rem' }} /> Connect</>
-                )
-              }
-            </span>
-          </ConnectButton>
-
-          <HamburgerButton
+        <ActionsContainer>
+          <MenuToggle
             onClick={toggleMenu}
             ref={buttonRef}
+            $isOpen={isMenuOpen}
           >
-            <HamburgerLine
-              animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
-            />
-            <HamburgerLine
-              animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
-            />
-            <HamburgerLine
-              animate={isMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
-            />
-          </HamburgerButton>
-        </HeaderActions>
+            <span />
+            <span />
+            <span />
+          </MenuToggle>
+        </ActionsContainer>
       </HeaderContainer>
-
-      <HalftoneOverlay />
+      <StickyHalfToneSeparator topOffset={scrolled ? 55 : 70} />
 
       <AnimatePresence>
         {isMenuOpen && (
-          <>
-            <BlurOverlay
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+          <MobileMenu
+            ref={menuRef}
+            initial="closed"
+            animate="open"
+            exit="closed"
+            variants={menuVariants}
+          >
+            <CloseButton
               onClick={() => setIsMenuOpen(false)}
-              className={isMenuOpen ? 'active' : ''}
-            />
-            <MenuOverlay
-              ref={menuRef}
-              $isOpen={isMenuOpen}
-              initial="closed"
-              animate="open"
-              exit="closed"
-              variants={menuVariants}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
             >
-              {menuItems.map((item, i) => {
-                // Determine if this menu item is active
-                const sectionId = item.link === '/' ? 'landing' : item.link.replace('/#', '');
-                const isActive = activeSection === sectionId || (item.link === '/' && activeSection === 'landing');
-
-                return (
-                  <MenuItem
-                    key={item.text}
-                    href={item.link}
-                    custom={i}
-                    variants={menuItemVariants}
-                    onClick={(e) => handleMenuClick(e, item.link)}
-                    $active={isActive}
-                  >
-                    {item.icon}
-                    <MenuItemText>{item.text}</MenuItemText>
-                  </MenuItem>
-                );
-              })}
-            </MenuOverlay>
-          </>
+              ×
+            </CloseButton>
+            {menuItems.map((item, i) => (
+              <MobileNavItem
+                key={item.text}
+                href={item.link}
+                variants={mobileItemVariants}
+                onClick={(e) => handleMenuClick(e, item.link)}
+                $active={activeSection === (item.link === '/' ? 'landing' : item.link.replace('/#', ''))}
+              >
+                {item.text}
+              </MobileNavItem>
+            ))}
+            <MenuDivider />
+            <ThemeToggle
+              onClick={toggleTheme}
+              variants={mobileItemVariants}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isDarkMode ? <FaSun /> : <FaMoon />}
+              {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+            </ThemeToggle>
+          </MobileMenu>
         )}
       </AnimatePresence>
     </>

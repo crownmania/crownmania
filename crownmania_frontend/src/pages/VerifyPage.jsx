@@ -71,8 +71,17 @@ const ProductName = styled.h2`
 const EditionInfo = styled.p`
   font-size: 0.9rem;
   color: #a5b4fc;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 `;
+
+const SeriesLabel = styled.p`
+  font-size: 0.85rem;
+  color: #fbbf24;
+  margin-bottom: 1rem;
+  font-weight: 500;
+`;
+
+const SERIES_NAME = 'Free The Voice';
 
 const VerificationBadge = styled.div`
   display: inline-flex;
@@ -368,6 +377,7 @@ const ProductDetails = ({ product, serial, showBadge = false, tokenId = null }) 
         <>
             {product.imageUrl && <ProductImage src={product.imageUrl} alt={product.name} />}
             <ProductName>{product.name}</ProductName>
+            <SeriesLabel>Series: {SERIES_NAME}</SeriesLabel>
             {product.edition && (
                 <EditionInfo>Edition #{product.edition} of {product.totalEditions || '500'}</EditionInfo>
             )}

@@ -207,6 +207,24 @@ export const verificationService = {
       const sanitizedCodeId = contentSecurity.sanitizeInput(claimCodeId);
       const sanitizedWallet = contentSecurity.sanitizeInput(walletAddress);
 
+      // Validate serial format (32-char hex for claim codes)
+      if (!sanitizedCodeId || !/^[a-f0-9]{32}$/i.test(sanitizedCodeId)) {
+        return {
+          success: false,
+          tokenId: null,
+          message: 'Invalid serial number format'
+        };
+      }
+
+      // Validate wallet address format
+      if (!sanitizedWallet || !/^0x[a-fA-F0-9]{40}$/.test(sanitizedWallet)) {
+        return {
+          success: false,
+          tokenId: null,
+          message: 'Invalid wallet address format'
+        };
+      }
+
       // Log claim attempt
       contentSecurity.logSecurityEvent('nft_claim_attempt', {
         claimCodeId: sanitizedCodeId?.substring(0, 8) + '...',

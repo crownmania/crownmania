@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useRef, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { useLoader } from '@react-three/fiber';
+import React, { useState, useEffect, useRef } from 'react';
+import { useFrame, useLoader } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { getModelURL } from '../../utils/modelStorage';
 import { useScroll } from 'framer-motion';
@@ -36,7 +34,7 @@ const Model3D = () => {
       // Rotate based on scroll position with smooth damping
       const targetRotation = scrollYProgress.get() * Math.PI * 4;
       groupRef.current.rotation.y += (targetRotation - groupRef.current.rotation.y) * 0.1;
-      
+
       // Add gentle floating motion
       groupRef.current.position.y = Math.sin(state.clock.elapsedTime) * 0.1;
     }
@@ -67,7 +65,7 @@ const Model3D = () => {
           child.castShadow = true;
           child.receiveShadow = true;
           if (child.material) {
-            child.material.emissive = new THREE.Color(0x00ffff);
+            child.material.emissive = new THREE.Color(0x00a3ff);
             child.material.emissiveIntensity = 0.5;
           }
         }
@@ -91,17 +89,17 @@ const Model3D = () => {
   return (
     <group ref={groupRef}>
       {/* Main model */}
-      <primitive 
-        object={gltf.scene} 
+      <primitive
+        object={gltf.scene}
         scale={0.005}
         position={[0, 0, 0]}
       />
-      
+
       {/* Holographic grid effect */}
       <mesh position={[0, -1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[4, 4, 30, 30]} />
         <meshStandardMaterial
-          color="#00ffff"
+          color="#00a3ff"
           wireframe
           transparent
           opacity={0.15}
@@ -111,7 +109,7 @@ const Model3D = () => {
       {/* Point light for glow effect */}
       <pointLight
         ref={glowRef}
-        color="#00ffff"
+        color="#00a3ff"
         intensity={0.8}
         distance={5}
         decay={2}

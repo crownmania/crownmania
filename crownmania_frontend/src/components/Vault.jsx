@@ -15,17 +15,18 @@ import crownLogo from '../assets/crown_logo_white.svg';
 const DURK_PREVIEW_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy7.webp?alt=media';
 const DURK_FACE_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy2.webp?alt=media';
 const DURK_FRONT_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy1.webp?alt=media';
+const DURK_BACK_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy3.webp?alt=media';
 const DURK_BACKGROUND_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy4.webp?alt=media';
 
 // Animations
 const packAPunchGlow = keyframes`
   0%, 100% { 
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4), 0 0 40px rgba(0, 255, 136, 0.2);
-    border-color: rgba(0, 255, 136, 0.6);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.2), 0 0 40px rgba(0, 255, 136, 0.1);
+    border-color: rgba(0, 255, 136, 0.3);
   }
   50% { 
-    box-shadow: 0 0 30px rgba(0, 200, 255, 0.5), 0 0 60px rgba(0, 200, 255, 0.3);
-    border-color: rgba(0, 200, 255, 0.8);
+    box-shadow: 0 0 30px rgba(0, 122, 255, 0.3), 0 0 60px rgba(0, 122, 255, 0.15);
+    border-color: rgba(0, 122, 255, 0.5);
   }
 `;
 
@@ -35,21 +36,25 @@ const ToastContainer = styled(motion.div)`
   bottom: 2rem;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 255, 136, 0.9);
-  color: black;
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  font-family: 'Avenir Next', sans-serif;
-  font-weight: 600;
+  background: var(--vault-accent);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 50px;
+  font-family: var(--font-secondary);
+  font-weight: 500;
+  font-size: 0.9rem;
   z-index: 1000;
-  box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
 // Modal overlay
 const ModalOverlay = styled(motion.div)`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 1, 5, 0.85);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,48 +63,52 @@ const ModalOverlay = styled(motion.div)`
 `;
 
 const ModalContent = styled(motion.div)`
-  background: linear-gradient(145deg, rgba(0, 30, 50, 0.95), rgba(0, 15, 30, 0.98));
-  border: 1px solid rgba(0, 166, 251, 0.3);
-  border-radius: 16px;
-  padding: 2rem;
-  max-width: 500px;
+  background: var(--bg-vault);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: 24px;
+  padding: 2.5rem;
+  max-width: 480px;
   width: 100%;
+  box-shadow: var(--vault-shadow);
   
   h3 {
-    font-family: 'Designer', sans-serif;
-    color: #00c8ff;
+    font-family: var(--font-primary);
+    color: white;
+    font-size: 1.2rem;
     margin-bottom: 1.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
   }
 `;
 
 const ModalInput = styled.input`
   width: 100%;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
   color: white;
-  font-family: 'Avenir Next', monospace;
-  font-size: 0.9rem;
+  font-family: var(--font-secondary);
+  font-size: 0.95rem;
   margin-bottom: 1rem;
+  transition: all 0.2s ease;
   
   &:focus {
     outline: none;
-    border-color: #00c8ff;
+    border-color: var(--vault-accent);
+    background: rgba(0, 0, 0, 0.5);
   }
   
   &:read-only {
     cursor: default;
-    background: rgba(0, 0, 0, 0.6);
+    opacity: 0.8;
   }
 `;
 
 const ModalButtonRow = styled.div`
   display: flex;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
 `;
 
 // ============================================
@@ -108,21 +117,26 @@ const ModalButtonRow = styled.div`
 
 const VaultSection = styled.section`
   min-height: 100vh;
-  background: linear-gradient(180deg, rgba(0, 19, 36, 0.9) 0%, rgba(0, 10, 20, 0.95) 100%);
+  background-color: var(--bg-deep);
   color: white;
-  padding: 2rem;
+  padding: 4rem 2rem;
   position: relative;
   overflow-x: hidden;
+  
+  /* Dynamic Theme Overrides */
+  --vault-accent: ${props => props.$themeColor || '#00f2ff'};
+  --vault-glow: ${props => props.$themeGlow || 'rgba(0, 242, 255, 0.4)'};
+  --bg-vault: ${props => props.$themeBg || 'rgba(0, 5, 15, 0.5)'};
 `;
 
 const LogoWatermark = styled.div`
   position: absolute;
   top: 50%;
-  left: 05%;
+  left: 50%;
   transform: translate(-50%, -50%);
-  width: 60%;
-  max-width: 1250px;
-  opacity: 0.03;
+  width: 80%;
+  max-width: 1000px;
+  opacity: 0.02;
   pointer-events: none;
   z-index: 0;
   
@@ -134,46 +148,48 @@ const LogoWatermark = styled.div`
 
 const MainTitle = styled.div`
   text-align: center;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 4rem;
   position: relative;
   z-index: 1;
 
   h1 {
-    font-size: clamp(2rem, 5vw, 3rem);
-    font-family: 'Designer', sans-serif;
-    margin-bottom: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-family: var(--font-primary);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.2em;
     color: white;
-    text-shadow: var(--title-glow);
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.25), 0 0 16px rgba(255, 255, 255, 0.15);
   }
 
   .subtitle {
     font-size: 0.85rem;
-    opacity: 0.7;
-    letter-spacing: 0.15em;
-    font-family: 'Avenir Next', sans-serif;
+    color: var(--vault-accent);
+    letter-spacing: 0.4em;
+    font-family: var(--font-secondary);
     text-transform: uppercase;
+    font-weight: 500;
+    text-shadow: 0 0 6px rgba(255, 255, 255, 0.15);
   }
 `;
 
 const Panel = styled(motion.div)`
-  background: linear-gradient(145deg, rgba(0, 30, 50, 0.8), rgba(0, 15, 30, 0.9));
-  border: 1px solid rgba(0, 166, 251, 0.2);
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: var(--bg-vault);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: 20px;
+  padding: 1.75rem;
   position: relative;
-  
-  &::before {
+  box-shadow: var(--vault-shadow);
+  overflow: hidden;
+
+  &::after {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.6), transparent);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   }
 `;
 
@@ -193,16 +209,89 @@ const TopPanelsRow = styled.div`
 
 const ControlDeckRow = styled.div`
   display: grid;
-  grid-template-columns: 500px 1fr;
-  gap: 1.5rem;
-  max-width: 1400px;
-  margin: 0 auto 1.5rem;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+  max-width: 1440px;
+  margin: 0 auto 2rem;
   position: relative;
   z-index: 1;
-  align-items: stretch;
+  align-items: flex-start;
 
-  @media (max-width: 1200px) {
+  @media (max-width: 900px) {
     grid-template-columns: 1fr;
+  }
+`;
+
+const CharacterTitlePanel = styled(Panel)`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem;
+  
+  h2 {
+    font-size: 3rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    font-style: italic;
+    color: white;
+    font-weight: 700;
+    white-space: nowrap;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.2), 0 0 16px rgba(255, 255, 255, 0.1);
+  }
+  
+  h3 {
+    font-size: 1rem;
+    color: var(--vault-accent);
+    margin-bottom: 1.5rem;
+    opacity: 0.9;
+    font-weight: 500;
+    white-space: nowrap;
+    text-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
+  }
+  
+  .status {
+    font-family: var(--font-secondary);
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+    margin-top: auto;
+    
+    &.active {
+      color: var(--vault-success);
+    }
+  }
+`;
+
+const ArtistDetails = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1.5rem;
+`;
+
+const ArtistDetailItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  
+  .label {
+    font-family: var(--font-secondary);
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 600;
+  }
+  
+  .value {
+    font-family: var(--font-primary);
+    font-size: 0.95rem;
+    color: white;
   }
 `;
 
@@ -217,11 +306,16 @@ const SelectGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 1px;
+  gap: 0; /* No gap - boxes touch each other */
+  width: 100%;
   height: 100%;
-  background-color: ${props => props.$verified ? 'rgba(0, 255, 136, 0.3)' : 'rgba(0, 166, 251, 0.3)'};
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  transition: background-color 0.5s ease;
+  background-color: rgba(0, 0, 0, 0.95);
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  align-self: stretch;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
   
   @media (max-width: 768px) {
     grid-template-columns: repeat(4, 1fr);
@@ -233,34 +327,36 @@ const SelectGrid = styled.div`
 `;
 
 const SelectSlot = styled.div`
-  background: rgba(10, 14, 22, 0.95);
+  background: rgba(5, 5, 25, 0.95);
   position: relative;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  transition: all 0.2s ease;
-  aspect-ratio: 1.25;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  aspect-ratio: 1.2;
 
   &:hover {
-    background: rgba(20, 30, 50, 0.95);
+    background: rgba(10, 10, 35, 0.7);
     
     img {
-      transform: scale(1.1);
+      transform: scale(1.08);
     }
   }
 
   ${props => props.$active && css`
-    background: rgba(20, 40, 60, 0.95);
-    box-shadow: inset 0 0 15px rgba(0, 200, 255, 0.1);
+    background: rgba(15, 15, 40, 0.8);
     
     &::after {
       content: '';
       position: absolute;
       inset: 0;
-      border: 2px solid ${props.$verified ? '#00ff88' : '#00c8ff'};
+      border: 2px solid ${props.$verified ? 'var(--vault-success)' : 'var(--vault-accent)'};
+      box-shadow: inset 0 0 15px ${props.$verified ? 'rgba(52, 199, 89, 0.4)' : 'rgba(65, 105, 225, 0.3)'},
+                  0 0 15px ${props.$verified ? 'rgba(52, 199, 89, 0.4)' : 'rgba(65, 105, 225, 0.3)'};
       pointer-events: none;
+      z-index: 2;
     }
   `}
 
@@ -268,32 +364,33 @@ const SelectSlot = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: ${props => props.$owned ? 1 : 0.5};
-    filter: ${props => props.$owned ? 'none' : 'grayscale(100%) blur(0.5px)'};
-    transition: all 0.3s ease;
+    opacity: ${props => (props.$owned && !props.$locked) ? 1 : 0.6};
+    filter: ${props => (props.$owned && !props.$locked) ? 'none' : 'grayscale(100%) contrast(1.2)'};
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 `;
 
 const UnknownAvatar = styled.div`
-  font-family: 'Designer', sans-serif;
-  font-size: 1.5rem;
+  font-family: var(--font-primary);
+  font-size: 1.2rem;
   color: rgba(255, 255, 255, 0.1);
   user-select: none;
+  opacity: 0.5;
+`;
+
+const VaultContent = styled.div`
+  position: relative;
+  transition: all 0.5s ease;
+  /* Targeted grayscale logic applied to children instead of globally */
 `;
 
 const IdentityPanel = styled(Panel)`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 1.5rem 2rem;
+  padding: 2rem 2.5rem;
   z-index: 1;
   height: 100%;
-  
-  @media (max-width: 1200px) {
-    text-align: center;
-    align-items: center;
-    min-height: auto;
-  }
 `;
 
 const IdentityInfo = styled.div`
@@ -302,41 +399,37 @@ const IdentityInfo = styled.div`
 `;
 
 const IdentityName = styled.h2`
-  font-family: 'Designer', sans-serif;
-  font-size: 2rem;
+  font-family: var(--font-primary);
+  font-size: 2.2rem;
   color: white;
   margin: 0;
-  text-transform: uppercase;
   letter-spacing: 0.1em;
-  line-height: 1;
+  line-height: 1.1;
 `;
 
 const IdentityTagline = styled.span`
-  font-family: 'Avenir Next', sans-serif;
-  font-size: 0.9rem;
-  color: #00c8ff;
+  font-family: var(--font-secondary);
+  font-size: 0.8rem;
+  color: var(--vault-accent);
   text-transform: uppercase;
-  letter-spacing: 0.2em;
-  margin-top: 0.5rem;
+  letter-spacing: 0.3em;
+  margin-top: 0.75rem;
+  font-weight: 600;
 `;
 
 const MiddleRow = styled.div`
   display: grid;
-  grid-template-columns: 500px 300px 1fr; 
-  gap: 1.5rem;
-  max-width: 1400px;
-  margin: 0 auto 2rem;
+  grid-template-columns: 1fr 1fr 1.2fr; 
+  gap: 2rem;
+  max-width: 1440px;
+  margin: 0 auto 3rem;
   position: relative;
   z-index: 1;
   align-items: stretch;
 
   @media (max-width: 1200px) {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
+    grid-template-columns: 1fr 1.2fr;
     
-    > div:nth-child(2) {
-      grid-column: 2;
-    }
     > div:nth-child(3) {
       grid-column: 1 / -1;
     }
@@ -344,29 +437,18 @@ const MiddleRow = styled.div`
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
-    
-    > div:nth-child(1),
-    > div:nth-child(2),
-    > div:nth-child(3) {
-      grid-column: 1;
-    }
   }
 `;
 
 const IDCard = styled(Panel)`
   padding: 0;
-  overflow: hidden;
-  border-radius: 16px;
   height: 100%;
-  border: 1px solid rgba(0, 166, 251, 0.4);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  display: flex;
-  flex-direction: column;
-  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+  border: var(--glass-border);
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 
   ${props => props.$owned && css`
-    border-color: #00ff88;
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+    border-color: rgba(52, 199, 89, 0.3);
+    box-shadow: 0 0 40px rgba(52, 199, 89, 0.1);
   `}
 `;
 
@@ -374,14 +456,20 @@ const IDImageContainer = styled.div`
   flex: 1;
   position: relative;
   display: flex;
-  background: rgba(0,0,0,0.2);
+  background: rgba(0,0,0,0.1);
+  min-height: 600px;
 `;
 
 const IDImageHalf = styled.div`
   width: 50%;
   height: 100%;
   position: relative;
-  border-right: 1px solid rgba(255,255,255,0.05);
+  border-right: 1px solid rgba(255,255,255,0.03);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
   
   &:last-child {
     border-right: none;
@@ -390,269 +478,467 @@ const IDImageHalf = styled.div`
   img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: center;
-    ${props => !props.$owned && css`
-      filter: grayscale(100%) brightness(0.4);
-    `}
-    transition: filter 0.5s ease;
-  }
-
-  &::after {
-    content: '${props => props.$label}';
-    position: absolute;
-    bottom: 0.5rem;
-    left: 0;
-    width: 100%;
-    text-align: center;
-    font-family: 'Avenir Next', sans-serif;
-    font-size: 0.7rem;
-    color: rgba(255,255,255,0.5);
-    text-transform: uppercase;
-    pointer-events: none;
+    object-fit: contain;
+    padding: 0;
+    filter: ${props => (props.$owned && !props.$locked) ? 'none' : 'grayscale(100%) contrast(1.1) brightness(0.8)'};
+    transition: filter 0.8s ease;
   }
 `;
 
+const CyclingImage = styled.img`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: ${props => props.$active ? 1 : 0};
+  transition: opacity 0.8s ease-in-out;
+  z-index: ${props => props.$active ? 1 : 0};
+`;
+
 const IDFooter = styled.div`
+  background: #000;
+  padding: 0.75rem 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  .series-label {
+    font-family: var(--font-primary);
+    font-size: 0.8rem;
+    color: white;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+`;
+
+// Sponsorship Banner Carousel
+const scrollAnimation = keyframes`
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+`;
+
+const SponsorBanner = styled.div`
+  width: 100%;
+  max-width: 1400px;
+  margin: 2rem auto;
+  padding: 1rem 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+`;
+
+const SponsorTrack = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4rem;
+  animation: ${scrollAnimation} 30s linear infinite;
+  width: fit-content;
+  
+  &:hover {
+    animation-play-state: paused;
+  }
+`;
+
+const SponsorItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: var(--font-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    color: white;
+  }
+  
+  img {
+    height: 24px;
+    width: auto;
+    opacity: 0.6;
+    filter: grayscale(100%) brightness(1.5);
+    transition: all 0.3s ease;
+  }
+  
+  &:hover img {
+    opacity: 1;
+    filter: grayscale(0%) brightness(1);
+  }
+`;
+
+const ComingSoonOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  color: var(--vault-accent);
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
   padding: 1rem;
-  background: rgba(0,0,0,0.8);
-  border-top: 1px solid rgba(255,255,255,0.1);
+  opacity: 1;
+  z-index: 5;
   text-align: center;
-  font-family: 'Designer', sans-serif;
-  color: #00c8ff;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  
+  .name {
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+    color: white;
+  }
+  
+  .status {
+    font-size: 0.6rem;
+    color: var(--vault-accent);
+    letter-spacing: 0.3em;
+    opacity: 0.8;
+  }
 `;
 
 const DetailsPanel = styled(Panel)`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.75rem;
 `;
 
 const DetailHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-family: 'Designer', sans-serif;
-  color: #00c8ff;
-  font-size: 1.1rem;
+  gap: 0.75rem;
+  font-family: var(--font-primary);
+  color: var(--vault-accent);
+  font-size: 1rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0, 166, 251, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 `;
 
 const DetailGrid = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.5rem;
 `;
 
 const DetailItem = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.4rem;
 
   label {
-    font-family: 'Avenir Next', sans-serif;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
+    font-family: var(--font-secondary);
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
+    font-weight: 600;
   }
 
   div {
-    font-family: 'Designer', sans-serif;
-    font-size: 1.4rem;
+    font-family: var(--font-primary);
+    font-size: 1.3rem;
     color: white;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     
     &.highlight {
-      color: #00ff88;
-      text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+      color: var(--vault-success);
+      text-shadow: 0 0 15px rgba(52, 199, 89, 0.2);
     }
     
     &.dim {
-      color: rgba(255, 255, 255, 0.3);
+      color: rgba(255, 255, 255, 0.2);
     }
   }
 `;
 
-const OwnerBadge = styled.div`
-  background: ${props => props.$owned ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 50, 50, 0.1)'};
-  border: 1px solid ${props => props.$owned ? '#00ff88' : '#ff3333'};
-  color: ${props => props.$owned ? '#00ff88' : '#ff3333'};
-  padding: 0.8rem;
-  border-radius: 6px;
-  text-align: center;
-  font-family: 'Designer', sans-serif;
-  text-transform: uppercase;
+// Token Address Display Styles
+const TokenAddressContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+`;
+
+const TokenAddress = styled.span`
+  font-family: var(--font-secondary);
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: monospace;
+  letter-spacing: 0.05em;
+`;
+
+const CopyButton = styled.button`
+  background: transparent;
+  border: none;
+  color: var(--vault-accent);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: white;
+    transform: scale(1.1);
+  }
+`;
+
+// Asset Details Card Styles
+const AssetTitle = styled.h2`
+  font-family: var(--font-primary);
+  font-size: 1.4rem;
+  color: white;
+  margin: 0 0 0.25rem 0;
   letter-spacing: 0.1em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: visible;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.2), 0 0 16px rgba(255, 255, 255, 0.1);
+`;
+
+const AssetSubtitle = styled.h3`
+  font-family: var(--font-secondary);
+  font-size: 0.85rem;
+  color: var(--vault-accent);
+  margin: 0 0 1.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: 600;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
+`;
+
+const OwnerBadge = styled.div`
+  background: ${props => props.$owned ? 'rgba(52, 199, 89, 0.08)' : 'rgba(255, 59, 48, 0.08)'};
+  border: 1px solid ${props => props.$owned ? 'var(--vault-success)' : 'var(--vault-error)'};
+  color: ${props => props.$owned ? 'var(--vault-success)' : 'var(--vault-error)'};
+  padding: 1rem;
+  border-radius: 12px;
+  text-align: center;
+  font-family: var(--font-primary);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
   margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   transition: all 0.3s ease;
 `;
 
 const ModelViewerPanel = styled(Panel)`
   padding: 0;
-  overflow: hidden;
   height: 100%;
-  min-height: 400px;
+  min-height: 480px;
   display: flex;
   flex-direction: column;
 `;
 
 const ModelHeader = styled.div`
-  padding: 1rem 1.5rem;
-  background: rgba(0,0,0,0.3);
-  border-bottom: 1px solid rgba(0, 166, 251, 0.2);
+  padding: 1.25rem 1.75rem;
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
   display: flex;
   justify-content: space-between;
   align-items: center;
 
   h3 {
-    font-family: 'Designer', sans-serif;
-    color: #00c8ff;
+    font-family: var(--font-primary);
+    color: white;
     margin: 0;
-    font-size: 1rem;
-    letter-spacing: 0.1em;
+    font-size: 0.9rem;
+    letter-spacing: 0.15em;
   }
 `;
 
 const ModelCanvas = styled.div`
   flex: 1;
   position: relative;
-  background: radial-gradient(circle at center, rgba(0, 100, 150, 0.1), transparent 70%);
+  background: radial-gradient(circle at center, rgba(0, 122, 255, 0.03), transparent 75%);
+  transition: filter 0.5s ease;
+  filter: ${props => props.$locked ? 'grayscale(100%) contrast(1.2)' : 'none'};
 `;
 
 const ExclusivePanel = styled(Panel)`
   max-width: 1400px;
   margin: 0 auto;
-  min-height: 300px;
+  padding: 3rem;
+  background: var(--bg-vault);
+  border: 1px solid var(--vault-border);
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
-  gap: 1.5rem;
-  background: linear-gradient(145deg, rgba(10, 15, 25, 0.9), rgba(5, 10, 20, 0.95));
-  border: 1px solid rgba(0, 166, 251, 0.2);
-  transition: all 0.5s ease;
+  gap: 2rem;
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   
   ${props => props.$unlocked && css`
-    border-color: rgba(0, 255, 136, 0.4);
-    background: linear-gradient(145deg, rgba(0, 30, 20, 0.9), rgba(0, 15, 10, 0.95));
+    border-color: rgba(52, 199, 89, 0.2);
+    background: linear-gradient(180deg, rgba(8, 20, 15, 0.7) 0%, rgba(5, 12, 10, 0.8) 100%);
   `}
 `;
 
 const ExclusiveContent = styled.div`
   max-width: 800px;
-  color: rgba(255, 255, 255, 0.8);
   
   h2 {
-    font-family: 'Designer', sans-serif;
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
-    color: ${props => props.$unlocked ? '#00ff88' : 'white'};
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    font-family: var(--font-primary);
+    font-size: 2rem;
+    margin-bottom: 1.25rem;
+    color: ${props => props.$unlocked ? 'var(--vault-success)' : 'white'};
+    letter-spacing: 0.15em;
   }
   
   p {
-    font-family: 'Avenir Next', sans-serif;
-    font-size: 1.1rem;
+    font-family: var(--font-secondary);
+    font-size: 1.05rem;
     line-height: 1.6;
     margin-bottom: 1rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 400;
   }
 
   .highlight {
-    color: #00c8ff;
-    font-weight: bold;
+    color: var(--vault-accent);
+    font-weight: 600;
   }
 `;
 
 const LockIconLarge = styled.div`
-  font-size: 3.5rem;
-  color: rgba(255, 255, 255, 0.1);
+  font-size: 3rem;
+  color: rgba(255, 255, 255, 0.05);
   margin-bottom: 0.5rem;
-  transition: all 0.5s ease;
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   
   ${props => props.$unlocked && css`
-    color: #00ff88;
-    filter: drop-shadow(0 0 15px rgba(0, 255, 136, 0.4));
+    color: var(--vault-success);
+    filter: drop-shadow(0 0 20px rgba(52, 199, 89, 0.3));
+    transform: translateY(-5px);
   `}
 `;
 
 const PanelTitle = styled.h3`
-  font-family: 'Designer', sans-serif;
-  font-size: 1rem;
+  font-family: var(--font-primary);
+  font-size: 0.9rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #00c8ff;
-  margin-bottom: 1rem;
+  letter-spacing: 0.15em;
+  color: var(--vault-accent);
+  margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  justify-content: space-between;
+  width: 100%;
 `;
 
 const WelcomePanel = styled(Panel)`
-  overflow: hidden;
+  padding: 2rem;
 `;
 
 const SerialInput = styled.input`
   width: 100%;
-  padding: 0.8rem 1rem;
+  padding: 1rem 1.25rem;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
   color: white;
-  margin-bottom: 1rem;
-  font-family: 'Avenir Next', sans-serif;
-  &:focus { outline: none; border-color: #00ff88; }
+  margin-bottom: 1.25rem;
+  font-family: var(--font-secondary);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  
+  &:focus { 
+    outline: none; 
+    border-color: var(--vault-accent);
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+  }
 `;
 
 const ActionButton = styled(motion.button)`
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-family: 'Designer', sans-serif;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  font-family: var(--font-primary);
   font-size: 0.85rem;
   width: 100%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
+  gap: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.1em;
   
   ${props => props.$primary ? css`
-    background: #0055ff; border: none; color: white;
+    background: var(--vault-accent); 
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 122, 255, 0.2);
   ` : css`
-    background: transparent; border: 1px solid #00ff88; color: #00ff88;
+    background: transparent; 
+    border: 1px solid var(--vault-border); 
+    color: white;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
   `}
   
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
+    transform: none !important;
   }
 `;
 
 const StatusMessage = styled(motion.div)`
-  margin-top: 1rem;
-  color: ${props => props.$status === 'success' ? '#00ff88' : '#ff4444'};
+  margin-top: 1.25rem;
+  font-family: var(--font-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: ${props => props.$status === 'success' ? 'var(--vault-success)' : 'var(--vault-error)'};
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
 `;
 
 const WelcomeText = styled.p`
-  color: rgba(255,255,255,0.7);
-  font-size: 0.9rem;
-  margin-bottom: 1.5rem;
-  font-family: 'Avenir Next', sans-serif;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+  font-family: var(--font-secondary);
+  line-height: 1.6;
 `;
+
+// ============================================
+// LOCAL STORAGE CONSTANTS
+// ============================================
+const VERIFIED_SERIALS_KEY = 'crownmania_verified_serials';
+const VERIFICATION_EXPIRY_DAYS = 30;
 
 // ============================================
 // MAIN COMPONENT
@@ -660,6 +946,7 @@ const WelcomeText = styled.p`
 export default function Vault() {
   const navigate = useNavigate();
   const { isInitialized, isWeb3Available, user, isLoading, login, logout, getAddress } = useWeb3Auth();
+  const isVaultLocked = !isInitialized || !user;
 
   const [walletAddress, setWalletAddress] = useState('');
   const [userTokens, setUserTokens] = useState([]);
@@ -668,6 +955,10 @@ export default function Vault() {
   const [verificationResult, setVerificationResult] = useState(null);
   const [currentEdition, setCurrentEdition] = useState(null);
 
+  // Persistent verification state
+  const [verifiedSerials, setVerifiedSerials] = useState([]);
+  const [isPersistentlyVerified, setIsPersistentlyVerified] = useState(false);
+
   // UI State
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -675,39 +966,203 @@ export default function Vault() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferAddress, setTransferAddress] = useState('');
 
+// Theme state - Royal Blue primary
+  const [currentTheme, setCurrentTheme] = useState('blue');
+  const themes = {
+    blue: { color: '#4169E1', glow: 'rgba(65, 105, 225, 0.4)', bg: 'rgba(0, 5, 25, 0.5)' },
+    green: { color: '#34C759', glow: 'rgba(52, 199, 89, 0.4)', bg: 'rgba(5, 15, 5, 0.5)' },
+    pink: { color: '#FF2D55', glow: 'rgba(255, 45, 85, 0.4)', bg: 'rgba(15, 5, 10, 0.5)' }
+  };
+
+  // ============================================
+  // LOCAL STORAGE OPERATIONS
+  // ============================================
+
+  // Load verified serials from localStorage on mount
+  const loadVerifiedSerialsFromStorage = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(VERIFIED_SERIALS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          const now = Date.now();
+          const expiryMs = VERIFICATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+
+          // Filter out expired entries
+          const validSerials = parsed.filter(item => {
+            if (!item.verifiedAt) return false;
+            const age = now - new Date(item.verifiedAt).getTime();
+            return age < expiryMs;
+          });
+
+          // Update storage if some entries were removed
+          if (validSerials.length !== parsed.length) {
+            localStorage.setItem(VERIFIED_SERIALS_KEY, JSON.stringify(validSerials));
+          }
+
+          setVerifiedSerials(validSerials);
+
+          // Check if we have any valid verified serials for the current product
+          const hasValidVerification = validSerials.some(item =>
+            item.productId === 'lil-durk-figure' || !item.productId
+          );
+
+          if (hasValidVerification && validSerials.length > 0) {
+            setIsPersistentlyVerified(true);
+            // Restore verification result from the most recent valid serial
+            const mostRecent = validSerials[validSerials.length - 1];
+            setVerificationResult({
+              status: 'success',
+              message: 'Product verified from previous session',
+              editionNumber: mostRecent.editionNumber,
+              productId: mostRecent.productId || 'lil-durk-figure',
+              tokenAddress: mostRecent.tokenAddress,
+              claimDate: mostRecent.claimDate
+            });
+            if (mostRecent.editionNumber) {
+              setCurrentEdition(mostRecent.editionNumber);
+            }
+          }
+
+          return validSerials;
+        }
+      }
+    } catch (err) {
+      console.error('Error loading verified serials from localStorage:', err);
+    }
+    return [];
+  }, []);
+
+  // Save verified serial to localStorage
+  const saveVerifiedSerialToStorage = useCallback((serialData) => {
+    try {
+      const stored = localStorage.getItem(VERIFIED_SERIALS_KEY);
+      const existing = stored ? JSON.parse(stored) : [];
+
+      // Check if this serial already exists
+      const existingIndex = existing.findIndex(item => item.serialNumber === serialData.serialNumber);
+
+      let updated;
+      if (existingIndex >= 0) {
+        // Update existing entry
+        updated = [...existing];
+        updated[existingIndex] = { ...existing[existingIndex], ...serialData, verifiedAt: new Date().toISOString() };
+      } else {
+        // Add new entry
+        updated = [...existing, { ...serialData, verifiedAt: new Date().toISOString() }];
+      }
+
+      localStorage.setItem(VERIFIED_SERIALS_KEY, JSON.stringify(updated));
+      setVerifiedSerials(updated);
+    } catch (err) {
+      console.error('Error saving verified serial to localStorage:', err);
+    }
+  }, []);
+
+  // Clear all verified serials from localStorage
+  const clearVerifiedSerialsFromStorage = useCallback(() => {
+    try {
+      localStorage.removeItem(VERIFIED_SERIALS_KEY);
+      setVerifiedSerials([]);
+      setIsPersistentlyVerified(false);
+    } catch (err) {
+      console.error('Error clearing verified serials from localStorage:', err);
+    }
+  }, []);
+
+  // ============================================
+  // EFFECTS
+  // ============================================
+
+  // Load verified serials from localStorage on mount
+  useEffect(() => {
+    loadVerifiedSerialsFromStorage();
+  }, [loadVerifiedSerialsFromStorage]);
+
+  // ID Card image cycling state
+  const [frontImageIndex, setFrontImageIndex] = useState(0);
+  const [detailImageIndex, setDetailImageIndex] = useState(0);
+
+  // Front images: alternate between front and back views
+  const frontImages = [DURK_FRONT_IMG, DURK_BACK_IMG];
+
+  // Detail images: cycle through different up-close detail images
+  const detailImages = [DURK_PREVIEW_IMG, DURK_FACE_IMG, DURK_FRONT_IMG, DURK_BACKGROUND_IMG];
+
+  // Front image cycling - swap every 7 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrontImageIndex((prev) => (prev + 1) % frontImages.length);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Detail image cycling - change every 7 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDetailImageIndex((prev) => (prev + 1) % detailImages.length);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Fetch wallet data when authenticated
   useEffect(() => {
+    let isMounted = true;
+
     const fetchData = async () => {
       try {
         if (isInitialized && user) {
           const address = await getAddress();
-          if (address) {
+          if (address && isMounted) {
             setWalletAddress(address);
             try {
               const result = await verificationAPI.getWalletTokens(address);
-              setUserTokens(result.tokens || []);
-              const durkToken = result.tokens?.find(t => t.productId === 'lil-durk-figure');
-              if (durkToken) {
-                setCurrentEdition(durkToken.edition || durkToken.editionNumber);
+              if (isMounted) {
+                const tokens = result.tokens || [];
+                setUserTokens(tokens);
+
+                // Check if wallet has tokens and auto-unlock vault
+                const durkToken = tokens.find(t => t.productId === 'lil-durk-figure');
+                if (durkToken) {
+                  setCurrentEdition(durkToken.edition || durkToken.editionNumber);
+
+                  // Merge with localStorage - save token info as verified serial
+                  const tokenVerification = {
+                    serialNumber: `wallet_${address}_${durkToken.tokenAddress || durkToken.productId}`,
+                    tokenAddress: durkToken.tokenAddress,
+                    editionNumber: durkToken.edition || durkToken.editionNumber,
+                    productId: durkToken.productId,
+                    verifiedAt: new Date().toISOString(),
+                    source: 'wallet'
+                  };
+                  saveVerifiedSerialToStorage(tokenVerification);
+                  setIsPersistentlyVerified(true);
+                }
               }
             } catch (err) {
               console.error('Error fetching tokens:', err);
-              setUserTokens([]);
+              if (isMounted) setUserTokens([]);
             }
           }
-        } else {
-          // Clear state when user disconnects
+        } else if (isMounted) {
+          // Clear wallet-specific state when user disconnects
+          // Note: We keep localStorage verification intact for recurring visitors
           setWalletAddress('');
           setUserTokens([]);
           setCurrentEdition(null);
-          setVerificationResult(null);
+          // Don't clear verificationResult here to allow persistent verification to remain
         }
       } catch (err) {
         console.error('Error in Vault data fetch:', err);
       }
     };
+
     fetchData();
-  }, [isInitialized, user, getAddress]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isInitialized, user, getAddress, saveVerifiedSerialToStorage]);
 
   // Check if user owns a character
   const isOwned = useCallback((characterId) => {
@@ -715,8 +1170,13 @@ export default function Vault() {
     return userTokens.some(token => token.productId === characterId);
   }, [userTokens]);
 
-  // Derived state - asset is verified if owned OR verification succeeded
-  const isAssetVerified = verificationResult?.status === 'success' || isOwned('lil-durk-figure');
+  // Derived state - asset is verified if:
+  // 1. First-time correct product code entry, OR
+  // 2. Recurring visitor with verified serial in localStorage, OR  
+  // 3. Wallet connection with owned tokens
+  const isAssetVerified = verificationResult?.status === 'success' ||
+    isPersistentlyVerified ||
+    isOwned('lil-durk-figure');
   const displayEdition = verificationResult?.editionNumber || currentEdition;
 
   const handleConnect = async () => {
@@ -741,12 +1201,29 @@ export default function Vault() {
       const result = await verificationAPI.verifySerial(serialNumber.trim());
 
       if (result.valid) {
+        const editionNum = result.editionNumber || result.edition;
+        const productId = result.productId || 'lil-durk-figure';
+
         setVerificationResult({
           status: 'success',
           message: 'Product verified successfully!',
-          editionNumber: result.editionNumber || result.edition,
-          productId: result.productId
+          editionNumber: editionNum,
+          productId: productId,
+          tokenAddress: result.tokenAddress || result.contractAddress,
+          claimDate: result.claimDate || new Date().toISOString()
         });
+
+        // Save to localStorage for persistence
+        saveVerifiedSerialToStorage({
+          serialNumber: serialNumber.trim(),
+          tokenAddress: result.tokenAddress || result.contractAddress,
+          editionNumber: editionNum,
+          productId: productId,
+          claimDate: result.claimDate || new Date().toISOString(),
+          source: 'manual_entry'
+        });
+
+        setIsPersistentlyVerified(true);
 
         // Show success toast
         showToastMessage('✓ Product Verified Successfully!');
@@ -763,6 +1240,34 @@ export default function Vault() {
       });
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  // Format wallet/token address for display (first 6 + ... + last 4)
+  const formatAddress = (address) => {
+    if (!address || address.length < 10) return address;
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  // Format date for display
+  const formatClaimDate = (dateString) => {
+    if (!dateString) return '---';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }) + ' at ' + date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const handleCopyTokenAddress = () => {
+    if (verificationResult?.tokenAddress) {
+      navigator.clipboard.writeText(verificationResult.tokenAddress);
+      showToastMessage('Token address copied to clipboard!');
     }
   };
 
@@ -795,340 +1300,414 @@ export default function Vault() {
   const isDurkOwned = isOwned('lil-durk-figure');
 
   return (
-    <VaultSection id="vault">
+    <VaultSection
+      id="vault"
+      $themeColor={themes[currentTheme].color}
+      $themeGlow={themes[currentTheme].glow}
+      $themeBg={themes[currentTheme].bg}
+    >
       <LogoWatermark>
         <img src={crownLogo} alt="" aria-hidden="true" />
       </LogoWatermark>
 
       <MainTitle>
-        <motion.h1 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
           THE VAULT
         </motion.h1>
-        <div className="subtitle">Secure Control Terminal</div>
+        <motion.div
+          className="subtitle"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          viewport={{ once: true }}
+        >
+          Secure Phygital Asset Repository
+        </motion.div>
       </MainTitle>
 
-      {/* TOP ROW: ACTIVATE & CONNECT */}
-      <TopPanelsRow>
-        {/* VERIFY & AUTHENTICATE PANEL */}
-        <Panel
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          style={{ display: 'flex', flexDirection: 'column', minHeight: '260px' }}
-        >
-          <PanelTitle><FaLock /> Verify & Authenticate</PanelTitle>
-
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', marginTop: '1rem' }}>
-              <SerialInput
-                placeholder="Enter Product Code"
-                value={serialNumber}
-                onChange={(e) => setSerialNumber(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleVerify()}
-                style={{ marginBottom: 0 }}
-              />
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                style={{
-                  background: 'rgba(0, 200, 255, 0.1)',
-                  border: '1px solid rgba(0, 200, 255, 0.3)',
-                  borderRadius: '8px',
-                  color: '#00c8ff',
-                  padding: '0 1rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                title="Scan QR Code"
+      <VaultContent $locked={isVaultLocked}>
+        {/* Reordering and removing ternary logic */}
+        <TopPanelsRow>
+          {/* 1. Verify Panel (Left) */}
+          <Panel
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <PanelTitle style={{ fontSize: '1.2rem', color: 'white', justifyContent: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <FaLock size={20} /> VERIFY & AUTHENTICATE
+              </div>
+              <ActionButton
+                style={{ width: 'auto', padding: '0.4rem 0.8rem', fontSize: '0.7rem' }}
+                onClick={() => showToastMessage('Camera access required on mobile device')}
               >
-                <FaQrcode size={20} />
-              </motion.button>
+                <FaQrcode /> SCAN QR CODE
+              </ActionButton>
+            </PanelTitle>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <div style={{ flex: 1 }}>
+                <SerialInput
+                  type="text"
+                  placeholder="Enter Product Code"
+                  value={serialNumber}
+                  onChange={(e) => setSerialNumber(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
+                />
+                <ActionButton
+                  $primary
+                  onClick={handleVerify}
+                  disabled={isVerifying || !serialNumber}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {isVerifying ? <FaSpinner className="spin" /> : <FaCheck />}
+                  VERIFY CODE
+                </ActionButton>
+              </div>
+              {verificationResult && (
+                <StatusMessage
+                  $status={verificationResult.status}
+                  style={{ marginTop: 0, flex: 1, padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px' }}
+                >
+                  {verificationResult.status === 'success' ? <FaCheck /> : <FaTimes />}
+                  {verificationResult.message}
+                </StatusMessage>
+              )}
             </div>
-
-            {verificationResult && (
-              <StatusMessage
-                $status={verificationResult.status}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                {verificationResult.status === 'success' ? <FaCheck /> : <FaTimes />}
-                {verificationResult.message}
-              </StatusMessage>
+            {verificationResult?.status === 'success' && verificationResult?.tokenAddress && (
+              <TokenAddressContainer>
+                <TokenAddress>{formatAddress(verificationResult.tokenAddress)}</TokenAddress>
+                <CopyButton onClick={handleCopyTokenAddress} title="Copy token address">
+                  <FaCopy size={14} />
+                </CopyButton>
+              </TokenAddressContainer>
             )}
+          </Panel>
 
+          {/* 2. Connection Panel (Right) */}
+          <IdentityPanel
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+          >
+            <PanelTitle style={{ fontSize: '1.2rem', color: 'white', justifyContent: 'flex-start' }}>
+              <FaWallet size={20} /> VAULT CONNECTION
+            </PanelTitle>
+            <IdentityInfo>
+              <div style={{ width: '100%', textAlign: 'center', marginBottom: '1.5rem' }}>
+                {!isVaultLocked ? (
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Connected: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</p>
+                ) : (
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Connect wallet to view your owned assets.</p>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                {isVaultLocked ? (
+                  <ActionButton
+                    $primary
+                    onClick={handleConnect}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{ maxWidth: '300px' }}
+                  >
+                    <FaWallet /> CONNECT
+                  </ActionButton>
+                ) : (
+                  <>
+                    <ActionButton
+                      onClick={() => setShowAddressModal(true)}
+                      style={{ padding: '0.5rem 1rem', width: 'auto', fontSize: '0.75rem' }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <FaInfoCircle /> VIEW ARCHIVE
+                    </ActionButton>
+                    <ActionButton
+                      onClick={handleDisconnect}
+                      style={{ padding: '0.5rem 1rem', width: 'auto', fontSize: '0.75rem', borderColor: 'var(--vault-error)', color: 'var(--vault-error)' }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <FaSignOutAlt /> SEAL
+                    </ActionButton>
+                  </>
+                )}
+              </div>
+            </IdentityInfo>
+          </IdentityPanel>
+        </TopPanelsRow>
+
+        <ControlDeckRow>
+          {/* Row 2 Left: Character Title */}
+          <CharacterTitlePanel
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2>LIL DURK</h2>
+            <h3>American Chicago Rapper</h3>
+            <ArtistDetails>
+              <ArtistDetailItem>
+                <span className="label">Origin</span>
+                <span className="value">Chicago</span>
+              </ArtistDetailItem>
+              <ArtistDetailItem>
+                <span className="label">Birthday</span>
+                <span className="value">Oct 19, 1992</span>
+              </ArtistDetailItem>
+              <ArtistDetailItem>
+                <span className="label">Height</span>
+                <span className="value">5'7"</span>
+              </ArtistDetailItem>
+              <ArtistDetailItem>
+                <span className="label">Weight</span>
+                <span className="value">159 lbs</span>
+              </ArtistDetailItem>
+            </ArtistDetails>
+            <div className={`status ${isAssetVerified ? 'active' : ''}`}>
+              {isAssetVerified ? <FaCheck /> : <FaLock />}
+              {isAssetVerified ? 'ASSET VERIFIED' : 'ASSET LOCKED'}
+            </div>
+          </CharacterTitlePanel>
+
+          {/* Row 2 Right: Grid */}
+          <CharacterSelectSection>
+            <SelectGrid $verified={isAssetVerified}>
+              <SelectSlot
+                $active={true}
+                $owned={isDurkOwned}
+                $verified={isAssetVerified}
+                $locked={isVaultLocked}
+              >
+                <img src={DURK_FACE_IMG} alt="Lil Durk" />
+              </SelectSlot>
+              <SelectSlot
+                key={1}
+                $active={false}
+                $owned={false}
+                $locked={true}
+                onMouseEnter={() => setCurrentTheme('green')}
+                onMouseLeave={() => setCurrentTheme('blue')}
+              >
+                <ComingSoonOverlay>
+                  <div className="status">COMING SOON</div>
+                </ComingSoonOverlay>
+              </SelectSlot>
+              <SelectSlot
+                key={2}
+                $active={false}
+                $owned={false}
+                $locked={true}
+                onMouseEnter={() => setCurrentTheme('pink')}
+                onMouseLeave={() => setCurrentTheme('blue')}
+              >
+                <ComingSoonOverlay>
+                  <div className="status">COMING SOON</div>
+                </ComingSoonOverlay>
+              </SelectSlot>
+              {[...Array(9)].map((_, i) => (
+                <SelectSlot
+                  key={i + 3}
+                  $active={false}
+                  $owned={false}
+                  $locked={true}
+                  style={{ cursor: 'default' }}
+                >
+                  <UnknownAvatar>?</UnknownAvatar>
+                </SelectSlot>
+              ))}
+            </SelectGrid>
+          </CharacterSelectSection>
+        </ControlDeckRow>
+
+        <MiddleRow>
+          {/* ROW 3: ID, Details, 3D Viewer */}
+          <IDCard
+            $owned={isDurkOwned}
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+          >
+            <IDImageContainer>
+              {/* 5. Fix ID Card to show Back/Front side-by-side */}
+              <IDImageHalf $label="BACK VIEW" $owned={isDurkOwned} $locked={isVaultLocked}>
+                <img
+                  src={DURK_PREVIEW_IMG}
+                  alt="Back View"
+                  style={{ height: '100%', objectFit: 'contain', width: '100%' }}
+                />
+              </IDImageHalf>
+              <IDImageHalf $label="FRONT VIEW" $owned={isDurkOwned} $locked={isVaultLocked}>
+                <img
+                  src={DURK_FRONT_IMG}
+                  alt="Front View"
+                  style={{ height: '100%', objectFit: 'contain', width: '100%' }}
+                />
+              </IDImageHalf>
+            </IDImageContainer>
+            <IDFooter>
+              <div className="series-label">LIL DURK SERIES 01</div>
+            </IDFooter>
+          </IDCard>
+
+          <DetailsPanel
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.5rem' }}>
+              <AssetTitle>Digital Collectible</AssetTitle>
+              <img src={crownLogo} alt="Crownmania" style={{ height: '28px', width: 'auto', opacity: 0.9 }} />
+            </div>
+            <AssetSubtitle style={{ fontFamily: 'var(--font-primary)', fontWeight: 400, textAlign: 'center' }}>Collectible details</AssetSubtitle>
+            <DetailGrid>
+              <DetailItem>
+                <label>Collection Name</label>
+                <div style={{ fontSize: '1.5rem' }}>LIL DURK: Free The Voice</div>
+              </DetailItem>
+              <DetailItem>
+                <label>Token Address</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span className={verificationResult?.tokenAddress ? '' : 'dim'} style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>
+                    {verificationResult?.tokenAddress ? formatAddress(verificationResult.tokenAddress) : '0x...'}
+                  </span>
+                  {verificationResult?.tokenAddress && (
+                    <CopyButton onClick={handleCopyTokenAddress} title="Copy token address" style={{ padding: '0.1rem' }}>
+                      <FaCopy size={12} />
+                    </CopyButton>
+                  )}
+                </div>
+              </DetailItem>
+              <DetailItem>
+                <label>Edition</label>
+                <div className={displayEdition ? 'highlight' : 'dim'}>
+                  {displayEdition ? `#${displayEdition} / 500` : '---'}
+                </div>
+              </DetailItem>
+              <DetailItem>
+                <label>Date Claimed</label>
+                <div className={verificationResult?.claimDate ? 'highlight' : 'dim'}>
+                  {verificationResult?.claimDate ? formatClaimDate(verificationResult.claimDate) : '---'}
+                </div>
+              </DetailItem>
+            </DetailGrid>
+            <div style={{ marginTop: 'auto' }}>
+              <label style={{ 
+                fontFamily: 'var(--font-secondary)', 
+                fontSize: '0.7rem', 
+                color: 'rgba(255, 255, 255, 0.4)', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.15em', 
+                fontWeight: 600,
+                marginBottom: '0.5rem',
+                display: 'block'
+              }}>Status</label>
+              <OwnerBadge $owned={isAssetVerified}>
+                {isAssetVerified ? <FaCheck /> : <FaLock />}
+                {isAssetVerified ? 'VERIFIED' : 'UNVERIFIED'}
+              </OwnerBadge>
+            </div>
+          </DetailsPanel>
+
+          <ModelViewerPanel>
+            <ModelHeader>
+              <h3>
+                <FaCube size={14} /> 3D VIEWER
+              </h3>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <ActionButton
+                  style={{ padding: '0.4rem 0.8rem', width: 'auto', fontSize: '0.7rem' }}
+                  onClick={() => showToastMessage('Controls: Rotation (Drag), Zoom (Scroll)')}
+                >
+                  <FaKeyboard />
+                </ActionButton>
+              </div>
+            </ModelHeader>
+            <ModelCanvas $locked={isVaultLocked}>
+              <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0.5, 8], fov: 50 }}>
+                <ambientLight intensity={0.7} />
+                <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1.2} castShadow />
+                <pointLight position={[-10, -10, -10]} intensity={0.5} />
+                <pointLight position={[0, 5, 5]} intensity={0.3} />
+
+                <Suspense fallback={null}>
+                  <group position={[0, -1.8, 0]}>
+                    <DurkModel isUnlocked={isAssetVerified} />
+                  </group>
+                  <Environment preset="city" />
+                </Suspense>
+
+                <OrbitControls
+                  autoRotate={isAssetVerified}
+                  autoRotateSpeed={2}
+                  enableZoom={true}
+                  enablePan={false}
+                  minDistance={4}
+                  maxDistance={15}
+                  minPolarAngle={Math.PI / 6}
+                  maxPolarAngle={Math.PI / 1.8}
+                />
+              </Canvas>
+            </ModelCanvas>
+          </ModelViewerPanel>
+        </MiddleRow>
+
+        <ExclusivePanel
+          $unlocked={isAssetVerified}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          style={{ flexDirection: 'column', gap: '1.5rem', justifyContent: 'flex-start', paddingTop: '2rem' }}
+        >
+          <h3 style={{ fontFamily: 'var(--font-primary)', fontSize: '1.2rem', color: 'white', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+            EXCLUSIVE ACCESS & UNLOCKABLES
+          </h3>
+          <p style={{ fontFamily: 'var(--font-secondary)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)', maxWidth: '600px', margin: '0 0 1.5rem 0' }}>
+            Verified digital collectible owners will gain access to Exclusive Utilities and Unlockables. Includes early access to content, exclusive merchandise, concert tickets, and future airdrops.
+          </p>
+
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: '800px' }}>
             <ActionButton
-              onClick={handleVerify}
-              disabled={isVerifying || !serialNumber.trim()}
-              $primary
-              style={{
-                background: isAssetVerified
-                  ? 'linear-gradient(90deg, #00aa55, #00ff88)'
-                  : 'linear-gradient(90deg, #0055ff, #00aaff)',
-                border: 'none',
-                color: 'white',
-                boxShadow: isAssetVerified
-                  ? '0 0 15px rgba(0, 255, 136, 0.3)'
-                  : '0 0 15px rgba(0, 100, 255, 0.3)',
-                marginTop: 'auto'
-              }}
+              style={{ justifyContent: 'space-between', flex: 1, minWidth: '200px' }}
+              onClick={() => setShowTransferModal(true)}
+              disabled={!isDurkOwned}
             >
-              {isVerifying ? <FaSpinner className="spin" /> : isAssetVerified ? 'VERIFIED ✓' : 'VERIFY CODE'}
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <FaExchangeAlt /> LEGACY TRANSFER
+              </span>
+              {!isDurkOwned && <FaLock size={12} />}
+            </ActionButton>
+            <ActionButton
+              style={{ justifyContent: 'space-between', flex: 1, minWidth: '200px' }}
+              onClick={() => window.open('https://discord.gg/crownmania', '_blank')}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <FaDiscord /> COLLECTOR ACCESS
+              </span>
+              <FaCheck size={12} color="var(--vault-success)" />
+            </ActionButton>
+            <ActionButton
+              style={{ justifyContent: 'space-between', flex: 1, minWidth: '200px' }}
+              disabled={!isDurkOwned}
+              onClick={() => showToastMessage('Airdrops coming soon!')}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <FaGift /> VAULT REWARDS
+              </span>
+              {!isDurkOwned && <FaLock size={12} />}
             </ActionButton>
           </div>
-        </Panel>
+        </ExclusivePanel>
+      </VaultContent>
 
-        {/* VAULT CONNECTION PANEL */}
-        <WelcomePanel
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          style={{ display: 'flex', flexDirection: 'column', minHeight: '260px' }}
-        >
-          <PanelTitle><FaWallet /> Vault Connection</PanelTitle>
-
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <WelcomeText style={{ marginBottom: '1rem', textAlign: 'center', marginTop: '1rem' }}>
-              {user ? `Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connect wallet to view your owned assets.'}
-            </WelcomeText>
-
-            {user ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: 'auto' }}>
-                <ActionButton
-                  onClick={handleDisconnect}
-                  style={{ background: 'rgba(255, 50, 50, 0.2)', borderColor: '#ff4444', color: '#ff4444' }}
-                >
-                  <FaSignOutAlt /> Disconnect
-                </ActionButton>
-
-                {/* User Actions Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
-                  <ActionButton
-                    onClick={() => setShowAddressModal(true)}
-                    style={{ fontSize: '0.75rem', padding: '0.5rem' }}
-                  >
-                    <FaCopy /> View Address
-                  </ActionButton>
-                  <ActionButton
-                    onClick={() => setShowTransferModal(true)}
-                    style={{ fontSize: '0.75rem', padding: '0.5rem', opacity: 0.6 }}
-                  >
-                    <FaExchangeAlt /> Transfer
-                  </ActionButton>
-                  <ActionButton
-                    onClick={handleViewOnPolygon}
-                    style={{ fontSize: '0.75rem', padding: '0.5rem', gridColumn: 'span 2' }}
-                  >
-                    <FaExternalLinkAlt /> View on PolygonScan
-                  </ActionButton>
-                </div>
-              </div>
-            ) : (
-              <ActionButton
-                $primary
-                onClick={handleConnect}
-                disabled={isLoading}
-                style={{ marginTop: 'auto' }}
-              >
-                {isLoading ? <FaSpinner className="spin" /> : 'CONNECT'}
-              </ActionButton>
-            )}
-          </div>
-        </WelcomePanel>
-      </TopPanelsRow>
-
-      {/* CONTROL DECK (IDENTITY + SELECTOR) */}
-      <ControlDeckRow>
-        {/* IDENTITY STRIP */}
-        <IdentityPanel initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
-          <IdentityInfo>
-            <IdentityName>LIL DURK</IdentityName>
-            <IdentityTagline>10" Collectible Resin Figure</IdentityTagline>
-          </IdentityInfo>
-          <div style={{
-            color: isAssetVerified ? '#00ff88' : 'rgba(255,255,255,0.3)',
-            fontFamily: 'Designer',
-            fontSize: '1.2rem',
-            marginTop: '1rem',
-            transition: 'color 0.3s ease'
-          }}>
-            {isAssetVerified ? '• ASSET VERIFIED' : '• ASSET LOCKED'}
-          </div>
-        </IdentityPanel>
-
-        {/* CHARACTER SELECT GRID */}
-        <CharacterSelectSection>
-          <SelectGrid $verified={isAssetVerified}>
-            {/* Slot 1: Lil Durk (Active) - FACE SHOT */}
-            <SelectSlot $active={true} $owned={isAssetVerified} $verified={isAssetVerified}>
-              <img
-                src={DURK_FACE_IMG}
-                alt="Lil Durk Face"
-                style={{
-                  objectPosition: 'center center',
-                  transform: 'scale(1.1)'
-                }}
-              />
-            </SelectSlot>
-
-            {/* Slot 2-12: Unknown */}
-            {[...Array(11)].map((_, i) => (
-              <SelectSlot key={i} $owned={false}>
-                <UnknownAvatar>?</UnknownAvatar>
-              </SelectSlot>
-            ))}
-          </SelectGrid>
-        </CharacterSelectSection>
-      </ControlDeckRow>
-
-      {/* MIDDLE ROW: [ID CARD] [DETAILS] [3D VIEWER] */}
-      <MiddleRow>
-        {/* 1. ID CARD PREVIEW */}
-        <IDCard
-          $owned={isAssetVerified}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <IDImageContainer>
-            <IDImageHalf $owned={isAssetVerified} $label="BACK VIEW">
-              <img src={DURK_PREVIEW_IMG} alt="Lil Durk Back" style={{ objectPosition: 'center top' }} />
-            </IDImageHalf>
-
-            <IDImageHalf $owned={isAssetVerified} $label="FRONT VIEW">
-              <img
-                src={DURK_FRONT_IMG}
-                alt="Lil Durk Front"
-                style={{
-                  objectPosition: 'center 20%',
-                  transform: 'scale(1.15)'
-                }}
-              />
-            </IDImageHalf>
-          </IDImageContainer>
-          <IDFooter>
-            <div style={{ fontFamily: 'Designer', color: '#00c8ff' }}>SERIES 1</div>
-          </IDFooter>
-        </IDCard>
-
-        {/* 2. DETAILS PANEL */}
-        <DetailsPanel initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-          <DetailHeader>
-            <FaInfoCircle /> ASSET DETAILS
-          </DetailHeader>
-
-          <DetailGrid>
-            <DetailItem>
-              <label>Edition Number</label>
-              <div className={isAssetVerified ? 'highlight' : 'dim'}>
-                {isAssetVerified && displayEdition ? `#${displayEdition}` : '—'}
-              </div>
-            </DetailItem>
-
-            <DetailItem>
-              <label>Total Supply</label>
-              <div>500</div>
-            </DetailItem>
-
-            <DetailItem>
-              <label>Rarity Tier</label>
-              <div style={{ color: '#E2B808' }}>LEGENDARY</div>
-            </DetailItem>
-
-            <DetailItem>
-              <label>Dimensions</label>
-              <div>10 INCH</div>
-            </DetailItem>
-          </DetailGrid>
-
-          <OwnerBadge $owned={isAssetVerified}>
-            {isAssetVerified ? <><FaCheck /> OWNER VERIFIED</> : <><FaLock /> UNOWNED</>}
-          </OwnerBadge>
-
-          {!isAssetVerified && (
-            <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: '1rem' }}>
-              Claim your physical figure to unlock full details and benefits.
-            </div>
-          )}
-        </DetailsPanel>
-
-        {/* 3. 3D VIEWER */}
-        <ModelViewerPanel initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }}>
-          <ModelHeader>
-            <h3>3D Viewer</h3>
-            <FaCube style={{ color: '#00c8ff' }} />
-          </ModelHeader>
-          <ModelCanvas>
-            {isAssetVerified ? (
-              <Canvas camera={{ position: [0, 0, 3.5], fov: 45 }}>
-                <ambientLight intensity={0.6} />
-                <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
-                <Suspense fallback={null}>
-                  <DurkModel scale={1.3} position={[0, -1.2, 0]} />
-                  <Environment preset="studio" />
-                </Suspense>
-                <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={2} />
-              </Canvas>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: '1rem', color: 'rgba(255,255,255,0.4)' }}>
-                <FaLock style={{ fontSize: '2rem' }} />
-                <span>LOCKED</span>
-              </div>
-            )}
-          </ModelCanvas>
-        </ModelViewerPanel>
-      </MiddleRow>
-
-      {/* EXCLUSIVE ACCESS PANEL */}
-      <ExclusivePanel $unlocked={isAssetVerified}>
-        <LockIconLarge $unlocked={isAssetVerified}>
-          {isAssetVerified ? <FaGift /> : <FaLock />}
-        </LockIconLarge>
-
-        <ExclusiveContent $unlocked={isAssetVerified}>
-          <h2>Exclusive Access & Unlockables</h2>
-
-          {isAssetVerified ? (
-            <>
-              <p>
-                Congratulations! As a verified owner, you have unlocked this section.
-                <br />
-                <span className="highlight">Exclusive unlocks are coming soon.</span>
-              </p>
-              <p style={{ fontSize: '0.9rem', opacity: 0.7 }}>
-                You will be notified via registered email & phone number when new perks, content, and merchandise become available.
-              </p>
-            </>
-          ) : (
-            <>
-              <p>
-                Verified digital collectible owners will gain access to <span className="highlight">Exclusive Utilities and Unlockables</span>.
-              </p>
-              <p>
-                Includes early access to content, exclusive merchandise, concert tickets, and future airdrops.
-                <br />
-                Claim your physical figure to unlock this section.
-              </p>
-            </>
-          )}
-        </ExclusiveContent>
-      </ExclusivePanel>
-
-      {/* TOAST NOTIFICATION */}
-      <AnimatePresence>
-        {showToast && (
-          <ToastContainer
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-          >
-            {toastMessage}
-          </ToastContainer>
-        )}
-      </AnimatePresence>
-
-      {/* ADDRESS MODAL */}
+      {/* Address / Vault Info Modal */}
       <AnimatePresence>
         {showAddressModal && (
           <ModalOverlay
@@ -1143,26 +1722,28 @@ export default function Vault() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <h3>Wallet Address</h3>
+              <h3>VAULT IDENTITY</h3>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: '1.5rem', fontFamily: 'var(--font-secondary)' }}>
+                Your unique identity archive address on the secure ledger.
+              </p>
               <ModalInput
-                type="text"
-                value={walletAddress}
                 readOnly
+                value={walletAddress}
               />
-              <ModalButtonRow>
-                <ActionButton onClick={handleCopyAddress} $primary style={{ flex: 1 }}>
-                  <FaCopy /> Copy Address
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <ActionButton $primary onClick={handleCopyAddress} style={{ flex: 1 }}>
+                  <FaCopy /> COPY ADDRESS
                 </ActionButton>
-                <ActionButton onClick={() => setShowAddressModal(false)} style={{ flex: 1 }}>
-                  Close
+                <ActionButton onClick={handleViewOnPolygon} style={{ flex: 1 }}>
+                  <FaExternalLinkAlt /> EXPLORE
                 </ActionButton>
-              </ModalButtonRow>
+              </div>
             </ModalContent>
           </ModalOverlay>
         )}
       </AnimatePresence>
 
-      {/* TRANSFER MODAL */}
+      {/* Transfer Modal */}
       <AnimatePresence>
         {showTransferModal && (
           <ModalOverlay
@@ -1177,27 +1758,21 @@ export default function Vault() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <h3>Transfer Asset</h3>
-              <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '1rem', fontFamily: 'Avenir Next' }}>
-                Enter the recipient wallet address to transfer your collectible.
+              <h3>TRANSFER FRAGMENT</h3>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: '1.5rem', fontFamily: 'var(--font-secondary)' }}>
+                Enter the destination vault address to transfer ownership.
               </p>
               <ModalInput
-                type="text"
                 placeholder="0x..."
                 value={transferAddress}
                 onChange={(e) => setTransferAddress(e.target.value)}
               />
               <ModalButtonRow>
-                <ActionButton
-                  onClick={handleTransfer}
-                  $primary
-                  style={{ flex: 1, opacity: 0.5 }}
-                  disabled
-                >
-                  Coming Soon
+                <ActionButton $primary onClick={handleTransfer} style={{ flex: 1 }}>
+                  INITIATE TRANSFER
                 </ActionButton>
                 <ActionButton onClick={() => setShowTransferModal(false)} style={{ flex: 1 }}>
-                  Cancel
+                  CANCEL
                 </ActionButton>
               </ModalButtonRow>
             </ModalContent>
@@ -1205,10 +1780,17 @@ export default function Vault() {
         )}
       </AnimatePresence>
 
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-      `}</style>
-    </VaultSection>
+      <AnimatePresence>
+        {showToast && (
+          <ToastContainer
+            initial={{ y: 50, opacity: 0, scale: 0.9 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 50, opacity: 0, scale: 0.9 }}
+          >
+            {toastMessage}
+          </ToastContainer>
+        )}
+      </AnimatePresence>
+    </VaultSection >
   );
 }
