@@ -21,11 +21,12 @@ const BlueprintLayer = styled.div`
   height: 100%;
   background-image: url(${blueprintSvg});
   background-repeat: repeat;
-  background-size: 800px auto;
-  opacity: 0.15;
+  background-size: 600px auto;
+  opacity: 0.35;
   pointer-events: none;
   z-index: -1;
-  filter: invert(1) brightness(2.5) contrast(1.2); /* Makes blue lines white with better visibility */
+  filter: invert(1) brightness(3) contrast(1.5); /* Makes blue lines white with much better visibility */
+  mix-blend-mode: screen;
 `;
 
 const DotOverlay = styled.div`
