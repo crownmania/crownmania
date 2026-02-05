@@ -13,8 +13,24 @@ const AboutSection = styled.section`
   flex-direction: column;
   align-items: center;
   position: relative;
-  background: radial-gradient(circle at 50% 90%, rgba(200, 0, 0, 0.08) 0%, transparent 60%);
   overflow: hidden;
+  
+  /* Inherit Vault-like transparency to show global background */
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.6) 10%,
+    rgba(0, 0, 0, 0.6) 90%,
+    transparent 100%
+  );
+
+  /* Vault Theme Variables for consistency */
+  --vault-accent: #4169E1;
+  --vault-glow: rgba(65, 105, 225, 0.4);
+  --bg-vault: rgba(0, 5, 25, 0.5);
+  --glass-blur: blur(10px);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  --vault-shadow: 0 8px 32px 0 rgba( 0, 0, 0, 0.37 );
 `;
 
 const MainTitle = styled.div`
@@ -63,20 +79,33 @@ const VisionGrid = styled.div`
   }
 `;
 
+/* Updated VisionCard to match Vault Panel aesthetics with Matrix retained */
 const VisionCard = styled(motion.div)`
-  background: var(--vault-bg);
-  border: 1px solid var(--vault-border);
-  border-radius: 24px;
+  background: var(--bg-vault);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  border-radius: 20px;
   padding: 3rem 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  backdrop-filter: blur(var(--vault-blur));
-  -webkit-backdrop-filter: blur(var(--vault-blur));
   position: relative;
+  box-shadow: var(--vault-shadow);
   overflow: hidden;
   transition: all 0.4s ease;
+
+  /* Subtle top border shine like Vault panels */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  }
 
   &:hover {
     border-color: var(--vault-accent);
@@ -95,6 +124,8 @@ const IconWrapper = styled.div`
   color: rgba(255, 255, 255, 0.4);
   margin-bottom: 2rem;
   transition: all 0.4s ease;
+  position: relative;
+  z-index: 2;
 `;
 
 const CardTitle = styled.h3`
@@ -105,6 +136,8 @@ const CardTitle = styled.h3`
   margin-bottom: 1rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  position: relative;
+  z-index: 2;
 `;
 
 const CardDescription = styled.p`
@@ -113,6 +146,8 @@ const CardDescription = styled.p`
   line-height: 1.7;
   color: rgba(255, 255, 255, 0.6);
   max-width: 240px;
+  position: relative;
+  z-index: 2;
 `;
 
 const VisionManifesto = styled(motion.div)`
@@ -120,47 +155,33 @@ const VisionManifesto = styled(motion.div)`
   margin: 0 auto;
   z-index: 2;
   position: relative;
-
-  &::before {
-    content: '"';
-    position: absolute;
-    top: -4rem;
-    left: -2rem;
-    font-size: 10rem;
-    font-family: var(--font-primary);
-    color: var(--vault-accent);
-    opacity: 0.1;
-  }
+  text-align: center; /* Centered text for the vision */
 `;
 
 const ManifestoParagraph = styled(motion.p)`
   font-family: var(--font-secondary);
-  font-size: clamp(1.1rem, 3vw, 1.35rem);
-  line-height: 1.9;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 3rem;
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 2.5rem;
   font-weight: 400;
   letter-spacing: 0.02em;
+  text-align: left; /* Keep paragraphs left-aligned for readability usually, but user prompt implies a flow. Vault uses centered/left mix. Let's stick to left or center. Centered is more "manifesto" like. */
+  text-align: center;
 
   strong {
     color: var(--vault-accent);
     font-weight: 700;
-  }
-
-  span.highlight {
-    background: linear-gradient(120deg, rgba(200, 0, 0, 0.2) 0%, rgba(200, 0, 0, 0.2) 100%);
-    background-repeat: no-repeat;
-    background-size: 100% 0.3em;
-    background-position: 0 88%;
   }
 `;
 
 const MatrixOverlay = styled.div`
   position: absolute;
   inset: 0;
-  opacity: 0.15;
+  opacity: 0.15; /* Kept subtle */
   filter: grayscale(1);
   pointer-events: none;
+  z-index: 1; 
 `;
 
 export default function About() {
@@ -251,9 +272,20 @@ export default function About() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          CrownMania is where <span className="highlight">culture meets the ledger</span>.
+          <strong>CrownMania is where real life meets the digital world.</strong>
+        </ManifestoParagraph>
+
+        <ManifestoParagraph
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1 }}
+        >
           It was created for people who don’t just want to look at collectibles — they want
-          to own a piece of a moment, a voice, a story that matters.
+          to own a piece of a moment, a voice, a story that matters to them. Whether it’s
+          an artist who got them through dark days, a figure that represents resilience,
+          or a symbol of where they came from, CrownMania turns that connection into
+          something real you can hold and something digital that proves it’s yours.
         </ManifestoParagraph>
 
         <ManifestoParagraph
@@ -262,9 +294,21 @@ export default function About() {
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
         >
-          Every Genesis fragment is more than a figure. It’s a <strong>limited-edition artifact</strong>
-          tied to a permanent record on the blockchain. When you scan your physical
-          collectible, you’re not just checking if it’s real… you’re <span className="highlight">unlocking its history</span>.
+          Every CrownMania collectible is more than a figure.
+          It’s a <strong>limited-edition artifact tied to a Digital Crown</strong> — a permanent
+          record of ownership on the blockchain that lives beyond the box, beyond resale,
+          and beyond time. When you scan your physical collectible, you’re not just checking
+          if it’s real… you’re unlocking its story, and your place in it.
+        </ManifestoParagraph>
+
+        <ManifestoParagraph
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3 }}
+        >
+          We believe the future of collectibles isn’t about speculation or hype.
+          It’s about <strong>belonging, authenticity, and culture that lives on.</strong>
         </ManifestoParagraph>
 
         <ManifestoParagraph
@@ -272,9 +316,10 @@ export default function About() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4 }}
-          style={{ textAlign: 'center', fontSize: '1.5rem', fontFamily: 'var(--font-primary)' }}
         >
-          AUTHENTICITY. CULTURE. THE FUTURE.
+          CrownMania gives people a new way to connect with the artists, creators, and
+          icons they believe in — not just by watching from the outside, but by owning
+          their crown in the mania.
         </ManifestoParagraph>
       </VisionManifesto>
     </AboutSection>

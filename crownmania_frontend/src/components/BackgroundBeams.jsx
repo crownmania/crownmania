@@ -1,4 +1,4 @@
-import React from 'react';
+
 import styled from 'styled-components';
 import blueprintSvg from '../assets/crownmania_blueprint.svg';
 
@@ -8,7 +8,6 @@ const BackgroundContainer = styled.div`
   left: 0;
   width: 100%;
   height: 100vh;
-  z-index: -1;
   overflow: hidden;
   background: #000000;
 `;
@@ -19,14 +18,11 @@ const BlueprintLayer = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url(${blueprintSvg});
+  background-image: url("${blueprintSvg}");
   background-repeat: repeat;
   background-size: 600px auto;
-  opacity: 0.35;
+  opacity: 0.045;
   pointer-events: none;
-  z-index: -1;
-  filter: invert(1) brightness(3) contrast(1.5); /* Makes blue lines white with much better visibility */
-  mix-blend-mode: screen;
 `;
 
 const DotOverlay = styled.div`
@@ -39,7 +35,6 @@ const DotOverlay = styled.div`
   background-size: 40px 40px;
   mask-image: linear-gradient(to bottom, black 0%, transparent 80%);
   -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 80%);
-  z-index: -1;
   pointer-events: none;
 `;
 

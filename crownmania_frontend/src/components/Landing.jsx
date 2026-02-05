@@ -14,6 +14,11 @@ const LandingSection = styled.section`
   background: transparent;
   overflow: hidden;
   padding-top: 80px; /* Header offset */
+
+  @media (max-width: 450px) {
+    justify-content: flex-start;
+    padding-top: 15vh;
+  }
 `;
 
 const ContentWrapper = styled.div`
@@ -31,18 +36,18 @@ const ContentWrapper = styled.div`
 
 const MainTagline = styled(motion.h1)`
   font-family: var(--font-primary);
-  font-size: clamp(3rem, 10vw, 6.5rem);
+  font-size: clamp(1.5rem, 8vw, 5rem);
   color: white;
   text-transform: uppercase;
   letter-spacing: 0.25em;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3), 0 0 20px rgba(255, 255, 255, 0.15);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
   margin-bottom: 0.5rem;
   line-height: 1.1;
   font-weight: normal;
 `;
 
 const SubTagline = styled(motion.h2)`
-  font-size: clamp(0.9rem, 2vw, 1.2rem);
+  font-size: clamp(0.7rem, 2vw, 1.1rem);
   font-family: var(--font-secondary);
   color: white;
   text-transform: uppercase;
@@ -61,6 +66,10 @@ const LogoButton = styled(motion.button)`
   margin-top: 1rem;
   z-index: 2;
   padding: 0;
+  
+  @media (max-width: 450px) {
+    margin-top: 5vh;
+  }
   
   img {
     width: 65px;

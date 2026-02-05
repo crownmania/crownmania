@@ -82,6 +82,7 @@ export const GlobalStyles = createGlobalStyle`
     font-weight: normal;
     letter-spacing: 0.15em;
     text-transform: uppercase;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
   }
 
   a {

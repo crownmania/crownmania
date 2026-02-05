@@ -20,11 +20,12 @@ const HeaderContainer = styled(motion.header)`
   align-items: center;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   background: #000;
-  border-bottom: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   
   ${props => props.$scrolled && `
-    background: #000;
-    border-bottom: none;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1rem 3rem;
   `}
 
@@ -202,7 +203,7 @@ const MobileMenu = styled(motion.div)`
 
 const MobileNavItem = styled(motion.a)`
   font-family: var(--font-primary);
-  font-size: 2.5rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: #fff;
   text-transform: uppercase;
@@ -321,8 +322,8 @@ export default function Header() {
   };
 
   const menuItems = [
-    { text: 'Identity', link: '/' },
-    { text: 'Archival Shop', link: '/#shop' },
+    { text: 'CROWNMANIA', link: '/' },
+    { text: 'The Shop', link: '/#shop' },
     { text: 'The Vision', link: '/#about' },
     { text: 'Access Vault', link: '/#vault' },
     { text: 'Contact', link: '/contact' }
