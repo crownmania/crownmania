@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaLock } from 'react-icons/fa';
 
 import { useNavigate } from 'react-router-dom';
-import { getStorageURL, preloadFiles } from "../utils/storageUtils";
+import { getStorageURL } from "../utils/storageUtils";
 import LoadingSpinner from "./common/LoadingSpinner";
 import { PRODUCTS } from '../data/productData';
 
@@ -15,8 +15,23 @@ const ShopSection = styled.section`
   flex-direction: column;
   align-items: center;
   position: relative;
-  background: radial-gradient(circle at 50% 10%, rgba(200, 0, 0, 0.05) 0%, transparent 50%);
   overflow: hidden;
+  
+  /* Inherit Vault-like transparency to show global background */
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.6) 10%,
+    rgba(0, 0, 0, 0.6) 90%,
+    transparent 100%
+  );
+
+  /* Vault Theme Variables for consistency */
+  --vault-accent: #4169E1;
+  --bg-vault: rgba(0, 5, 25, 0.5);
+  --glass-blur: blur(10px);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+  --vault-shadow: 0 8px 32px 0 rgba( 0, 0, 0, 0.37 );
 `;
 
 const MainTitle = styled.div`
@@ -65,11 +80,11 @@ const WindowsContainer = styled.div`
 `;
 
 const ShopCard = styled(motion.div)`
-  background: var(--vault-bg);
+  background: var(--bg-vault);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
   border-radius: 20px;
-  backdrop-filter: blur(var(--vault-blur));
-  -webkit-backdrop-filter: blur(var(--vault-blur));
-  border: 1px solid var(--vault-border);
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -78,24 +93,23 @@ const ShopCard = styled(motion.div)`
   position: relative;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  box-shadow: var(--vault-shadow);
 
-  &::before {
+  /* Subtle top border shine */
+  &::after {
     content: '';
     position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 50% 0%, rgba(200, 0, 0, 0.1), transparent 70%);
-    opacity: 0;
-    transition: opacity 0.4s ease;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   }
 
   &:hover {
     transform: translateY(-10px);
     border-color: var(--vault-accent);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(200, 0, 0, 0.15);
-    
-    &::before {
-      opacity: 1;
-    }
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 
     img {
       transform: scale(1.05) translateY(-5px);
@@ -202,13 +216,14 @@ const ExpandedOverlay = styled(motion.div)`
 const ExpandedContent = styled(motion.div)`
   width: 100%;
   max-width: 1100px;
-  background: var(--vault-bg);
-  border: 1px solid var(--vault-border);
+  background: var(--bg-vault);
+  border: 1px solid var(--glass-border);
   border-radius: 24px;
   overflow: hidden;
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
   max-height: 90vh;
+  box-shadow: 0 0 50px rgba(0,0,0,0.5);
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
@@ -235,11 +250,11 @@ const SidePanel = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border-left: 1px solid var(--vault-border);
+  border-left: 1px solid var(--glass-border);
 
   @media (max-width: 900px) {
     border-left: none;
-    border-top: 1px solid var(--vault-border);
+    border-top: 1px solid var(--glass-border);
     padding: 2rem;
   }
 `;
@@ -248,8 +263,8 @@ const CloseIconButton = styled(motion.button)`
   position: absolute;
   top: 2rem;
   right: 2rem;
-  background: var(--vault-bg);
-  border: 1px solid var(--vault-border);
+  background: var(--bg-vault);
+  border: 1px solid var(--glass-border);
   color: white;
   width: 44px;
   height: 44px;
@@ -297,12 +312,12 @@ const GalleryNav = styled(motion.button)`
 const ComingSoonBadge = styled.div`
   font-family: var(--font-secondary);
   font-size: 0.7rem;
-  color: var(--vault-accent);
+  color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
   letter-spacing: 0.3em;
   padding: 0.5rem 1rem;
-  background: rgba(200, 0, 0, 0.05);
-  border: 1px solid rgba(200, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   margin-top: 1rem;
 `;
@@ -322,120 +337,6 @@ export default function Shop() {
   useEffect(() => {
     setCurrentImageIndex(0);
   }, [selectedWindow]);
-
-  const windows = [
-    {
-      id: 'durk',
-      type: 'crown',
-      title: 'Limited Edition: Lil Durk Collectible Figure',
-      price: '$299.99'
-    },
-    {
-      id: 2,
-      type: 'coming-soon',
-      title: 'Coming Soon',
-      price: ''
-    },
-    {
-      id: 3,
-      type: 'coming-soon',
-      title: 'Coming Soon',
-      price: ''
-    }
-  ];
-
-  const ProductWindow = ({ type, imageId }) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [imageError, setImageError] = useState(false);
-    const [imageUrl, setImageUrl] = useState(null);
-
-    useEffect(() => {
-      const loadImage = async () => {
-        if (!imageId) return;
-
-        setIsLoading(true);
-        setImageError(false);
-
-        try {
-          // Try loading .webp first
-          console.log(`Attempting to load product${imageId}.webp`);
-          const webpUrl = await getStorageURL(`images/product${imageId}.webp`);
-          if (webpUrl) {
-            console.log(`Successfully loaded product${imageId}.webp`);
-            setImageUrl(webpUrl);
-            return;
-          }
-
-          // Fallback to .jpg if .webp fails
-          console.log(`Falling back to product${imageId}.jpg`);
-          const jpgUrl = await getStorageURL(`images/product${imageId}.jpg`);
-          if (jpgUrl) {
-            console.log(`Successfully loaded product${imageId}.jpg`);
-            setImageUrl(jpgUrl);
-            return;
-          }
-
-          throw new Error('Both .webp and .jpg formats failed to load');
-        } catch (error) {
-          console.error(`Error loading image for product ${imageId}:`, error);
-          setImageError(true);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      loadImage();
-    }, [imageId]);
-
-    if (type === 'crown') {
-      return (
-        <ImageContainer>
-          <img
-            src="/images/product1.webp"
-            alt="Lil Durk Collectible Figure"
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-          />
-        </ImageContainer>
-      );
-    }
-
-    if (type === 'coming-soon') {
-      return (
-        <ComingSoonContainer>
-          <ComingSoonText>Coming Soon</ComingSoonText>
-        </ComingSoonContainer>
-      );
-    }
-
-    return (
-      <Window
-        onClick={() => setSelectedWindow(type)}
-        className={selectedWindow === type ? 'active' : ''}
-      >
-        {isLoading && <LoadingSpinner />}
-        {!isLoading && !imageError && imageUrl && (
-          <img
-            src={imageUrl}
-            alt={`Product ${imageId}`}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover'
-            }}
-          />
-        )}
-        {(imageError || (!isLoading && !imageUrl)) && (
-          <div style={{
-            color: 'red',
-            textAlign: 'center',
-            padding: '20px'
-          }}>
-            Failed to load image
-          </div>
-        )}
-      </Window>
-    );
-  };
 
   const handleBuyClick = (e, product) => {
     e.stopPropagation();

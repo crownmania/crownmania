@@ -30,24 +30,24 @@ let sessionRefresher = null;
  */
 const checkRateLimit = () => {
   const now = Date.now();
-  
+
   // Clear old requests outside the window
   rateLimitState.requests = rateLimitState.requests.filter(
     timestamp => now - timestamp < SECURITY_CONFIG.RATE_LIMIT_WINDOW
   );
-  
+
   // Check if currently blocked
   if (rateLimitState.blockedUntil && now < rateLimitState.blockedUntil) {
     const waitTime = Math.ceil((rateLimitState.blockedUntil - now) / 1000);
     throw new Error(`Rate limit exceeded. Please wait ${waitTime} seconds.`);
   }
-  
+
   // Check request count
   if (rateLimitState.requests.length >= SECURITY_CONFIG.MAX_REQUESTS_PER_WINDOW) {
     rateLimitState.blockedUntil = now + SECURITY_CONFIG.RATE_LIMIT_WINDOW;
     throw new Error('Rate limit exceeded. Please try again later.');
   }
-  
+
   // Record this request
   rateLimitState.requests.push(now);
   return true;
@@ -84,10 +84,10 @@ export const setSessionRefresher = (refresher) => {
  */
 const signRequest = async (method, url, data = null, walletAddress = null) => {
   if (!walletAddress) return null;
-  
+
   const timestamp = Date.now();
   const nonce = Math.random().toString(36).substr(2, 15);
-  
+
   // Create signature payload
   const payload = {
     method: method.toUpperCase(),
@@ -96,11 +96,11 @@ const signRequest = async (method, url, data = null, walletAddress = null) => {
     nonce,
     walletAddress: walletAddress.toLowerCase(),
   };
-  
+
   if (data) {
     payload.dataHash = await hashData(JSON.stringify(data));
   }
-  
+
   return {
     timestamp,
     nonce,
@@ -139,7 +139,7 @@ api.interceptors.request.use(
     } catch (err) {
       return Promise.reject(err);
     }
-    
+
     // Validate connection before sensitive operations
     if (connectionValidator && config.requiresAuth !== false) {
       try {
@@ -152,13 +152,13 @@ api.interceptors.request.use(
         // Continue anyway for non-critical requests
       }
     }
-    
+
     // Add request timestamp for replay protection
     config.headers['X-Request-Timestamp'] = Date.now();
-    
+
     // Add request ID for tracing
     config.headers['X-Request-ID'] = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Sign sensitive requests if wallet address available
     if (config.sensitive && config.walletAddress) {
       const signature = await signRequest(
@@ -173,7 +173,7 @@ api.interceptors.request.use(
         config.headers['X-Request-Nonce'] = signature.nonce;
       }
     }
-    
+
     return config;
   },
   (error) => {
@@ -186,19 +186,19 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const config = error.config;
-    
+
     // If no config, can't retry
     if (!config) {
       return Promise.reject(error);
     }
-    
+
     // Initialize retry count
     config.retryCount = config.retryCount || 0;
-    
+
     // Handle 401/403 - session/token issues
     if (error.response?.status === 401 || error.response?.status === 403) {
       console.warn(`[API] Auth error ${error.response.status}:`, error.response.data);
-      
+
       // Try to refresh session if available
       if (sessionRefresher && config.retryCount < SECURITY_CONFIG.MAX_RETRIES) {
         try {
@@ -212,36 +212,36 @@ api.interceptors.response.use(
           console.error('[API] Session refresh failed:', refreshErr);
         }
       }
-      
+
       // Clear any stored auth data if refresh failed
       if (config.retryCount >= SECURITY_CONFIG.MAX_RETRIES) {
         // Optionally trigger logout or auth refresh
         console.error('[API] Max retries reached for auth error');
       }
     }
-    
+
     // Retry logic for network errors or 5xx server errors
-    const shouldRetry = 
+    const shouldRetry =
       !error.response || // Network error
       (error.response.status >= 500 && error.response.status < 600) || // Server error
       error.code === 'ECONNABORTED' || // Timeout
       error.code === 'ETIMEDOUT'; // Timeout
-    
+
     if (shouldRetry && config.retryCount < SECURITY_CONFIG.MAX_RETRIES) {
       config.retryCount += 1;
       const delay = getRetryDelay(config.retryCount - 1);
-      
+
       console.log(`[API] Retrying request (${config.retryCount}/${SECURITY_CONFIG.MAX_RETRIES}) after ${delay}ms`);
-      
+
       await new Promise(resolve => setTimeout(resolve, delay));
       return api(config);
     }
-    
+
     // Log security-related errors
     if (error.response?.status === 403) {
       console.error('[API] Security violation detected:', error.response.data);
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -250,15 +250,15 @@ api.interceptors.response.use(
  * Execute API call with retry logic and rate limiting
  */
 const executeAPICall = async (apiCall, options = {}) => {
-  const { 
-    sensitive = false, 
+  const {
+    sensitive = false,
     walletAddress = null,
     requiresAuth = true,
-    maxRetries = SECURITY_CONFIG.MAX_RETRIES 
+    maxRetries = SECURITY_CONFIG.MAX_RETRIES
   } = options;
-  
+
   let lastError;
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const config = {
@@ -267,25 +267,25 @@ const executeAPICall = async (apiCall, options = {}) => {
         requiresAuth,
         retryCount: attempt,
       };
-      
+
       const result = await apiCall(config);
       return result;
     } catch (error) {
       lastError = error;
-      
+
       // Don't retry client errors (4xx) except 401/403 which are handled by interceptor
-      if (error.response?.status >= 400 && error.response?.status < 500 && 
-          error.response?.status !== 401 && error.response?.status !== 403) {
+      if (error.response?.status >= 400 && error.response?.status < 500 &&
+        error.response?.status !== 401 && error.response?.status !== 403) {
         throw error;
       }
-      
+
       if (attempt < maxRetries) {
         const delay = getRetryDelay(attempt);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
-  
+
   throw lastError;
 };
 
@@ -302,7 +302,7 @@ export const verificationAPI = {
   verifyProduct: async (productId, productType) => {
     try {
       const params = productType ? { type: productType } : {};
-      const response = await api.get(`/api/verification/verify-product/${productId}`, { 
+      const response = await api.get(`/api/verification/verify-product/${productId}`, {
         params,
         requiresAuth: false, // Public endpoint
       });
@@ -320,8 +320,8 @@ export const verificationAPI = {
    */
   verifySerialNumber: async (serialNumber) => {
     try {
-      const response = await api.post('/api/verification/verify-serial', { 
-        serialNumber 
+      const response = await api.post('/api/verification/verify-serial', {
+        serialNumber
       }, {
         requiresAuth: false, // Public endpoint
       });
@@ -391,6 +391,39 @@ export const verificationAPI = {
     } catch (error) {
       console.error('Error getting nonce:', error);
       throw error.response?.data || { error: 'Failed to get nonce' };
+    }
+  },
+
+  /**
+   * Verify a product by its serial number (alias for verifySerialNumber)
+   * @param {string} serialNumber - The serial number
+   * @returns {Promise<{verified: boolean, product: object, message: string}>}
+   */
+  verifySerial: async (serialNumber) => {
+    try {
+      const response = await api.post('/api/verification/verify-serial', {
+        serialNumber
+      }, {
+        requiresAuth: false,
+      });
+
+      // Transform the response to include the expected fields
+      const data = response.data;
+      return {
+        valid: data.verified,
+        verified: data.verified,
+        claimed: data.claimed || false,
+        productId: data.product?.productId,
+        editionNumber: data.product?.edition,
+        edition: data.product?.edition,
+        tokenAddress: data.product?.tokenAddress || data.product?.contractAddress,
+        claimDate: data.product?.claimDate || data.product?.claimedAt,
+        message: data.message,
+        product: data.product
+      };
+    } catch (error) {
+      console.error('Error verifying serial:', error);
+      throw error.response?.data || { error: 'Failed to verify serial' };
     }
   },
 };
@@ -470,7 +503,7 @@ export const contentAPI = {
   getProductContent: async (productId, walletAddress) => {
     try {
       const params = walletAddress ? { walletAddress } : {};
-      const response = await api.get(`/api/content/product/${productId}`, { 
+      const response = await api.get(`/api/content/product/${productId}`, {
         params,
         sensitive: !!walletAddress,
         walletAddress,
@@ -534,7 +567,7 @@ export const securityAPI = {
     const windowStart = now - SECURITY_CONFIG.RATE_LIMIT_WINDOW;
     const requestsInWindow = rateLimitState.requests.filter(t => t > windowStart).length;
     const remaining = Math.max(0, SECURITY_CONFIG.MAX_REQUESTS_PER_WINDOW - requestsInWindow);
-    
+
     return {
       remaining,
       limit: SECURITY_CONFIG.MAX_REQUESTS_PER_WINDOW,

@@ -4,7 +4,7 @@ import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
-import { FaLock, FaCheck, FaTimes, FaSpinner, FaWallet, FaSignOutAlt, FaCube, FaChevronLeft, FaChevronRight, FaKeyboard, FaQrcode, FaDiscord, FaGift, FaTag, FaInfoCircle, FaCopy, FaExternalLinkAlt, FaExchangeAlt } from 'react-icons/fa';
+import { FaLock, FaCheck, FaTimes, FaSpinner, FaWallet, FaSignOutAlt, FaCube, FaChevronLeft, FaChevronRight, FaKeyboard, FaQrcode, FaDiscord, FaGift, FaTag, FaInfoCircle, FaCopy, FaExternalLinkAlt, FaExchangeAlt, FaTwitter, FaInstagram, FaYoutube, FaTiktok } from 'react-icons/fa';
 
 import useWeb3Auth from '../hooks/useWeb3Auth';
 import { verificationAPI } from '../services/api';
@@ -117,7 +117,13 @@ const ModalButtonRow = styled.div`
 
 const VaultSection = styled.section`
   min-height: 100vh;
-  background-color: var(--bg-deep);
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.6) 2%,
+    rgba(0, 0, 0, 0.6) 98%,
+    transparent 100%
+  );
   color: white;
   padding: 4rem 2rem;
   position: relative;
@@ -295,6 +301,61 @@ const ArtistDetailItem = styled.div`
   }
 `;
 
+const SocialMediaLinks = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const SocialIcon = styled.a`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.1rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--vault-accent);
+    color: var(--vault-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(65, 105, 225, 0.3);
+  }
+  
+  &.twitter:hover {
+    border-color: #1DA1F2;
+    color: #1DA1F2;
+    box-shadow: 0 4px 12px rgba(29, 161, 242, 0.3);
+  }
+  
+  &.instagram:hover {
+    border-color: #E1306C;
+    color: #E1306C;
+    box-shadow: 0 4px 12px rgba(225, 48, 108, 0.3);
+  }
+  
+  &.youtube:hover {
+    border-color: #FF0000;
+    color: #FF0000;
+    box-shadow: 0 4px 12px rgba(255, 0, 0, 0.3);
+  }
+  
+  &.tiktok:hover {
+    border-color: #00F2EA;
+    color: #00F2EA;
+    box-shadow: 0 4px 12px rgba(0, 242, 234, 0.3);
+  }
+`;
+
 const CharacterSelectSection = styled.div`
   width: 100%;
   height: 100%;
@@ -364,9 +425,9 @@ const SelectSlot = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: ${props => (props.$owned && !props.$locked) ? 1 : 0.6};
-    filter: ${props => (props.$owned && !props.$locked) ? 'none' : 'grayscale(100%) contrast(1.2)'};
-    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: ${props => props.$verified ? 1 : 0.6};
+    filter: ${props => props.$verified ? 'none saturate(1.1)' : 'grayscale(100%) contrast(1.2)'};
+    transition: all 1.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 `;
 
@@ -381,7 +442,8 @@ const UnknownAvatar = styled.div`
 const VaultContent = styled.div`
   position: relative;
   transition: all 0.5s ease;
-  /* Targeted grayscale logic applied to children instead of globally */
+  /* Grayscale is applied to individual image components, not the whole vault */
+  /* This keeps UI elements (buttons, borders, text) colorful */
 `;
 
 const IdentityPanel = styled(Panel)`
@@ -480,8 +542,8 @@ const IDImageHalf = styled.div`
     height: 100%;
     object-fit: contain;
     padding: 0;
-    filter: ${props => (props.$owned && !props.$locked) ? 'none' : 'grayscale(100%) contrast(1.1) brightness(0.8)'};
-    transition: filter 0.8s ease;
+    filter: ${props => props.$verified ? 'none saturate(1.1)' : 'grayscale(100%) contrast(1.1) brightness(0.8)'};
+    transition: filter 1.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 `;
 
@@ -966,7 +1028,7 @@ export default function Vault() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferAddress, setTransferAddress] = useState('');
 
-// Theme state - Royal Blue primary
+  // Theme state - Royal Blue primary
   const [currentTheme, setCurrentTheme] = useState('blue');
   const themes = {
     blue: { color: '#4169E1', glow: 'rgba(65, 105, 225, 0.4)', bg: 'rgba(0, 5, 25, 0.5)' },
@@ -1077,7 +1139,8 @@ export default function Vault() {
   // Load verified serials from localStorage on mount
   useEffect(() => {
     loadVerifiedSerialsFromStorage();
-  }, [loadVerifiedSerialsFromStorage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   // ID Card image cycling state
   const [frontImageIndex, setFrontImageIndex] = useState(0);
@@ -1329,7 +1392,7 @@ export default function Vault() {
         </motion.div>
       </MainTitle>
 
-      <VaultContent $locked={isVaultLocked}>
+      <VaultContent $verified={isAssetVerified} $locked={isVaultLocked}>
         {/* Reordering and removing ternary logic */}
         <TopPanelsRow>
           {/* 1. Verify Panel (Left) */}
@@ -1470,6 +1533,44 @@ export default function Vault() {
                 <span className="value">159 lbs</span>
               </ArtistDetailItem>
             </ArtistDetails>
+            <SocialMediaLinks>
+              <SocialIcon
+                href="https://twitter.com/lildurk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="twitter"
+                title="Follow on Twitter"
+              >
+                <FaTwitter />
+              </SocialIcon>
+              <SocialIcon
+                href="https://instagram.com/lildurk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="instagram"
+                title="Follow on Instagram"
+              >
+                <FaInstagram />
+              </SocialIcon>
+              <SocialIcon
+                href="https://youtube.com/@lildurk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="youtube"
+                title="Subscribe on YouTube"
+              >
+                <FaYoutube />
+              </SocialIcon>
+              <SocialIcon
+                href="https://tiktok.com/@lildurk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tiktok"
+                title="Follow on TikTok"
+              >
+                <FaTiktok />
+              </SocialIcon>
+            </SocialMediaLinks>
             <div className={`status ${isAssetVerified ? 'active' : ''}`}>
               {isAssetVerified ? <FaCheck /> : <FaLock />}
               {isAssetVerified ? 'ASSET VERIFIED' : 'ASSET LOCKED'}
@@ -1536,14 +1637,14 @@ export default function Vault() {
           >
             <IDImageContainer>
               {/* 5. Fix ID Card to show Back/Front side-by-side */}
-              <IDImageHalf $label="BACK VIEW" $owned={isDurkOwned} $locked={isVaultLocked}>
+              <IDImageHalf $label="BACK VIEW" $verified={isAssetVerified} $owned={isDurkOwned} $locked={isVaultLocked}>
                 <img
                   src={DURK_PREVIEW_IMG}
                   alt="Back View"
                   style={{ height: '100%', objectFit: 'contain', width: '100%' }}
                 />
               </IDImageHalf>
-              <IDImageHalf $label="FRONT VIEW" $owned={isDurkOwned} $locked={isVaultLocked}>
+              <IDImageHalf $label="FRONT VIEW" $verified={isAssetVerified} $owned={isDurkOwned} $locked={isVaultLocked}>
                 <img
                   src={DURK_FRONT_IMG}
                   alt="Front View"
@@ -1597,14 +1698,23 @@ export default function Vault() {
                   {verificationResult?.claimDate ? formatClaimDate(verificationResult.claimDate) : '---'}
                 </div>
               </DetailItem>
+              <DetailItem>
+                <label>Verified On</label>
+                <div className={(verificationResult?.verifiedAt || verifiedSerials.find(s => s.productId === 'lil-durk-figure')?.verifiedAt) ? 'highlight' : 'dim'}>
+                  {(() => {
+                    const verifiedAt = verificationResult?.verifiedAt || verifiedSerials.find(s => s.productId === 'lil-durk-figure')?.verifiedAt;
+                    return verifiedAt ? formatClaimDate(verifiedAt) : 'Not Verified';
+                  })()}
+                </div>
+              </DetailItem>
             </DetailGrid>
             <div style={{ marginTop: 'auto' }}>
-              <label style={{ 
-                fontFamily: 'var(--font-secondary)', 
-                fontSize: '0.7rem', 
-                color: 'rgba(255, 255, 255, 0.4)', 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.15em', 
+              <label style={{
+                fontFamily: 'var(--font-secondary)',
+                fontSize: '0.7rem',
+                color: 'rgba(255, 255, 255, 0.4)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
                 fontWeight: 600,
                 marginBottom: '0.5rem',
                 display: 'block'
@@ -1630,7 +1740,7 @@ export default function Vault() {
                 </ActionButton>
               </div>
             </ModelHeader>
-            <ModelCanvas $locked={isVaultLocked}>
+            <ModelCanvas $locked={!isAssetVerified}>
               <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0.5, 8], fov: 50 }}>
                 <ambientLight intensity={0.7} />
                 <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1.2} castShadow />
@@ -1645,8 +1755,8 @@ export default function Vault() {
                 </Suspense>
 
                 <OrbitControls
-                  autoRotate={isAssetVerified}
-                  autoRotateSpeed={2}
+                  autoRotate={true}
+                  autoRotateSpeed={15.0}
                   enableZoom={true}
                   enablePan={false}
                   minDistance={4}
