@@ -210,9 +210,9 @@ export default function Footer() {
           transition={{ delay: 0.2 }}
         >
           <h3>Legal</h3>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Privacy Policy</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Terms of Service</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Returns</FooterLink>
+          <FooterLink href="/privacy-policy" whileHover={{ x: 5 }}>Privacy Policy</FooterLink>
+          <FooterLink href="/terms-of-service" whileHover={{ x: 5 }}>Terms of Service</FooterLink>
+          <FooterLink href="/returns" whileHover={{ x: 5 }}>Returns</FooterLink>
         </FooterSection>
 
         <FooterSection

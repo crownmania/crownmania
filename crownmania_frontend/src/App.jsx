@@ -22,6 +22,7 @@ const VerifyPage = React.lazy(() => import('./pages/VerifyPage'));
 const MintNFTPage = React.lazy(() => import('./pages/MintNFTPage'));
 const SuccessPage = React.lazy(() => import('./pages/SuccessPage'));
 const CancelPage = React.lazy(() => import('./pages/CancelPage'));
+const LegalPage = React.lazy(() => import('./pages/LegalPage'));
 // Password protection removed
 
 const AppContainer = styled.div`
@@ -100,6 +101,10 @@ function App() {
               <Route path="/mintNFT" element={<MintNFTPage />} />
               <Route path="/success" element={<SuccessPage />} />
               <Route path="/cancel" element={<CancelPage />} />
+              <Route path="/legal" element={<LegalPage />} />
+              <Route path="/privacy-policy" element={<LegalPage />} />
+              <Route path="/terms-of-service" element={<LegalPage />} />
+              <Route path="/returns" element={<LegalPage />} />
             </Routes>
           </Suspense>
         </MainContent>
