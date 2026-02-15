@@ -1,0 +1,135 @@
+﻿node.exe : npm warn config ignoring workspace 
+config at C:\Users\test\Desktop\crownmania_main
+\crownmania_main copy\crownmania_backend/.npmrc
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (n 
+   pm warn config..._backend/.npmrc:String) [  
+  ], RemoteException
+    + FullyQualifiedErrorId : NativeCommandErr 
+   or
+ 
+(node:899812) ExperimentalWarning: VM Modules 
+is an experimental feature and might change at 
+any time
+(Use `node --trace-warnings ...` to show where 
+the warning was created)
+  console.error
+    Failed to enqueue transfer job: TypeError: queueService.enqueueTransfer is not a function
+        at Object.claimProduct (C:\Users\test\Desktop\crownmania_main\crownmania_main copy\crownmania_backend\src\services\verificationService.js:369:28)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5)
+        at C:\Users\test\Desktop\crownmania_main\crownmania_main copy\crownmania_backend\src\routes\verification.js:91:20
+
+    [0m [90m 382 |[39m
+     [90m 383 |[39m       } [36mcatch[39m (queueError) {
+    [31m[1m>[22m[39m[90m 384 |[39m         console[33m.[39merror([32m'Failed to enqueue transfer job:'[39m[33m,[39m queueError)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 385 |[39m
+     [90m 386 |[39m         [90m// Mark as failed but claim is still valid[39m
+     [90m 387 |[39m         [36mawait[39m collectibleRef[33m.[39mupdate({[0m
+
+      at Object.claimProduct (src/services/verificationService.js:384:17)
+      at src/routes/verification.js:91:20
+
+  console.error
+    Error claiming product: TypeError: Cannot read properties of undefined (reading 'catch')
+        at C:\Users\test\Desktop\crownmania_main\crownmania_main copy\crownmania_backend\src\routes\verification.js:100:7
+        at processTicksAndRejections (node:internal/process/task_queues:103:5)
+
+    [0m [90m 119 |[39m     res[33m.[39mjson(result)[33m;[39m
+     [90m 120 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 121 |[39m     console[33m.[39merror([32m'Error claiming product:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 122 |[39m     res[33m.[39mstatus([35m500[39m)[33m.[39mjson({ error[33m:[39m error[33m.[39mmessage [33m||[39m [32m'Server error during claim'[39m })[33m;[39m
+     [90m 123 |[39m   }
+     [90m 124 |[39m })[33m;[39m[0m
+
+      at src/routes/verification.js:121:13
+
+  console.error
+    Error claiming product: TypeError: Cannot read properties of undefined (reading 'catch')
+        at C:\Users\test\Desktop\crownmania_main\crownmania_main copy\crownmania_backend\src\routes\verification.js:100:7
+        at processTicksAndRejections (node:internal/process/task_queues:103:5)
+
+    [0m [90m 119 |[39m     res[33m.[39mjson(result)[33m;[39m
+     [90m 120 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 121 |[39m     console[33m.[39merror([32m'Error claiming product:'[39m[33m,[39m error)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 122 |[39m     res[33m.[39mstatus([35m500[39m)[33m.[39mjson({ error[33m:[39m error[33m.[39mmessage [33m||[39m [32m'Server error during claim'[39m })[33m;[39m
+     [90m 123 |[39m   }
+     [90m 124 |[39m })[33m;[39m[0m
+
+      at src/routes/verification.js:121:13
+
+FAIL tests/integration/duplicateClaim.test.js
+  Duplicate Claim Prevention
+    ├ù should prevent duplicate claims on the 
+same serial number (63 ms)
+    ├ù should return error for invalid claim 
+code (6 ms)
+
+  ΓùÅ Duplicate Claim Prevention ΓÇ║ should 
+prevent duplicate claims on the same serial 
+number
+
+    expect(received).toBe(expected) // 
+Object.is equality
+
+    Expected: true
+    Received: undefined
+
+    [0m [90m 159 |[39m             
+})[33m;[39m
+     [90m 160 |[39m
+    [31m[1m>[22m[39m[90m 161 |[39m       
+  expect(claim1[33m.[39mbody[33m.[39msucces
+s)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m     |[39m                          
+           [31m[1m^[22m[39m
+     [90m 162 |[39m
+     [90m 163 |[39m         [90m// Second 
+claim on same serial should fail[39m
+     [90m 164 |[39m         [36mconst[39m 
+claim2 [33m=[39m [36mawait[39m 
+request(app)[0m
+
+      at Object.<anonymous> (tests/integration/
+duplicateClaim.test.js:161:37)
+
+  ΓùÅ Duplicate Claim Prevention ΓÇ║ should 
+return error for invalid claim code
+
+    expect(received).toBe(expected) // 
+Object.is equality
+
+    Expected: false
+    Received: undefined
+
+    [0m [90m 198 |[39m             
+})[33m;[39m
+     [90m 199 |[39m
+    [31m[1m>[22m[39m[90m 200 |[39m       
+  expect(claimRes[33m.[39mbody[33m.[39msucc
+ess)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                          
+             [31m[1m^[22m[39m
+     [90m 201 |[39m     })[33m;[39m
+     [90m 202 |[39m })[33m;[39m
+     [90m 203 |[39m[0m
+
+      at Object.<anonymous> (tests/integration/
+duplicateClaim.test.js:200:39)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        0.729 s, estimated 2 s
+Ran all test suites matching 
+/tests\\integration\\duplicateClaim.test.js/i.
+Force exiting Jest: Have you considered using 
+`--detectOpenHandles` to detect async 
+operations that kept running after all tests 
+finished?

@@ -181,7 +181,9 @@ const MatrixOverlay = styled.div`
   opacity: 0.15; /* Kept subtle */
   filter: grayscale(1);
   pointer-events: none;
-  z-index: 1; 
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 20px; /* Match parent card radius */
 `;
 
 export default function About() {

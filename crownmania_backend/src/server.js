@@ -11,6 +11,11 @@ import { firebaseRouter } from './routes/firebase.js';
 import { verificationRouter } from './routes/verification.js';
 import contentRouter from './routes/content.js';
 import { adminRouter } from './routes/admin.js';
+import { authRouter } from './routes/auth.js';
+import { profileRouter } from './routes/profile.js';
+import { walletRouter } from './routes/wallet.js';
+import { webhooksRouter } from './routes/webhooks.js';
+import { notificationPreferencesRouter } from './routes/notificationPreferences.js';
 import { getNonceHandler } from './middleware/auth.js';
 import logger from './config/logger.js';
 
@@ -33,7 +38,7 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com", "https://www.google.com", "https://www.gstatic.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      imgSrc: ["'self'", "data:", "https:", "blob:", "https://firebasestorage.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       connectSrc: [
         "'self'",
@@ -41,7 +46,9 @@ app.use(helmet({
         "https://api.web3auth.io",
         "https://*.firebaseio.com",
         "https://*.googleapis.com",
+        "https://firebasestorage.googleapis.com",
         "https://api.moralis.io",
+        "https://rpc.thirdweb.com",
         "wss://*.firebaseio.com"
       ],
       frameSrc: ["'self'", "https://js.stripe.com", "https://www.google.com"],
@@ -116,8 +123,12 @@ app.use(cors({
       return allowedOrigin === origin;
     });
 
-    // Also allow any .vercel.app deployment
-    if (isAllowed || origin.endsWith('.vercel.app')) {
+    // HARDENED: Only allow Vercel deployments matching the crownmania project slug
+    // Previously accepted ANY .vercel.app domain (e.g. evil-attacker.vercel.app)
+    const isCrownmaniaVercel = origin.endsWith('.vercel.app') &&
+      /^https:\/\/crownmania[-a-z0-9]*\.vercel\.app$/.test(origin);
+
+    if (isAllowed || isCrownmaniaVercel) {
       return callback(null, true);
     }
 
@@ -132,9 +143,19 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'X-Request-Timestamp',
+    'X-Request-ID',
+    'X-Client-Version',
+    'X-Request-Source',
+    'X-Request-Signature',
+    'X-Request-Nonce',
+  ],
   exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining'],
-  maxAge: 86400 // 24 hours - browsers cache preflight requests
+  maxAge: 0 // Disabled temporarily to bust cached preflight responses — set to 86400 for production
 }));
 
 // ============================================
@@ -203,9 +224,11 @@ app.use('/api/firebase', firebaseRouter);
 app.use('/api/verification', verificationRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/admin', adminRouter);
-
-// Nonce endpoint for wallet authentication
-app.get('/api/auth/nonce', getNonceHandler);
+app.use('/api/auth', authRouter);
+app.use('/api/profile', profileRouter);
+app.use('/api/wallet', walletRouter);
+app.use('/api/webhooks', webhooksRouter);
+app.use('/api/notifications', notificationPreferencesRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -253,6 +276,18 @@ const startServer = async (port = defaultPort) => {
     await app.listen(port);
     logger.info(`Server running on port ${port} (${isProduction ? 'production' : 'development'})`);
     logger.info(`Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+
+    // Start queue workers if Redis is configured
+    if (process.env.REDIS_HOST || process.env.REDIS_URL) {
+      try {
+        const { transferWorker } = await import('./workers/transferWorker.js');
+        logger.info('[Workers] Transfer worker started');
+      } catch (err) {
+        logger.warn('[Workers] Failed to start transfer worker:', err.message);
+      }
+    } else {
+      logger.info('[Workers] Redis not configured – queue workers disabled');
+    }
   } catch (error) {
     if (error.code === 'EADDRINUSE') {
       logger.warn(`Port ${port} is in use, trying port ${port + 1}`);

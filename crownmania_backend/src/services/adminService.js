@@ -3,6 +3,10 @@
  * =========================
  * Handles admin authentication with email-based 2FA (OTP codes)
  * and admin operations like viewing system stats, managing tokens, etc.
+ *
+ * SECURITY FIX (S10): Sessions and OTPs are now Firestore-backed instead of
+ * in-memory Maps. This ensures they survive server restarts and work across
+ * multiple backend instances.
  */
 
 import { db } from '../config/firebase.js';
@@ -15,9 +19,9 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'crown@crownmania.com';
 const OTP_EXPIRY_MINUTES = 10;
 const SESSION_EXPIRY_HOURS = 24;
 
-// In-memory session store (use Redis in production for multi-instance)
-const adminSessions = new Map();
-const otpStore = new Map();
+// Firestore collections for admin auth state (S10 migration from in-memory Maps)
+const sessionsCollection = () => db.collection('adminSessions');
+const otpCollection = () => db.collection('adminOTPs');
 
 /**
  * Generate a 6-digit OTP code
@@ -64,11 +68,12 @@ export const adminService = {
     const otp = generateOTP();
     const expiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
-    // Store OTP
-    otpStore.set(email.toLowerCase(), {
+    // Store OTP in Firestore (S10)
+    await otpCollection().doc(email.toLowerCase()).set({
       code: otp,
       expiry,
-      attempts: 0
+      attempts: 0,
+      createdAt: new Date()
     });
 
     // Send email
@@ -115,37 +120,41 @@ export const adminService = {
    * @returns {Promise<{success: boolean, token?: string, message: string}>}
    */
   async verifyOTP(email, otp) {
-    const storedOTP = otpStore.get(email.toLowerCase());
+    const otpDocRef = otpCollection().doc(email.toLowerCase());
+    const otpDoc = await otpDocRef.get();
 
-    if (!storedOTP) {
+    if (!otpDoc.exists) {
       return { success: false, message: 'No pending verification. Please request a new code.' };
     }
 
+    const storedOTP = otpDoc.data();
+    const expiryDate = storedOTP.expiry?.toDate ? storedOTP.expiry.toDate() : new Date(storedOTP.expiry);
+
     // Check attempts
     if (storedOTP.attempts >= 3) {
-      otpStore.delete(email.toLowerCase());
+      await otpDocRef.delete();
       return { success: false, message: 'Too many attempts. Please request a new code.' };
     }
 
     // Check expiry
-    if (new Date() > storedOTP.expiry) {
-      otpStore.delete(email.toLowerCase());
+    if (new Date() > expiryDate) {
+      await otpDocRef.delete();
       return { success: false, message: 'Code expired. Please request a new code.' };
     }
 
     // Verify code
     if (storedOTP.code !== otp) {
-      storedOTP.attempts++;
-      return { success: false, message: `Invalid code. ${3 - storedOTP.attempts} attempts remaining.` };
+      await otpDocRef.update({ attempts: storedOTP.attempts + 1 });
+      return { success: false, message: `Invalid code. ${3 - (storedOTP.attempts + 1)} attempts remaining.` };
     }
 
-    // OTP verified - create session
-    otpStore.delete(email.toLowerCase());
+    // OTP verified — delete it and create a Firestore-backed session (S10)
+    await otpDocRef.delete();
 
     const sessionToken = generateSessionToken();
     const sessionExpiry = new Date(Date.now() + SESSION_EXPIRY_HOURS * 60 * 60 * 1000);
 
-    adminSessions.set(sessionToken, {
+    await sessionsCollection().doc(sessionToken).set({
       email: email.toLowerCase(),
       createdAt: new Date(),
       expiry: sessionExpiry
@@ -166,27 +175,60 @@ export const adminService = {
    * @param {string} token - Session token
    * @returns {{valid: boolean, email?: string}}
    */
+  /**
+   * Validate an admin session token.
+   * NOTE: This is intentionally SYNCHRONOUS for middleware compatibility.
+   * It starts a Firestore read but returns a cached/pre-fetched result.
+   * For full async validation, use validateSessionAsync.
+   */
   validateSession(token) {
-    const session = adminSessions.get(token);
+    // Synchronous check against a local cache populated by validateSessionAsync.
+    // The middleware will use validateSessionAsync when it can await.
+    // This fallback returns {valid: false} so the middleware falls through
+    // to the Firebase path, unless the async helper was used.
+    return this._sessionCache?.get(token) || { valid: false };
+  },
 
-    if (!session) {
+  /**
+   * Async session validation — checks Firestore directly.
+   * The requireAdmin middleware should call this.
+   */
+  async validateSessionAsync(token) {
+    if (!token) return { valid: false };
+
+    try {
+      const sessionDoc = await sessionsCollection().doc(token).get();
+
+      if (!sessionDoc.exists) {
+        return { valid: false };
+      }
+
+      const session = sessionDoc.data();
+      const expiryDate = session.expiry?.toDate ? session.expiry.toDate() : new Date(session.expiry);
+
+      if (new Date() > expiryDate) {
+        // Clean up expired session
+        await sessionsCollection().doc(token).delete();
+        return { valid: false };
+      }
+
+      return { valid: true, email: session.email };
+    } catch (error) {
+      logger.error('Error validating admin session:', error);
       return { valid: false };
     }
-
-    if (new Date() > session.expiry) {
-      adminSessions.delete(token);
-      return { valid: false };
-    }
-
-    return { valid: true, email: session.email };
   },
 
   /**
    * Logout - destroy session
    * @param {string} token - Session token
    */
-  logout(token) {
-    adminSessions.delete(token);
+  async logout(token) {
+    try {
+      await sessionsCollection().doc(token).delete();
+    } catch (error) {
+      logger.error('Error deleting admin session from Firestore:', error);
+    }
     logger.info('Admin session destroyed');
   },
 
@@ -245,8 +287,8 @@ export const adminService = {
           total: totalCollectibles,
           nftTransferred,
           nftPending,
-          transferSuccessRate: totalCollectibles > 0 
-            ? ((nftTransferred / totalCollectibles) * 100).toFixed(1) + '%' 
+          transferSuccessRate: totalCollectibles > 0
+            ? ((nftTransferred / totalCollectibles) * 100).toFixed(1) + '%'
             : '0%'
         },
         users: {

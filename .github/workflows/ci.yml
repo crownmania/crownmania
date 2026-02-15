@@ -29,16 +29,35 @@ jobs:
       - name: Run linting
         run: npm run lint --if-present
       
-      - name: Run tests
-        run: npm test --if-present
+      - name: Run unit tests
+        run: npx jest --testPathPattern=tests/unit --passWithNoTests
         env:
           NODE_ENV: test
+          NODE_OPTIONS: --experimental-vm-modules
+      
+      - name: Run integration tests
+        run: npx jest --testPathPattern=tests/integration --passWithNoTests
+        env:
+          NODE_ENV: test
+          NODE_OPTIONS: --experimental-vm-modules
       
       - name: Secret scanning
         run: |
           echo "Scanning for leaked secrets..."
+          # Check for inline secrets in source code
           if grep -rE "(sk_live_|sk_test_|PRIVATE_KEY=)" --include="*.js" --include="*.ts" src/; then
             echo "ERROR: Potential secrets found in source code!"
+            exit 1
+          fi
+          # Check for committed service account key files
+          if find . -name "serviceAccountKey*" -not -path "*/node_modules/*" | grep -q .; then
+            echo "ERROR: Service account key file found in repository!"
+            find . -name "serviceAccountKey*" -not -path "*/node_modules/*"
+            exit 1
+          fi
+          # Check for committed .env files (not .example)
+          if find . -name ".env" -o -name ".env.local" -o -name ".env.production" | grep -v node_modules | grep -v ".env.example" | grep -q .; then
+            echo "ERROR: .env file found in repository!"
             exit 1
           fi
           echo "No secrets found in source code"
@@ -101,3 +120,18 @@ jobs:
         run: |
           cd crownmania_backend && npm audit --audit-level=high || echo "Backend audit complete"
           cd ../crownmania_frontend && npm audit --audit-level=high || echo "Frontend audit complete"
+
+      - name: Check for hardcoded credentials
+        run: |
+          echo "Checking for hardcoded credentials..."
+          # Check for hardcoded API keys, passwords, tokens
+          if grep -rE "(apiKey|password|secret|token)\s*[:=]\s*['\"][^'\"]{10,}" \
+            --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" \
+            --exclude-dir=node_modules --exclude-dir=.git \
+            --exclude="*.test.*" --exclude="*.example" \
+            crownmania_backend/src/ crownmania_frontend/src/ 2>/dev/null | \
+            grep -viE "(process\.env|import|require|mock|example|placeholder|your-)" ; then
+            echo "WARNING: Potential hardcoded credentials detected (review above)"
+          else
+            echo "No hardcoded credentials found"
+          fi

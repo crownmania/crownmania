@@ -133,6 +133,56 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "verificationCodes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "verified",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "nonce",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "walletAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "used",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "expiresAt",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [

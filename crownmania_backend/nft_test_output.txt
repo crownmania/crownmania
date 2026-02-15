@@ -1,0 +1,74 @@
+﻿node.exe : npm warn config ignoring workspace 
+config at C:\Users\test\Desktop\crownmania_main
+\crownmania_main copy\crownmania_backend/.npmrc
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (n 
+   pm warn config..._backend/.npmrc:String) [  
+  ], RemoteException
+    + FullyQualifiedErrorId : NativeCommandErr 
+   or
+ 
+(node:366720) ExperimentalWarning: VM Modules 
+is an experimental feature and might change at 
+any time
+(Use `node --trace-warnings ...` to show where 
+the warning was created)
+FAIL tests/integration/nftClaiming.test.js
+  NFT Claiming Integration
+    ├ù should return nonce for wallet 
+authentication (37 ms)
+    ΓêÜ should fail if signature is invalid 
+(66 ms)
+
+  ΓùÅ NFT Claiming Integration ΓÇ║ should 
+return nonce for wallet authentication
+
+    expect(received).toBeDefined()
+
+    Received: undefined
+
+    [0m [90m 108 |[39m         expect(res[3
+3m.[39mstatus)[33m.[39mtoBe([35m200[39m)[
+33m;[39m
+     [90m 109 |[39m         expect(res[33m.
+[39mbody[33m.[39mnonce)[33m.[39mtoBeDefined
+()[33m;[39m
+    [31m[1m>[22m[39m[90m 110 |[39m       
+  expect(res[33m.[39mbody[33m.[39mmessage)
+[33m.[39mtoBeDefined()[33m;[39m
+     [90m     |[39m                          
+        [31m[1m^[22m[39m
+     [90m 111 |[39m     })[33m;[39m
+     [90m 112 |[39m
+     [90m 113 |[39m     it([32m'should fail 
+if signature is invalid'[39m[33m,[39m 
+[36masync[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> 
+(tests/integration/nftClaiming.test.js:110:34)
+
+-------------------------|---------|----------|---------|---------|-------------------------------------------------------------
+File                     | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                           
+-------------------------|---------|----------|---------|---------|-------------------------------------------------------------
+All files                |   10.78 |     2.26 |      10 |   10.78 |                                                             
+ middleware              |   26.26 |     9.43 |      30 |   26.26 |                                                             
+  auth.js                |   26.26 |     9.43 |      30 |   26.26 | 10-22,40-43,54-71,78-94,101-109,116,141,148,161-202,225-237 
+ routes                  |   10.98 |        0 |       0 |   10.98 |                                                             
+  verification.js        |   10.98 |        0 |       0 |   10.98 | 23-43,53-74,84-122,133-144,154-165,175-186,199-215,225-265  
+ services                |    0.65 |        0 |       0 |    0.65 |                                                             
+  verificationService.js |    0.65 |        0 |       0 |    0.65 | 19-627                                                      
+-------------------------|---------|----------|---------|---------|-------------------------------------------------------------
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 passed, 2 total
+Snapshots:   0 total
+Time:        1.125 s
+Ran all test suites matching 
+/tests\\integration\\nftClaiming.test.js/i.
+Force exiting Jest: Have you considered using 
+`--detectOpenHandles` to detect async 
+operations that kept running after all tests 
+finished?

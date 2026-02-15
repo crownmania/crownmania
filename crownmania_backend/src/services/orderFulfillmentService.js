@@ -5,6 +5,7 @@ import Collectible from '../models/Collectible.js';
 import { sgMail, EMAIL_TEMPLATES, EMAIL_CONFIG } from '../config/email.js';
 import { db } from '../config/firebase.js';
 import logger from '../config/logger.js';
+import crypto from 'crypto';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -91,7 +92,7 @@ class OrderFulfillmentService {
      * Create order and allocate serials atomically
      */
     async createOrderWithSerials(session, lineItems) {
-        const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const orderId = `ORD-${Date.now()}-${crypto.randomBytes(6).toString('hex')}`;
         const allocatedSerials = [];
         const collectibleEntitlements = [];
 
@@ -115,7 +116,7 @@ class OrderFulfillmentService {
 
                     // Create collectible entitlement
                     const collectible = await Collectible.create({
-                        id: `COL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        id: `COL-${Date.now()}-${crypto.randomBytes(6).toString('hex')}`,
                         serialNumber: inventory.serialNumber,
                         ownerId: null, // Will be set when user claims via wallet
                         status: 'unclaimed',

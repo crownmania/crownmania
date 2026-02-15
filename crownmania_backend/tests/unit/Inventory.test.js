@@ -1,70 +1,67 @@
-import { jest } from '@jest/globals';
+/**
+ * Unit tests for Inventory Model
+ * Uses jest.unstable_mockModule for proper ESM mocking
+ */
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
-// Mock firebase
+// ── Mock Firebase ──
 const mockTransaction = {
     get: jest.fn(),
     set: jest.fn(),
-    update: jest.fn()
+    update: jest.fn(),
 };
 
-jest.mock('../../src/config/firebase.js', () => ({
-    db: {
-        collection: jest.fn(() => ({
-            doc: jest.fn(() => ({
-                set: jest.fn(),
-                update: jest.fn(),
-                get: jest.fn()
-            })),
-            where: jest.fn(() => ({
-                limit: jest.fn(() => ({
-                    get: jest.fn()
-                })),
-                where: jest.fn(() => ({
-                    limit: jest.fn(() => ({
-                        get: jest.fn()
-                    }))
-                })),
-                get: jest.fn(),
-                count: jest.fn(() => ({
-                    get: jest.fn()
-                }))
-            })),
-            count: jest.fn(() => ({
-                get: jest.fn()
-            }))
-        })),
-        runTransaction: jest.fn((cb) => cb(mockTransaction)),
-        batch: jest.fn(() => ({
-            set: jest.fn(),
-            commit: jest.fn()
-        }))
-    }
+const mockUpdate = jest.fn();
+const mockGet = jest.fn();
+const mockDoc = jest.fn(() => ({ set: jest.fn(), update: mockUpdate, get: mockGet }));
+const mockLimit = jest.fn(() => ({ get: mockGet }));
+const mockWhere2 = jest.fn(() => ({ limit: mockLimit }));
+const mockWhere = jest.fn(() => ({
+    limit: mockLimit,
+    where: mockWhere2,
+    get: mockGet,
+    count: jest.fn(() => ({ get: mockGet })),
+}));
+const mockCount = jest.fn(() => ({ get: mockGet }));
+const mockCollection = jest.fn(() => ({
+    doc: mockDoc,
+    where: mockWhere,
+    count: mockCount,
 }));
 
-// Mock logger
-jest.mock('../../src/config/logger.js', () => ({
+jest.unstable_mockModule('../../src/config/firebase.js', () => ({
+    db: {
+        collection: mockCollection,
+        runTransaction: jest.fn((cb) => cb(mockTransaction)),
+        batch: jest.fn(() => ({ set: jest.fn(), commit: jest.fn() })),
+    },
+}));
+
+jest.unstable_mockModule('../../src/config/logger.js', () => ({
     default: {
         info: jest.fn(),
         warn: jest.fn(),
         error: jest.fn(),
-        debug: jest.fn()
-    }
+        debug: jest.fn(),
+    },
 }));
 
-import Inventory from '../../src/models/Inventory.js';
-import { db } from '../../src/config/firebase.js';
+// Dynamic import AFTER mocks
+const { default: Inventory } = await import('../../src/models/Inventory.js');
+const { db } = await import('../../src/config/firebase.js');
 
 describe('Inventory Model', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockGet.mockReset();
+        mockTransaction.get.mockReset();
     });
 
     describe('allocateSerial', () => {
         it('should throw error when no serials available', async () => {
-            // Mock empty query result
             mockTransaction.get.mockResolvedValue({
                 empty: true,
-                docs: []
+                docs: [],
             });
 
             await expect(Inventory.allocateSerial('durk-pendant', 'order-123'))
@@ -72,20 +69,20 @@ describe('Inventory Model', () => {
         });
 
         it('should allocate a serial and update status', async () => {
-            const mockDoc = {
+            const mockDocData = {
                 id: 'inv-123',
                 ref: { update: jest.fn() },
                 data: () => ({
                     serialNumber: 'abc123',
                     productId: 'durk-pendant',
                     status: 'available',
-                    orderId: null
-                })
+                    orderId: null,
+                }),
             };
 
             mockTransaction.get.mockResolvedValue({
                 empty: false,
-                docs: [mockDoc]
+                docs: [mockDocData],
             });
 
             const result = await Inventory.allocateSerial('durk-pendant', 'order-456');
@@ -98,9 +95,9 @@ describe('Inventory Model', () => {
 
     describe('findBySerialNumber', () => {
         it('should return null when serial not found', async () => {
-            db.collection().where().limit().get.mockResolvedValue({
+            mockGet.mockResolvedValue({
                 empty: true,
-                docs: []
+                docs: [],
             });
 
             const result = await Inventory.findBySerialNumber('nonexistent');
@@ -111,15 +108,15 @@ describe('Inventory Model', () => {
             const mockData = {
                 serialNumber: 'found-serial',
                 status: 'available',
-                productId: null
+                productId: null,
             };
 
-            db.collection().where().limit().get.mockResolvedValue({
+            mockGet.mockResolvedValue({
                 empty: false,
                 docs: [{
                     id: 'doc-id',
-                    data: () => mockData
-                }]
+                    data: () => mockData,
+                }],
             });
 
             const result = await Inventory.findBySerialNumber('found-serial');
@@ -130,16 +127,16 @@ describe('Inventory Model', () => {
 
     describe('markClaimed', () => {
         it('should throw error for non-allocated serial', async () => {
-            db.collection().where().limit().get.mockResolvedValue({
+            mockGet.mockResolvedValue({
                 empty: false,
                 docs: [{
                     id: 'doc-id',
                     ref: { update: jest.fn() },
                     data: () => ({
                         serialNumber: 'test-serial',
-                        status: 'available' // Not allocated
-                    })
-                }]
+                        status: 'available', // Not allocated
+                    }),
+                }],
             });
 
             await expect(Inventory.markClaimed('test-serial'))
@@ -147,34 +144,34 @@ describe('Inventory Model', () => {
         });
 
         it('should mark allocated serial as claimed', async () => {
-            const mockUpdate = jest.fn();
+            const mockUpdateFn = jest.fn();
 
-            db.collection().where().limit().get.mockResolvedValue({
+            mockGet.mockResolvedValue({
                 empty: false,
                 docs: [{
                     id: 'doc-id',
-                    ref: { update: mockUpdate },
+                    ref: { update: mockUpdateFn },
                     data: () => ({
                         serialNumber: 'allocated-serial',
                         status: 'allocated',
-                        orderId: 'order-123'
-                    })
-                }]
+                        orderId: 'order-123',
+                    }),
+                }],
             });
 
             const result = await Inventory.markClaimed('allocated-serial');
 
             expect(result.status).toBe('claimed');
-            expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
-                status: 'claimed'
+            expect(mockUpdateFn).toHaveBeenCalledWith(expect.objectContaining({
+                status: 'claimed',
             }));
         });
     });
 
     describe('getAvailableCount', () => {
         it('should return count of available serials', async () => {
-            db.collection().where().count().get.mockResolvedValue({
-                data: () => ({ count: 42 })
+            mockGet.mockResolvedValue({
+                data: () => ({ count: 42 }),
             });
 
             const count = await Inventory.getAvailableCount();

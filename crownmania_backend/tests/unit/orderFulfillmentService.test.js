@@ -1,64 +1,73 @@
-import { jest } from '@jest/globals';
+/**
+ * Unit tests for OrderFulfillmentService
+ * Uses jest.unstable_mockModule for proper ESM mocking
+ */
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
-// Mock firebase
-jest.mock('../../src/config/firebase.js', () => ({
-    db: {
-        collection: jest.fn(() => ({
-            doc: jest.fn(() => ({
-                set: jest.fn(),
-                update: jest.fn(),
-                get: jest.fn()
-            })),
-            where: jest.fn(() => ({
-                limit: jest.fn(() => ({
-                    get: jest.fn()
-                })),
-                get: jest.fn()
-            })),
-            count: jest.fn(() => ({
-                get: jest.fn(() => Promise.resolve({ data: () => ({ count: 0 }) }))
-            }))
-        })),
-        runTransaction: jest.fn()
-    }
+// ── Mock Firebase ──
+const mockSet = jest.fn();
+const mockUpdate = jest.fn();
+const mockGet = jest.fn();
+const mockDoc = jest.fn(() => ({ set: mockSet, update: mockUpdate, get: mockGet }));
+const mockLimit = jest.fn(() => ({ get: mockGet }));
+const mockWhere = jest.fn(() => ({ limit: mockLimit, get: mockGet }));
+const mockCount = jest.fn(() => ({ get: jest.fn(() => Promise.resolve({ data: () => ({ count: 0 }) })) }));
+const mockCollection = jest.fn(() => ({
+    doc: mockDoc,
+    where: mockWhere,
+    count: mockCount,
 }));
 
-// Mock Stripe
-jest.mock('stripe', () => {
-    return jest.fn().mockImplementation(() => ({
+jest.unstable_mockModule('../../src/config/firebase.js', () => ({
+    db: {
+        collection: mockCollection,
+        runTransaction: jest.fn(),
+    },
+}));
+
+// ── Mock Stripe ──
+const mockListLineItems = jest.fn();
+jest.unstable_mockModule('stripe', () => ({
+    default: jest.fn().mockImplementation(() => ({
         checkout: {
             sessions: {
-                listLineItems: jest.fn()
-            }
-        }
-    }));
-});
-
-// Mock email
-jest.mock('../../src/config/email.js', () => ({
-    sgMail: {
-        send: jest.fn()
-    },
-    EMAIL_TEMPLATES: {
-        ORDER_CONFIRMATION: 'template-id'
-    },
-    EMAIL_CONFIG: {
-        from: 'test@example.com'
-    }
+                listLineItems: mockListLineItems,
+            },
+        },
+    })),
 }));
 
-// Mock logger
-jest.mock('../../src/config/logger.js', () => ({
+// ── Mock email ──
+jest.unstable_mockModule('../../src/config/email.js', () => ({
+    sgMail: { send: jest.fn() },
+    EMAIL_TEMPLATES: { ORDER_CONFIRMATION: 'template-id' },
+    EMAIL_CONFIG: { from: 'test@example.com' },
+}));
+
+// ── Mock logger ──
+jest.unstable_mockModule('../../src/config/logger.js', () => ({
     default: {
         info: jest.fn(),
         warn: jest.fn(),
         error: jest.fn(),
-        debug: jest.fn()
-    }
+        debug: jest.fn(),
+    },
 }));
 
-import { orderFulfillmentService } from '../../src/services/orderFulfillmentService.js';
-import { db } from '../../src/config/firebase.js';
+// ── Mock models (they import firebase internally) ──
+jest.unstable_mockModule('../../src/models/Order.js', () => ({
+    default: { create: jest.fn() },
+}));
+jest.unstable_mockModule('../../src/models/Inventory.js', () => ({
+    default: { allocateSerial: jest.fn() },
+}));
+jest.unstable_mockModule('../../src/models/Collectible.js', () => ({
+    default: { create: jest.fn() },
+}));
+
+// Dynamic imports AFTER mocks
+const { orderFulfillmentService } = await import('../../src/services/orderFulfillmentService.js');
+const { db } = await import('../../src/config/firebase.js');
 
 describe('OrderFulfillmentService', () => {
     beforeEach(() => {
@@ -70,13 +79,13 @@ describe('OrderFulfillmentService', () => {
             const mockSession = {
                 id: 'cs_test_123',
                 customer_email: 'test@example.com',
-                payment_intent: 'pi_123'
+                payment_intent: 'pi_123',
             };
 
             // Mock finding existing order
-            db.collection().where().limit().get.mockResolvedValue({
+            mockGet.mockResolvedValue({
                 empty: false,
-                docs: [{ id: 'existing-order', data: () => ({ id: 'existing-order' }) }]
+                docs: [{ id: 'existing-order', data: () => ({ id: 'existing-order' }) }],
             });
 
             const result = await orderFulfillmentService.fulfillOrder(mockSession);
@@ -89,20 +98,14 @@ describe('OrderFulfillmentService', () => {
         it('should throw error when no line items found', async () => {
             const mockSession = {
                 id: 'cs_test_456',
-                customer_email: 'test@example.com'
+                customer_email: 'test@example.com',
             };
 
             // Mock no existing order
-            db.collection().where().limit().get.mockResolvedValue({
-                empty: true
-            });
+            mockGet.mockResolvedValue({ empty: true });
 
             // Mock empty line items
-            const Stripe = (await import('stripe')).default;
-            const stripeInstance = new Stripe();
-            stripeInstance.checkout.sessions.listLineItems.mockResolvedValue({
-                data: []
-            });
+            mockListLineItems.mockResolvedValue({ data: [] });
 
             await expect(orderFulfillmentService.fulfillOrder(mockSession))
                 .rejects.toThrow('No line items found');
@@ -111,9 +114,7 @@ describe('OrderFulfillmentService', () => {
 
     describe('findOrderBySessionId', () => {
         it('should return null when no order exists', async () => {
-            db.collection().where().limit().get.mockResolvedValue({
-                empty: true
-            });
+            mockGet.mockResolvedValue({ empty: true });
 
             const result = await orderFulfillmentService.findOrderBySessionId('cs_nonexistent');
             expect(result).toBeNull();
@@ -123,15 +124,15 @@ describe('OrderFulfillmentService', () => {
             const mockOrderData = {
                 id: 'order-123',
                 stripeSessionId: 'cs_test_789',
-                status: 'paid'
+                status: 'paid',
             };
 
-            db.collection().where().limit().get.mockResolvedValue({
+            mockGet.mockResolvedValue({
                 empty: false,
                 docs: [{
                     id: 'order-123',
-                    data: () => mockOrderData
-                }]
+                    data: () => mockOrderData,
+                }],
             });
 
             const result = await orderFulfillmentService.findOrderBySessionId('cs_test_789');
@@ -142,9 +143,7 @@ describe('OrderFulfillmentService', () => {
 
     describe('getFulfillmentStatus', () => {
         it('should return fulfilled: false for non-existent session', async () => {
-            db.collection().where().limit().get.mockResolvedValue({
-                empty: true
-            });
+            mockGet.mockResolvedValue({ empty: true });
 
             const result = await orderFulfillmentService.getFulfillmentStatus('cs_nonexistent');
             expect(result.fulfilled).toBe(false);
@@ -156,15 +155,15 @@ describe('OrderFulfillmentService', () => {
                 id: 'order-456',
                 status: 'paid',
                 entitlementStatus: 'allocated',
-                allocatedSerials: ['serial1', 'serial2']
+                allocatedSerials: ['serial1', 'serial2'],
             };
 
-            db.collection().where().limit().get.mockResolvedValue({
+            mockGet.mockResolvedValue({
                 empty: false,
                 docs: [{
                     id: 'order-456',
-                    data: () => mockOrder
-                }]
+                    data: () => mockOrder,
+                }],
             });
 
             const result = await orderFulfillmentService.getFulfillmentStatus('cs_test_status');

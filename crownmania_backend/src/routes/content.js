@@ -3,6 +3,7 @@ import multer from 'multer';
 import { contentService } from '../services/contentService.js';
 import { contentSecurity } from '../utils/contentSecurity.js';
 import { serialNumberLimiter, claimLimiter } from '../middleware/rateLimiter.js';
+import requireAdmin from '../middleware/requireAdmin.js';
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ const router = express.Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 500 * 1024 * 1024, // 500MB limit
+    fileSize: 50 * 1024 * 1024, // 50MB limit (hardened from 500MB)
     files: 1
   },
   fileFilter: (req, file, cb) => {
@@ -36,11 +37,11 @@ const upload = multer({
  */
 const extractClientIP = (req, res, next) => {
   const clientIP = req.headers['x-forwarded-for']?.split(',')[0] ||
-                   req.headers['x-real-ip'] ||
-                   req.connection.remoteAddress ||
-                   req.socket.remoteAddress ||
-                   req.ip ||
-                   'unknown';
+    req.headers['x-real-ip'] ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    req.ip ||
+    'unknown';
   req.clientIP = clientIP;
   next();
 };
@@ -49,7 +50,7 @@ const extractClientIP = (req, res, next) => {
  * POST /api/content/upload
  * Upload content to Firebase Storage
  */
-router.post('/upload', extractClientIP, upload.single('file'), async (req, res) => {
+router.post('/upload', requireAdmin, extractClientIP, upload.single('file'), async (req, res) => {
   try {
     const { productId, tokenId, contentType, accessLevel } = req.body;
 
@@ -212,11 +213,9 @@ router.get('/accessible', extractClientIP, async (req, res) => {
  * DELETE /api/content/:contentId
  * Delete content (admin only - should be protected)
  */
-router.delete('/:contentId', extractClientIP, async (req, res) => {
+router.delete('/:contentId', requireAdmin, extractClientIP, async (req, res) => {
   try {
     const { contentId } = req.params;
-
-    // TODO: Add admin authentication check here
 
     await contentService.deleteContent(contentId);
 

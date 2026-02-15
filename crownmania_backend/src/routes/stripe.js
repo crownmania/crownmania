@@ -139,7 +139,7 @@ router.post('/create-checkout-session', async (req, res) => {
  * @desc Handle Stripe webhooks for payment verification
  * @access Public (verified by Stripe signature)
  */
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 

@@ -2,6 +2,7 @@ import winston from 'winston';
 import { LoggingWinston } from '@google-cloud/logging-winston';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 // Sensitive fields to be redacted from logs
 const SENSITIVE_FIELDS = [
@@ -167,7 +168,7 @@ setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000);
 
 // Add request context middleware
 export const addRequestContext = (req, res, next) => {
-  const requestId = req.headers['x-request-id'] || Math.random().toString(36).substring(7);
+  const requestId = req.headers['x-request-id'] || crypto.randomUUID();
   req.requestContext = {
     requestId,
     startTime: new Date(),

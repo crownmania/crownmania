@@ -185,14 +185,13 @@ export const authenticateWallet = async (req, res, next) => {
       req.walletAction = parsedMessage.action;
       logger.info(`Wallet authenticated (secure): ${walletAddress.substring(0, 10)}...`);
     } else {
-      // Fallback: simple validation - just verify message context
-      const lowerMessage = message.toLowerCase();
-      if (!lowerMessage.includes('crownmania') && !lowerMessage.includes('claim')) {
-        return res.status(400).json({
-          error: 'Invalid message format: must include claim context'
-        });
-      }
-      logger.info(`Wallet authenticated (simple): ${walletAddress.substring(0, 10)}...`);
+      // HARDENED: Reject messages that don't follow the secure nonce-based format.
+      // The previous "simple" fallback (accepting any message containing "crownmania")
+      // was removed because it bypassed replay protection entirely.
+      logger.warn(`Rejected non-nonce message from wallet ${walletAddress.substring(0, 10)}...`);
+      return res.status(401).json({
+        error: 'Invalid message format: secure nonce-based signing is required. Call GET /api/verification/nonce first.'
+      });
     }
 
     // Attach wallet info to request
