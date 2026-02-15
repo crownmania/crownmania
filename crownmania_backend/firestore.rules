@@ -117,5 +117,40 @@ service cloud.firestore {
     match /tokens/{tokenId} {
       allow read, write: if false;
     }
+
+    // Verification codes (2FA) - server-side only via Admin SDK
+    match /verificationCodes/{codeId} {
+      allow read, write: if false;
+    }
+
+    // Notification preferences - user can read/write own, admin can read all
+    match /notificationPreferences/{prefId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Nonces - server-side only via Admin SDK
+    match /nonces/{nonceId} {
+      allow read, write: if false;
+    }
+
+    // Audit logs - admin read only, server-side write
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Transfer jobs (dead letter) - admin only
+    match /transferJobs/{jobId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
   }
 }

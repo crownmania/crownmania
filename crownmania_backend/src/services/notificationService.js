@@ -1,4 +1,5 @@
 import { sgMail, EMAIL_CONFIG } from '../config/email.js';
+import logger from '../config/logger.js';
 
 // Admin email for receiving notifications
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || 'crown@crownmania.com';
@@ -42,9 +43,9 @@ export const sendConnectionAttemptEmail = async (userInfo) => {
       subject,
       html
     });
-    console.log('Connection attempt notification sent');
+    logger.info('Connection attempt notification sent');
   } catch (error) {
-    console.error('Failed to send connection notification:', error.message);
+    logger.error('Failed to send connection notification:', error.message);
   }
 };
 
@@ -97,9 +98,9 @@ export const sendScanAttemptEmail = async (claimCodeId, method, details = {}) =>
       subject,
       html
     });
-    console.log('Scan attempt notification sent');
+    logger.info('Scan attempt notification sent');
   } catch (error) {
-    console.error('Failed to send scan notification:', error.message);
+    logger.error('Failed to send scan notification:', error.message);
   }
 };
 
@@ -160,15 +161,72 @@ export const sendClaimAttemptEmail = async (claimDetails) => {
       subject,
       html
     });
-    console.log('Claim attempt notification sent');
+    logger.info('Claim attempt notification sent');
   } catch (error) {
-    console.error('Failed to send claim notification:', error.message);
+    logger.error('Failed to send claim notification:', error.message);
   }
 };
+
+export { sendContentDropNotification };
 
 export default {
   sendConnectionAttemptEmail,
   sendScanAttemptEmail,
   sendCodeEntryEmail,
-  sendClaimAttemptEmail
+  sendClaimAttemptEmail,
+  sendContentDropNotification,
 };
+
+/**
+ * Send immediate content-drop notification (email + SMS if enabled)
+ * @param {object} drop      - { title, description, contentType }
+ * @param {object} user      - Firestore user doc data
+ * @param {object} prefs     - notificationPreferences doc data
+ */
+async function sendContentDropNotification(drop, user, prefs) {
+  const tasks = [];
+
+  // Email notification
+  if (prefs.emailDrops && user.email) {
+    const { encryptionService } = await import('../services/encryptionService.js');
+    const email = encryptionService.decrypt(user.email);
+
+    tasks.push(
+      sgMail.send({
+        to: email,
+        from: EMAIL_CONFIG.from,
+        subject: `🎁 New Drop: ${drop.title}`,
+        html: `
+          <div style="font-family:Arial,sans-serif;padding:24px;background:#0a1628;color:#fff;">
+            <h2 style="color:#ffd700;">New Content Drop!</h2>
+            <p><strong>${drop.title}</strong></p>
+            <p style="color:#aaa;">${drop.description || ''}</p>
+            <p style="margin-top:16px;">
+              <a href="${process.env.FRONTEND_URL || 'https://crownmania.com'}/vault"
+                 style="background:#ffd700;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
+                Open Vault
+              </a>
+            </p>
+          </div>`,
+      }).catch(err => console.error('Content drop email failed:', err.message))
+    );
+  }
+
+  // SMS notification
+  if (prefs.smsDrops && user.phone && user.phoneVerified) {
+    const smsService = (await import('../services/smsService.js')).default;
+    const { encryptionService } = await import('../services/encryptionService.js');
+    const phone = encryptionService.decrypt(user.phone);
+
+    tasks.push(
+      smsService.getClient()?.messages?.create({
+        body: `CrownMania: New drop "${drop.title}" is available! Open your Vault to view.`,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: phone,
+      }).catch(err => console.error('Content drop SMS failed:', err.message))
+    );
+  }
+
+  await Promise.allSettled(tasks);
+}
+

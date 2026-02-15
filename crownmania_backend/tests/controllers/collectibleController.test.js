@@ -1,92 +1,133 @@
-import request from 'supertest';
-import app from '../../src/app.js';
-import Collectible from '../../src/models/Collectible.js';
-import { Moralis } from '../../src/config/web3.js';
+/**
+ * Unit tests for Collectible model
+ * Uses jest.unstable_mockModule for proper ESM mocking
+ *
+ * NOTE: The original test referenced non-existent modules (app.js, Moralis mint).
+ *       Rewritten to test the actual Collectible model against mocked Firestore.
+ */
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 
-jest.mock('../../src/models/Collectible.js');
-jest.mock('axios');
+// ── Mock Firebase + Logger ──
+const mockSet = jest.fn().mockResolvedValue(undefined);
+const mockUpdate = jest.fn().mockResolvedValue(undefined);
+const mockDoc = jest.fn((id) => ({
+  set: mockSet,
+  update: mockUpdate,
+  id: id || 'auto-id',
+}));
+const mockGet = jest.fn();
+const mockWhere = jest.fn().mockReturnThis();
+const mockLimit = jest.fn().mockReturnThis();
+const mockCollection = jest.fn(() => ({
+  doc: mockDoc,
+  where: mockWhere,
+  limit: mockLimit,
+  get: mockGet,
+}));
 
-describe('Collectible Controller', () => {
+jest.unstable_mockModule('../../src/config/firebase.js', () => ({
+  db: { collection: mockCollection },
+  admin: {},
+}));
+
+jest.unstable_mockModule('../../src/config/logger.js', () => ({
+  default: { info: jest.fn(), error: jest.fn(), warn: jest.fn() },
+}));
+
+// Dynamic import AFTER mocks
+const { default: Collectible } = await import('../../src/models/Collectible.js');
+
+describe('Collectible Model', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGet.mockReset();
   });
 
-  describe('POST /api/collectibles/verify', () => {
-    it('should verify a valid serial number', async () => {
-      const mockCollectible = {
+  describe('create', () => {
+    it('should create a collectible and persist to Firestore', async () => {
+      const data = {
+        id: 'COL-123',
         serialNumber: 'ABC123',
+        ownerId: null,
         status: 'unclaimed',
-        metadata: { name: 'Test Collectible' }
+        metadata: { productId: 'durk-pendant' },
       };
 
-      Collectible.findBySerialNumber.mockResolvedValue(mockCollectible);
+      const result = await Collectible.create(data);
 
-      const response = await request(app)
-        .post('/api/collectibles/verify')
-        .send({
-          serialNumber: 'ABC123',
-          recaptchaToken: 'valid-token'
-        });
-
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({
-        valid: true,
-        status: 'unclaimed',
-        metadata: { name: 'Test Collectible' }
-      });
-    });
-
-    it('should return 404 for invalid serial number', async () => {
-      Collectible.findBySerialNumber.mockResolvedValue(null);
-
-      const response = await request(app)
-        .post('/api/collectibles/verify')
-        .send({
-          serialNumber: 'INVALID',
-          recaptchaToken: 'valid-token'
-        });
-
-      expect(response.status).toBe(404);
-      expect(response.body).toEqual({
-        error: 'Invalid serial number'
-      });
+      expect(result).toBeInstanceOf(Collectible);
+      expect(result.id).toBe('COL-123');
+      expect(result.serialNumber).toBe('ABC123');
+      expect(result.status).toBe('unclaimed');
+      expect(mockCollection).toHaveBeenCalledWith('collectibles');
+      expect(mockDoc).toHaveBeenCalledWith('COL-123');
+      expect(mockSet).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('POST /api/collectibles/mint', () => {
-    it('should mint NFT successfully', async () => {
-      const mockCollectible = {
-        serialNumber: 'ABC123',
-        status: 'claimed',
-        ownerId: 'user123',
-        metadata: { name: 'Test Collectible' },
-        updateStatus: jest.fn(),
-        save: jest.fn()
-      };
-
-      Collectible.findBySerialNumber.mockResolvedValue(mockCollectible);
-      
-      Moralis.EvmApi.nft.mint.mockResolvedValue({
-        result: {
-          tokenId: '1',
-          transactionHash: '0x123'
-        }
+  describe('findBySerialNumber', () => {
+    it('should return a collectible when found', async () => {
+      mockGet.mockResolvedValue({
+        empty: false,
+        docs: [{
+          id: 'COL-999',
+          data: () => ({
+            serialNumber: 'XYZ789',
+            status: 'claimed',
+            ownerId: '0xabc',
+            metadata: {},
+          }),
+        }],
       });
 
-      const response = await request(app)
-        .post('/api/collectibles/mint')
-        .set('Authorization', 'Bearer valid-token')
-        .send({
-          serialNumber: 'ABC123'
-        });
+      const result = await Collectible.findBySerialNumber('XYZ789');
 
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({
-        message: 'NFT minted successfully',
-        tokenId: '1',
-        transactionHash: '0x123'
+      expect(result).toBeInstanceOf(Collectible);
+      expect(result.serialNumber).toBe('XYZ789');
+      expect(result.status).toBe('claimed');
+      expect(mockWhere).toHaveBeenCalledWith('serialNumber', '==', 'XYZ789');
+    });
+
+    it('should return null for unknown serial', async () => {
+      mockGet.mockResolvedValue({ empty: true, docs: [] });
+
+      const result = await Collectible.findBySerialNumber('INVALID');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findByOwner', () => {
+    it('should return all collectibles for an owner', async () => {
+      mockGet.mockResolvedValue({
+        docs: [
+          { id: 'C1', data: () => ({ serialNumber: 'A', ownerId: '0x1', status: 'claimed', metadata: {} }) },
+          { id: 'C2', data: () => ({ serialNumber: 'B', ownerId: '0x1', status: 'minted', metadata: {} }) },
+        ],
       });
-      expect(mockCollectible.updateStatus).toHaveBeenCalledWith('minted');
+
+      const results = await Collectible.findByOwner('0x1');
+
+      expect(results).toHaveLength(2);
+      expect(results[0]).toBeInstanceOf(Collectible);
+      expect(mockWhere).toHaveBeenCalledWith('ownerId', '==', '0x1');
+    });
+  });
+
+  describe('updateStatus', () => {
+    it('should update status in Firestore', async () => {
+      const collectible = new Collectible({
+        id: 'COL-555',
+        serialNumber: 'UPD',
+        status: 'unclaimed',
+      });
+
+      const result = await collectible.updateStatus('minted');
+
+      expect(result.status).toBe('minted');
+      expect(mockDoc).toHaveBeenCalledWith('COL-555');
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'minted' })
+      );
     });
   });
 });

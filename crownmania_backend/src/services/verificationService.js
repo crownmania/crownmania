@@ -3,11 +3,20 @@ import { sendVerificationEmail, sendClaimConfirmationEmail } from '../config/ema
 import crypto from 'crypto';
 import { contentSecurity } from '../utils/contentSecurity.js';
 import { transferNFTToWallet, checkNFTOwnership } from './thirdwebService.js';
+import signatureService from './signatureService.js';
+import { queueService } from './queueService.js';
+import logger from '../config/logger.js';
 
 /**
  * Service for managing collectible verification and token claiming
  */
 export const verificationService = {
+  /**
+   * Validate serial number / claim code format
+   * Accepts 6-20 char alphanumeric (printed serials) or 32-char hex (claim code IDs)
+   */
+  SERIAL_FORMAT_REGEX: /^[a-fA-F0-9]{32}$|^[A-Z0-9]{6,20}$/,
+
   /**
    * Verify a product by its serial number
    * @param {string} serialNumber - The product serial number
@@ -15,6 +24,15 @@ export const verificationService = {
    */
   verifySerialNumber: async (serialNumber) => {
     try {
+      // Validate serial format before DB lookup (prevents enumeration with garbage input)
+      if (!verificationService.SERIAL_FORMAT_REGEX.test(serialNumber)) {
+        return {
+          verified: false,
+          product: null,
+          message: 'Invalid serial number format.'
+        };
+      }
+
       // The serial number is actually the claimCodeId (32-char hex)
       // Look up the claim code first
       const claimCodeRef = db.collection('claimCodes').doc(serialNumber.toLowerCase());
@@ -77,7 +95,7 @@ export const verificationService = {
         message: 'Product verified successfully.'
       };
     } catch (error) {
-      console.error('Error verifying serial number:', error);
+      logger.error('Error verifying serial number:', error);
       throw new Error('Failed to verify product');
     }
   },
@@ -91,6 +109,15 @@ export const verificationService = {
    */
   verifyProductById: async (claimCodeId, productType, clientIP = '') => {
     try {
+      // Validate claim code format before DB lookup
+      if (!verificationService.SERIAL_FORMAT_REGEX.test(claimCodeId)) {
+        return {
+          verified: false,
+          product: null,
+          message: 'Invalid claim code format.'
+        };
+      }
+
       // Sanitize input
       const sanitizedCodeId = contentSecurity.sanitizeInput(claimCodeId);
 
@@ -142,7 +169,8 @@ export const verificationService = {
             edition: claimCodeData.edition,
             totalEditions: 500,
             claimedBy: claimCodeData.claimedBy,
-            claimedAt: claimCodeData.claimedAt
+            claimedAt: claimCodeData.claimedAt,
+            claimDate: claimCodeData.claimedAt?.toDate ? claimCodeData.claimedAt.toDate().toISOString() : new Date().toISOString()
           },
           message: 'This product is authentic but has already been claimed.'
         };
@@ -186,7 +214,7 @@ export const verificationService = {
         message: 'Product verified successfully. Ready to claim your Digital Twin NFT!'
       };
     } catch (error) {
-      console.error('Error verifying claim code:', error);
+      logger.error('Error verifying claim code:', error);
       throw new Error('Failed to verify product');
     }
   },
@@ -225,6 +253,25 @@ export const verificationService = {
         };
       }
 
+      // Verify wallet signature (CRITICAL SECURITY)
+      if (signature && message) {
+        try {
+          await signatureService.verifySignature(sanitizedWallet, signature, message);
+        } catch (error) {
+          contentSecurity.logSecurityEvent('nft_claim_failed', {
+            claimCodeId: sanitizedCodeId?.substring(0, 8) + '...',
+            walletAddress: sanitizedWallet?.substring(0, 10) + '...',
+            reason: 'signature_verification_failed'
+          }, clientIP, sanitizedWallet);
+
+          return {
+            success: false,
+            tokenId: null,
+            message: 'Signature verification failed. Please try claiming again.'
+          };
+        }
+      }
+
       // Log claim attempt
       contentSecurity.logSecurityEvent('nft_claim_attempt', {
         claimCodeId: sanitizedCodeId?.substring(0, 8) + '...',
@@ -234,7 +281,7 @@ export const verificationService = {
       }, clientIP, sanitizedWallet);
 
       // Generate token ID before transaction (no DB dependency)
-      const tokenId = `NFT-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      const tokenId = `NFT-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
 
       // Prepare document references
       const claimCodeRef = db.collection('claimCodes').doc(sanitizedCodeId.toLowerCase());
@@ -341,42 +388,43 @@ export const verificationService = {
         };
       });
 
-      // Transaction succeeded - now attempt NFT transfer (outside transaction)
-      // NFT transfer is idempotent and can be retried if it fails
-      let nftTransferResult = null;
+      // Transaction succeeded - now enqueue NFT transfer job (outside transaction)
+      // Using queue ensures reliability with automatic retries
       try {
-        nftTransferResult = await transferNFTToWallet(walletAddress);
-        console.log('NFT Transfer successful:', nftTransferResult);
-
-        // Update collectible with blockchain transaction info
-        await collectibleRef.update({
-          blockchainTokenId: nftTransferResult.tokenId,
-          transactionHash: nftTransferResult.transactionHash,
-          contractAddress: nftTransferResult.contractAddress,
-          nftTransferred: true
+        await queueService.enqueueTransfer({
+          collectibleId: collectibleRef.id,
+          toAddress: sanitizedWallet,
+          tokenId: claimResult.editionNumber  // Edition number = token ID
         });
-      } catch (nftError) {
-        console.error('NFT Transfer failed (claim still recorded):', nftError.message);
-        // The claim is still valid, but NFT transfer failed
-        // This can be retried later
+
+        logger.info(`NFT transfer job enqueued for collectible ${collectibleRef.id}`);
+
+        // Update status to pending_transfer
         await collectibleRef.update({
-          nftTransferError: nftError.message,
-          nftTransferred: false
+          status: 'pending_transfer',
+          transferEnqueuedAt: new Date()
+        });
+
+      } catch (queueError) {
+        logger.error('Failed to enqueue transfer job:', queueError);
+
+        // Mark as failed but claim is still valid
+        await collectibleRef.update({
+          status: 'failed_transfer',
+          transferError: queueError.message
         });
       }
 
       return {
         success: true,
+        collectibleId: collectibleRef.id,
         tokenId: claimResult.tokenId,
-        blockchainTokenId: nftTransferResult?.tokenId || null,
-        transactionHash: nftTransferResult?.transactionHash || null,
-        edition: claimResult.editionNumber,
+        editionNumber: claimResult.editionNumber,
         totalEditions: claimResult.totalEditions,
         productName: claimResult.productName,
-        nftTransferred: !!nftTransferResult,
-        message: nftTransferResult
-          ? `NFT transferred successfully! You own Edition #${claimResult.editionNumber} of ${claimResult.totalEditions}. TX: ${nftTransferResult.transactionHash?.substring(0, 10)}...`
-          : `Claim recorded! NFT transfer pending - Edition #${claimResult.editionNumber} of ${claimResult.totalEditions}.`
+        status: 'pending_transfer',
+        claimDate: new Date().toISOString(),
+        message: 'Collectible claimed successfully. NFT transfer is being processed and will complete shortly.'
       };
 
     } catch (error) {
@@ -390,7 +438,7 @@ export const verificationService = {
         };
       }
 
-      console.error('Error claiming product:', error);
+      logger.error('Error claiming product:', error);
       throw error;
     }
   },
@@ -446,7 +494,7 @@ export const verificationService = {
         message: 'Verification email sent. Please check your inbox.'
       };
     } catch (error) {
-      console.error('Error generating email verification:', error);
+      logger.error('Error generating email verification:', error);
       throw new Error('Failed to generate email verification');
     }
   },
@@ -493,7 +541,7 @@ export const verificationService = {
         message: 'Token verified successfully'
       };
     } catch (error) {
-      console.error('Error verifying token:', error);
+      logger.error('Error verifying token:', error);
       throw new Error('Failed to verify token');
     }
   },
@@ -560,7 +608,7 @@ export const verificationService = {
         message: 'Token issued successfully'
       };
     } catch (error) {
-      console.error('Error issuing token:', error);
+      logger.error('Error issuing token:', error);
       throw new Error('Failed to issue token');
     }
   },
@@ -589,14 +637,18 @@ export const verificationService = {
           productName: data.productName,
           serialNumber: data.serialNumber,
           tokenId: data.tokenId,
+          edition: data.edition,
+          editionNumber: data.edition,
+          tokenAddress: data.contractAddress,
           modelUrl: data.metadata?.modelUrl || data.modelUrl,
           imageUrl: data.metadata?.image,
           issuedAt: data.createdAt ? data.createdAt.toDate() : new Date(),
+          claimDate: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
           metadata: data.metadata
         };
       });
     } catch (error) {
-      console.error('Error getting wallet tokens:', error);
+      logger.error('Error getting wallet tokens:', error);
       throw new Error('Failed to get wallet tokens');
     }
   }

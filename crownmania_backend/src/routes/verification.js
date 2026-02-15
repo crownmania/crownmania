@@ -4,7 +4,7 @@ import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
 import { sendClaimConfirmationEmail } from '../config/email.js';
 import { sendScanAttemptEmail, sendCodeEntryEmail, sendClaimAttemptEmail } from '../services/notificationService.js';
 import { serialNumberLimiter, claimLimiter } from '../middleware/rateLimiter.js';
-
+import { validateSerialNumber, validateWallet } from '../middleware/validation.js';
 const router = express.Router();
 
 /**
@@ -19,7 +19,7 @@ router.get('/nonce', getNonceHandler);
  * @desc Verify a product serial number
  * @access Public
  */
-router.post('/verify-serial', serialNumberLimiter, async (req, res) => {
+router.post('/verify-serial', serialNumberLimiter, validateSerialNumber, async (req, res) => {
   try {
     const { serialNumber } = req.body;
 
@@ -80,7 +80,7 @@ router.get('/verify-product/:id', async (req, res) => {
  * @desc Claim a product to a wallet address
  * @access Private (authenticated wallet)
  */
-router.post('/claim', claimLimiter, authenticateWallet, async (req, res) => {
+router.post('/claim', claimLimiter, validateWallet, authenticateWallet, async (req, res) => {
   try {
     const { productId, walletAddress, signature, message, email } = req.body;
 
@@ -129,7 +129,7 @@ router.post('/claim', claimLimiter, authenticateWallet, async (req, res) => {
  * @desc Request email verification for a serial number
  * @access Public
  */
-router.post('/request-email-verification', async (req, res) => {
+router.post('/request-email-verification', serialNumberLimiter, async (req, res) => {
   try {
     const { serialNumber, email } = req.body;
 
@@ -171,7 +171,7 @@ router.post('/verify-token', async (req, res) => {
  * @desc Issue a digital token for a verified product
  * @access Public
  */
-router.post('/issue-token', async (req, res) => {
+router.post('/issue-token', authenticateWallet, serialNumberLimiter, async (req, res) => {
   try {
     const { serialNumber, walletAddress } = req.body;
 
@@ -190,9 +190,12 @@ router.post('/issue-token', async (req, res) => {
 /**
  * @route GET /api/verification/wallet-tokens/:walletAddress
  * @desc Get all tokens owned by a wallet address
- * @access Public
+ * @access Private (authenticated wallet)
+ *
+ * SECURITY FIX (S14): Requires wallet signature auth to prevent
+ * unauthenticated enumeration of another wallet's tokens.
  */
-router.get('/wallet-tokens/:walletAddress', async (req, res) => {
+router.get('/wallet-tokens/:walletAddress', authenticateWallet, async (req, res) => {
   try {
     const { walletAddress } = req.params;
 
@@ -200,11 +203,66 @@ router.get('/wallet-tokens/:walletAddress', async (req, res) => {
       return res.status(400).json({ error: 'Wallet address is required' });
     }
 
+    // S14: Ensure the authenticated wallet matches the requested wallet
+    if (req.wallet !== walletAddress.toLowerCase()) {
+      return res.status(403).json({ error: 'Cannot query tokens for a different wallet' });
+    }
+
     const tokens = await verificationService.getWalletTokens(walletAddress);
     res.json({ tokens });
   } catch (error) {
     console.error('Error getting wallet tokens:', error);
     res.status(500).json({ error: error.message || 'Server error while retrieving tokens' });
+  }
+});
+
+/**
+ * @route GET /api/verification/transfer-status/:serialNumber
+ * @desc Check NFT transfer status for a given serial number
+ * @access Public
+ */
+router.get('/transfer-status/:serialNumber', async (req, res) => {
+  try {
+    const { serialNumber } = req.params;
+
+    if (!serialNumber) {
+      return res.status(400).json({ error: 'Serial number is required' });
+    }
+
+    // Import db from firebase config
+    const { db } = await import('../config/firebase.js');
+
+    const collectible = await db.collection('collectibles')
+      .where('serialNumber', '==', serialNumber.toLowerCase())
+      .limit(1)
+      .get();
+
+    if (collectible.empty) {
+      return res.json({
+        status: 'not_claimed',
+        message: 'This product has not been claimed yet'
+      });
+    }
+
+    const data = collectible.docs[0].data();
+
+    return res.json({
+      status: data.nftTransferred ? 'transferred' : 'pending',
+      edition: data.edition,
+      totalEditions: data.totalEditions || 500,
+      transactionHash: data.transactionHash || null,
+      contractAddress: data.contractAddress || null,
+      ownerId: data.ownerId,
+      claimDate: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
+      retryCount: data.retryCount || 0,
+      lastRetryError: data.lastRetryError || null,
+      message: data.nftTransferred
+        ? 'NFT successfully transferred to wallet'
+        : 'NFT transfer pending - will be retried automatically'
+    });
+  } catch (error) {
+    console.error('Error checking transfer status:', error);
+    res.status(500).json({ error: error.message || 'Server error while checking transfer status' });
   }
 });
 

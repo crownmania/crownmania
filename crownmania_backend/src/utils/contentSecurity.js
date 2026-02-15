@@ -1,4 +1,28 @@
 import crypto from 'crypto';
+import logger from '../config/logger.js';
+
+// ── Fail-fast secret validation ──────────────────────────────
+const SERIAL_HASH_SALT = process.env.SERIAL_HASH_SALT;
+const CONTENT_ACCESS_SECRET = process.env.CONTENT_ACCESS_SECRET;
+
+if (process.env.NODE_ENV === 'production') {
+  if (!SERIAL_HASH_SALT) {
+    throw new Error('FATAL: SERIAL_HASH_SALT env var is required in production');
+  }
+  if (!CONTENT_ACCESS_SECRET) {
+    throw new Error('FATAL: CONTENT_ACCESS_SECRET env var is required in production');
+  }
+} else {
+  if (!SERIAL_HASH_SALT) {
+    console.warn('⚠️  SERIAL_HASH_SALT not set — using insecure dev fallback');
+  }
+  if (!CONTENT_ACCESS_SECRET) {
+    console.warn('⚠️  CONTENT_ACCESS_SECRET not set — using insecure dev fallback');
+  }
+}
+
+const RESOLVED_SALT = SERIAL_HASH_SALT || 'DEV_ONLY_INSECURE_SALT';
+const RESOLVED_SECRET = CONTENT_ACCESS_SECRET || 'DEV_ONLY_INSECURE_SECRET';
 
 /**
  * Security utilities for content protection and serial number hashing
@@ -15,7 +39,7 @@ export const contentSecurity = {
     }
 
     // Use SHA-256 with salt for additional security
-    const salt = process.env.SERIAL_HASH_SALT || 'REDACTED_SALT_VALUE';
+    const salt = RESOLVED_SALT;
     const hash = crypto.createHash('sha256');
     hash.update(serial + salt);
     return hash.digest('hex');
@@ -50,7 +74,7 @@ export const contentSecurity = {
    * @returns {string} - HMAC signature
    */
   generateContentSignature: (contentId, timestamp, userId = '') => {
-    const secret = process.env.CONTENT_ACCESS_SECRET || 'REDACTED_CONTENT_SECRET';
+    const secret = RESOLVED_SECRET;
     const data = `${contentId}:${timestamp}:${userId}`;
 
     const hmac = crypto.createHmac('sha256', secret);
@@ -124,10 +148,17 @@ export const contentSecurity = {
       userId: userId || 'anonymous'
     };
 
-    // In production, this should go to a secure logging service
-    console.log('[SECURITY]', JSON.stringify(logEntry));
+    // Structured log output
+    logger.info(`[SECURITY] ${event}`, logEntry);
 
-    // TODO: Implement proper audit logging to database/file
+    // Persist to Firestore audit log (fire-and-forget)
+    import('../config/firebase.js').then(({ db }) => {
+      db.collection('auditLogs').add({
+        ...logEntry,
+        timestamp: new Date(),
+        source: 'contentSecurity'
+      }).catch(err => logger.error('Failed to persist security event:', err.message));
+    }).catch(() => { /* Firebase not available (test env) */ });
   }
 };
 

@@ -19,7 +19,7 @@ function Loader() {
   );
 }
 
-function Model({ url }) {
+function Model({ url, isUnlocked = false }) {
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
@@ -30,7 +30,7 @@ function Model({ url }) {
     loader.setDRACOLoader(dracoLoader);
   });
 
-  // Material overrides removed to show original model colors
+  // Keep original materials - just configure shadows
   useEffect(() => {
     if (gltf.scene) {
       gltf.scene.traverse((child) => {
@@ -289,7 +289,7 @@ export function DurkModel({ usePlaceholder = false, isUnlocked = false }) {
 
   return (
     <Suspense fallback={<Loader />}>
-      <Model url={modelUrl} />
+      <Model url={modelUrl} isUnlocked={isUnlocked} />
     </Suspense>
   );
 }

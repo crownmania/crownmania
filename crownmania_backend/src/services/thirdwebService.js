@@ -1,6 +1,7 @@
 // Thirdweb NFT Transfer Service
 // For transferring pre-minted NFTs using Thirdweb Engine API
 import { ThirdwebSDK } from "@thirdweb-dev/sdk";
+import logger from '../config/logger.js';
 
 const POLYGON_CHAIN_ID = "137";
 
@@ -29,7 +30,7 @@ export const transferNFTToWallet = async (recipientWallet, tokenId = null) => {
             tokenId = available[0].tokenId;
         }
 
-        console.log(`Transferring NFT token ${tokenId} to wallet ${recipientWallet}`);
+        logger.info(`Transferring NFT token ${tokenId} to wallet ${recipientWallet}`);
 
         // If we have Engine access token, use Engine API
         if (engineAccessToken) {
@@ -52,7 +53,7 @@ export const transferNFTToWallet = async (recipientWallet, tokenId = null) => {
             }
 
             const result = await response.json();
-            console.log('NFT transferred via Engine:', result);
+            logger.info('NFT transferred via Engine:', result);
 
             return {
                 success: true,
@@ -83,7 +84,7 @@ export const transferNFTToWallet = async (recipientWallet, tokenId = null) => {
 
         throw new Error('No transfer method available - configure THIRDWEB_ENGINE_ACCESS_TOKEN or MINTING_WALLET_PRIVATE_KEY');
     } catch (error) {
-        console.error('Error transferring NFT:', error);
+        logger.error('Error transferring NFT:', error);
         throw new Error(`Failed to transfer NFT: ${error.message}`);
     }
 };
@@ -96,7 +97,7 @@ export const getAvailableNFTs = async () => {
         const secretKey = process.env.THIRDWEB_SECRET_KEY;
 
         if (!secretKey || !contractAddress || !ownerWallet) {
-            console.warn('Missing Thirdweb config for getAvailableNFTs');
+            logger.warn('Missing Thirdweb config for getAvailableNFTs');
             return [];
         }
 
@@ -114,7 +115,7 @@ export const getAvailableNFTs = async () => {
             description: t.metadata.description
         }));
     } catch (error) {
-        console.error('Error getting available NFTs:', error);
+        logger.error('Error getting available NFTs:', error);
         return [];
     }
 };
@@ -142,7 +143,7 @@ export const checkNFTOwnership = async (walletAddress) => {
             }))
         };
     } catch (error) {
-        console.error('Error checking NFT ownership:', error);
+        logger.error('Error checking NFT ownership:', error);
         return { owned: false, tokens: [] };
     }
 };
@@ -169,7 +170,7 @@ export const getNFTMetadata = async (tokenId) => {
             owner: nft.owner
         };
     } catch (error) {
-        console.error('Error getting NFT metadata:', error);
+        logger.error('Error getting NFT metadata:', error);
         return null;
     }
 };

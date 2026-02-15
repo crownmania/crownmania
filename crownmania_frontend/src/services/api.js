@@ -3,6 +3,7 @@ import axios from 'axios';
 // Use environment variable for API URL, fallback to local development or production
 const isDev = import.meta.env.DEV;
 const API_BASE_URL = import.meta.env.VITE_API_URL || (isDev ? 'http://localhost:5001' : 'https://api.crownmania.com');
+console.log('[API] Base URL:', API_BASE_URL, '| isDev:', isDev);
 
 // Security configuration
 const SECURITY_CONFIG = {
@@ -10,7 +11,7 @@ const SECURITY_CONFIG = {
   INITIAL_RETRY_DELAY: 1000, // 1 second
   MAX_RETRY_DELAY: 10000, // 10 seconds
   RATE_LIMIT_WINDOW: 60000, // 1 minute
-  MAX_REQUESTS_PER_WINDOW: 30,
+  MAX_REQUESTS_PER_WINDOW: isDev ? 120 : 30, // Higher limit in dev for testing
   REQUEST_TIMEOUT: 30000,
   TOKEN_REFRESH_BUFFER: 60000, // 1 minute before expiry
 };
@@ -424,6 +425,68 @@ export const verificationAPI = {
     } catch (error) {
       console.error('Error verifying serial:', error);
       throw error.response?.data || { error: 'Failed to verify serial' };
+    }
+  },
+};
+
+/**
+ * Transfer API service for external NFT transfers
+ */
+export const transferAPI = {
+  /**
+   * Request a 2FA code for transfer verification
+   * @param {string} walletAddress - The wallet address requesting the transfer
+   * @param {string} method - 2FA method ('email' or 'sms')
+   * @returns {Promise<{success: boolean, method: string, validityMinutes: number}>}
+   */
+  request2FA: async (walletAddress, method) => {
+    try {
+      const response = await api.post('/api/wallet/transfer/request-2fa', {
+        walletAddress,
+        method,
+      }, {
+        sensitive: true,
+        walletAddress,
+        requiresAuth: true,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error requesting transfer 2FA:', error);
+      throw error.response?.data || { error: 'Failed to send 2FA code' };
+    }
+  },
+
+  /**
+   * Execute an external NFT transfer (requires 2FA + wallet signature)
+   * @param {object} params - Transfer parameters
+   * @param {string} params.collectibleId - The collectible document ID
+   * @param {string} params.destinationAddress - Destination wallet address
+   * @param {string} params.twoFactorCode - The 2FA verification code
+   * @param {string} params.twoFactorMethod - The 2FA method used ('email' or 'sms')
+   * @param {string} params.walletAddress - The source wallet address
+   * @param {string} params.signature - The wallet signature
+   * @param {string} params.message - The signed message
+   * @returns {Promise<{success: boolean, transfer: object}>}
+   */
+  executeTransfer: async ({ collectibleId, destinationAddress, twoFactorCode, twoFactorMethod, walletAddress, signature, message }) => {
+    try {
+      const response = await api.post('/api/wallet/transfer', {
+        collectibleId,
+        destinationAddress,
+        twoFactorCode,
+        twoFactorMethod,
+        walletAddress,
+        signature,
+        message,
+      }, {
+        sensitive: true,
+        walletAddress,
+        requiresAuth: true,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error executing transfer:', error);
+      throw error.response?.data || { error: 'Transfer failed' };
     }
   },
 };

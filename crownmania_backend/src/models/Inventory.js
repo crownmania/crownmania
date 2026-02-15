@@ -1,6 +1,7 @@
 import { db } from '../config/firebase.js';
 import logger from '../config/logger.js';
 import { FieldValue } from 'firebase-admin/firestore';
+import crypto from 'crypto';
 
 /**
  * Inventory model for managing serial number pool.
@@ -112,7 +113,7 @@ class Inventory {
 
                 // Random selection from available pool
                 const docs = snapshot.docs;
-                const randomIndex = Math.floor(Math.random() * docs.length);
+                const randomIndex = crypto.randomInt(docs.length);
                 const selectedDoc = docs[randomIndex];
                 const data = selectedDoc.data();
 

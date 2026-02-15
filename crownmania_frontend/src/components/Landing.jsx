@@ -1,127 +1,76 @@
-import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import crownLogo from '../assets/crown_logo_white.svg';
 
 const LandingSection = styled.section`
-  height: 100vh;
-  width: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
-  background: transparent;
-  overflow: hidden;
-  padding-top: 80px; /* Header offset */
-
-  @media (max-width: 450px) {
-    justify-content: flex-start;
-    padding-top: 15vh;
-  }
-`;
-
-const ContentWrapper = styled.div`
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
   text-align: center;
-  width: 100%;
-  max-width: 1200px;
-  gap: 2rem;
+  padding: 2rem;
 `;
 
-const MainTagline = styled(motion.h1)`
+const MainTitle = styled(motion.h1)`
   font-family: var(--font-primary);
-  font-size: clamp(1.5rem, 8vw, 5rem);
+  font-size: clamp(3rem, 8vw, 5.5rem);
   color: white;
+  margin: 0;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  letter-spacing: 0.25em;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-  margin-bottom: 0.5rem;
   line-height: 1.1;
-  font-weight: normal;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.25), 0 0 16px rgba(255, 255, 255, 0.15);
 `;
 
-const SubTagline = styled(motion.h2)`
-  font-size: clamp(0.7rem, 2vw, 1.1rem);
+const Tagline = styled(motion.p)`
   font-family: var(--font-secondary);
-  color: white;
+  font-size: clamp(0.8rem, 2vw, 1.1rem);
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.3em;
   text-transform: uppercase;
-  letter-spacing: 0.45em;
-  font-weight: 500;
-  line-height: 1.8;
-  max-width: 800px;
-  margin: 0 auto;
-  opacity: 0.9;
+  margin-top: 1.5rem;
+  font-weight: 400;
 `;
 
-const LogoButton = styled(motion.button)`
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  margin-top: 1rem;
-  z-index: 2;
-  padding: 0;
-  
-  @media (max-width: 450px) {
-    margin-top: 5vh;
-  }
-  
+const LogoContainer = styled(motion.div)`
+  margin-top: 2.5rem;
+
   img {
-    width: 65px;
-    height: 65px;
-    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  
-  &:hover img {
-    filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.6));
-    transform: scale(1.15) translateY(-8px);
+    width: 80px;
+    height: auto;
+    opacity: 0.9;
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.15));
   }
 `;
 
 export default function Landing() {
-  const scrollToGallery = () => {
-    const gallerySection = document.getElementById('gallery');
-    if (gallerySection) {
-      gallerySection.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   return (
-    <LandingSection id="landing">
-      <ContentWrapper>
-        <MainTagline
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-        >
-          CROWNMANIA
-        </MainTagline>
+    <LandingSection id="home">
+      <MainTitle
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1 }}
+      >
+        CROWNMANIA
+      </MainTitle>
 
-        <SubTagline
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        >
-          Revolutionizing Collectibles. <br />
-          Connecting the World.
-        </SubTagline>
+      <Tagline
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 1 }}
+      >
+        Revolutionizing Collectibles, Connecting The World
+      </Tagline>
 
-        <LogoButton
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 1, ease: [0.16, 1, 0.3, 1] }}
-          onClick={scrollToGallery}
-          aria-label="Scroll to gallery"
-        >
-          <img src={crownLogo} alt="Crownmania Logo" />
-        </LogoButton>
-      </ContentWrapper>
+      <LogoContainer
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 1 }}
+      >
+        <img src={crownLogo} alt="CrownMania" />
+      </LogoContainer>
     </LandingSection>
   );
 }

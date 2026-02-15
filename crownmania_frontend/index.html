@@ -10,7 +10,7 @@
     content="Revolutionary collectibles platform combining physical artistry with digital innovation" />
 
   <!-- Preload Designer font for faster loading -->
-  <link rel="preload" href="/fonts/Designer.otf?v=2" as="font" type="font/otf" crossorigin />
+  <link rel="preload" href="/fonts/Designer.otf" as="font" type="font/otf" crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -23,8 +23,33 @@
     if (typeof Buffer === 'undefined') {
       window.Buffer = {
         isBuffer: function () { return false; },
-        from: function (arr) { return new Uint8Array(arr); },
-        alloc: function (size) { return new Uint8Array(size); }
+        from: function (arr, enc) {
+          if (typeof arr === 'string') {
+            var u = new TextEncoder().encode(arr);
+            u.slice = u.slice || Array.prototype.slice;
+            return u;
+          }
+          var b = new Uint8Array(arr && arr.length ? arr : 0);
+          b.slice = b.slice || Array.prototype.slice;
+          return b;
+        },
+        alloc: function (size) {
+          var b = new Uint8Array(size);
+          b.slice = b.slice || Array.prototype.slice;
+          return b;
+        },
+        allocUnsafe: function (size) { return new Uint8Array(size); },
+        concat: function (list, len) {
+          var total = len || list.reduce(function(s,b){ return s + b.length; }, 0);
+          var result = new Uint8Array(total);
+          var offset = 0;
+          for (var i = 0; i < list.length; i++) {
+            result.set(list[i], offset);
+            offset += list[i].length;
+          }
+          return result;
+        },
+        byteLength: function (str) { return new TextEncoder().encode(str).length; }
       };
     }
   </script>

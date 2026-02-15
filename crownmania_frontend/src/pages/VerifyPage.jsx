@@ -81,7 +81,7 @@ const SeriesLabel = styled.p`
   font-weight: 500;
 `;
 
-const SERIES_NAME = 'Free The Voice';
+const SERIES_NAME = 'FREE THE VOICE';
 
 const VerificationBadge = styled.div`
   display: inline-flex;

@@ -3,21 +3,21 @@ import logger from '../config/logger.js';
 
 const validateRequest = (schema, type = 'body') => {
   return (req, res, next) => {
-    const { error } = schema.validate(req[type], { abortEarly: false });
-    
+    const { error } = schema.validate(req[type], { abortEarly: false, allowUnknown: true });
+
     if (error) {
       const errors = error.details.map(detail => ({
         field: detail.path.join('.'),
         message: detail.message
       }));
-      
-      logger.warn('Validation error:', { 
-        path: req.path, 
+
+      logger.warn('Validation error:', {
+        path: req.path,
         errors,
         requestBody: req[type]
       });
-      
-      return res.status(400).json({ 
+
+      return res.status(400).json({
         error: 'Validation failed',
         details: errors
       });
@@ -40,10 +40,10 @@ export const userSchema = Joi.object({
 // Serial number validation schema
 export const serialNumberSchema = Joi.object({
   serialNumber: Joi.string()
-    .pattern(/^[A-Z0-9]{6,20}$/)
-    .message('Serial number must be 6-20 characters long and contain only uppercase letters and numbers')
+    .pattern(/^[a-fA-F0-9]{32}$|^[A-Z0-9]{6,20}$/)
+    .message('Invalid serial number format')
     .required(),
-  recaptchaToken: Joi.string().required()
+  recaptchaToken: Joi.string().optional()
 });
 
 // Wallet validation schema
@@ -111,9 +111,37 @@ export const shippingSchema = Joi.object({
   estimatedDeliveryDate: Joi.date().greater('now').required()
 });
 
+// External NFT transfer validation schema
+export const transferSchema = Joi.object({
+  collectibleId: Joi.string()
+    .min(1).max(128)
+    .required(),
+  destinationAddress: Joi.string()
+    .pattern(/^0x[a-fA-F0-9]{40}$/)
+    .message('Invalid destination wallet address')
+    .required(),
+  twoFactorCode: Joi.string()
+    .pattern(/^\d{6}$/)
+    .message('2FA code must be 6 digits')
+    .required(),
+  twoFactorMethod: Joi.string()
+    .valid('email', 'sms')
+    .required(),
+  walletAddress: Joi.string()
+    .pattern(/^0x[a-fA-F0-9]{40}$/)
+    .message('Invalid wallet address format')
+    .required(),
+  signature: Joi.string()
+    .pattern(/^0x[a-fA-F0-9]{130}$/)
+    .message('Invalid signature format')
+    .required(),
+  message: Joi.string().required()
+});
+
 export const validateSerialNumber = validateRequest(serialNumberSchema);
 export const validateWallet = validateRequest(walletSchema);
 export const validateOrder = validateRequest(orderSchema);
 export const validateUser = validateRequest(userSchema);
 export const validateMinting = validateRequest(mintingSchema);
 export const validateShipping = validateRequest(shippingSchema);
+export const validateTransfer = validateRequest(transferSchema);
