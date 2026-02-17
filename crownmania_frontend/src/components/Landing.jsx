@@ -15,7 +15,7 @@ const LandingSection = styled.section`
 
 const MainTitle = styled(motion.h1)`
   font-family: var(--font-primary);
-  font-size: clamp(1.5rem, 4vw, 2.75rem);
+  font-size: clamp(1.8rem, 4.8vw, 3.3rem);
   color: white;
   margin: 0;
   letter-spacing: 0.15em;
@@ -29,19 +29,19 @@ const MainTitle = styled(motion.h1)`
 
 const Tagline = styled(motion.p)`
   font-family: var(--font-secondary);
-  font-size: clamp(0.4rem, 1vw, 0.55rem);
+  font-size: clamp(0.48rem, 1.2vw, 0.66rem);
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  margin-top: 0.75rem;
+  margin-top: 0.9rem;
   font-weight: 400;
 `;
 
 const LogoContainer = styled(motion.div)`
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
 
   img {
-    width: 40px;
+    width: 48px;
     height: auto;
     opacity: 0.9;
     filter:
