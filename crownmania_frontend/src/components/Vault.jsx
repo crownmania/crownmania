@@ -1433,8 +1433,8 @@ justify-content: space-between;
 width: 100%;
 flex-wrap: nowrap;
 
-/* Title text wraps to 2 lines if needed; button stays right */
-> span, > :first-child:not(button) {
+/* Title content wraps to 2 lines if needed; button stays right */
+> div, > span {
   flex: 1;
   min-width: 0;
 }
@@ -2386,8 +2386,10 @@ export default function Vault() {
             style={{ borderColor: themes[currentTheme].color }}
           >
             <PanelTitle style={{ color: 'white', justifyContent: 'flex-start' }}>
-              <FaWallet size={20} /> VAULT CONNECTION
-              <motion.button onClick={() => handleInfoClick('vault')} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', opacity: 0.15, padding: '2px', lineHeight: 1, marginLeft: '0.5rem' }} whileHover={{ opacity: 0.8 }}><FaInfoCircle size={14} /></motion.button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <FaWallet size={20} /> VAULT CONNECTION
+                <motion.button onClick={() => handleInfoClick('vault')} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', opacity: 0.15, padding: '2px', lineHeight: 1 }} whileHover={{ opacity: 0.8 }}><FaInfoCircle size={14} /></motion.button>
+              </div>
             </PanelTitle>
             {infoPopup === 'vault' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }} style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', right: '0.5rem', zIndex: 10, background: 'rgba(8, 8, 20, 0.98)', backdropFilter: 'blur(16px)', border: `1px solid ${themes[currentTheme].color}66`, borderRadius: '12px', padding: '1rem 1.2rem', fontFamily: 'var(--font-secondary)', fontSize: '0.85rem', color: 'rgba(255,255,255,0.95)', lineHeight: 1.6, boxShadow: `0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 ${themes[currentTheme].color}22` }}>
