@@ -26,25 +26,22 @@ const FadeLayer = styled.div`
   inset: 0;
   background: linear-gradient(
     to bottom,
-    #000 0%,
-    rgba(0, 0, 0, 0.9) 20%,
-    rgba(0, 0, 0, 0.7) 40%,
-    rgba(0, 0, 0, 0.4) 60%,
-    rgba(0, 0, 0, 0.1) 80%,
+    rgba(0, 0, 0, 0.15) 0%,
+    rgba(0, 0, 0, 0.08) 40%,
     transparent 100%
   );
 `;
 
 /**
- * Solid black fill at top for seamless header connection
+ * Subtle top accent — no more solid black fill
  */
 const SolidTopFill = styled.div`
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 10px;
-  background: #000;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.03);
   z-index: 2;
 `;
 

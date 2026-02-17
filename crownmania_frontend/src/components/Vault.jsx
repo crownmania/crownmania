@@ -328,12 +328,7 @@ const ModalButtonRow = styled.div`
 
 const VaultSection = styled.section`
   min-height: 100vh;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 0.6) 2%,
-    rgba(0, 0, 0, 0.6) 100%
-  );
+  background: transparent;
   color: white;
   padding: 4rem 2rem 8rem;
   position: relative;
@@ -1422,6 +1417,21 @@ align-items: center;
 gap: 0.75rem;
 justify-content: space-between;
 width: 100%;
+flex-wrap: wrap;
+
+@media (max-width: 768px) {
+  font-size: 1.1rem;
+  gap: 0.5rem;
+
+  /* Make the QR button drop below title and span full width */
+  > button, > [class*="ActionButton"] {
+    order: 3;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+  }
+}
 `;
 
 const WelcomePanel = styled(Panel)`
@@ -2291,7 +2301,7 @@ export default function Vault() {
                 }}
                 onClick={() => setShowQRScanner(true)}
               >
-                <FaQrcode /> SCAN QR CODE
+                <FaQrcode size={20} /> SCAN QR CODE
               </ActionButton>
             </PanelTitle>
             {infoPopup === 'verify' && (

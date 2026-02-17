@@ -83,8 +83,8 @@ const DotOverlay = styled.div`
   height: 100%;
   background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
   background-size: 20px 20px;
-  mask-image: linear-gradient(to bottom, black 0%, rgba(0,0,0,0.5) 20%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.1) 70%, transparent 95%);
-  -webkit-mask-image: linear-gradient(to bottom, black 0%, rgba(0,0,0,0.5) 20%, rgba(0,0,0,0.3) 45%, rgba(0,0,0,0.1) 70%, transparent 95%);
+  mask-image: linear-gradient(to bottom, black 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.1) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.1) 100%);
   pointer-events: none;
 `;
 
