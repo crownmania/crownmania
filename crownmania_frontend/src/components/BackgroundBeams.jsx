@@ -75,21 +75,12 @@ const AnimatedSVGOverlay = styled.div`
   }
 `;
 
-const DotOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
-  background-size: 20px 20px;
-  mask-image: linear-gradient(to bottom, black 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.1) 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.1) 100%);
-  pointer-events: none;
-`;
-
-// Canvas-based dot wave for guaranteed looping and precise control
-const DotWaveCanvas = () => {
+/**
+ * Single unified dot layer — draws ALL halftone dots on canvas
+ * with a radial wave pulse that animates their opacity.
+ * Replaces the old DotOverlay (static CSS) + DotWaveCanvas (animated canvas) combo.
+ */
+const UnifiedDotCanvas = () => {
   const canvasRef = useRef(null);
   const animRef = useRef(null);
 
@@ -100,10 +91,11 @@ const DotWaveCanvas = () => {
 
     const DOT_SPACING = 20;
     const DOT_RADIUS = 1;
-    const CYCLE_DURATION = 3000; // ms
-    const RING_THICKNESS = 250; // px — thick ring
-    const MAX_RADIUS = 2500; // max expansion radius
-    const MAX_OPACITY = 0.35;
+    const CYCLE_DURATION = 3000; // ms per wave cycle
+    const RING_THICKNESS = 250; // px — wave ring width
+    const MAX_RADIUS = 2500;   // max expansion radius
+    const BASE_OPACITY = 0.08; // resting dot brightness
+    const WAVE_OPACITY = 0.35; // peak brightness during wave
 
     let ox = window.innerWidth / 2;
     let oy = window.innerHeight * 0.62;
@@ -123,25 +115,35 @@ const DotWaveCanvas = () => {
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw dots that fall within the ring
+      // Vertical fade mask: full at top, fading toward bottom
+      const verticalFade = (y) => {
+        const ratio = y / canvas.height;
+        if (ratio < 0.3) return 1;
+        if (ratio < 0.6) return 1 - (ratio - 0.3) / 0.3 * 0.6; // 1 → 0.4
+        return 0.4 - (ratio - 0.6) / 0.4 * 0.3; // 0.4 → 0.1
+      };
+
       for (let x = 0; x < canvas.width; x += DOT_SPACING) {
         for (let y = 0; y < canvas.height; y += DOT_SPACING) {
+          const vFade = verticalFade(y);
           const dist = Math.sqrt((x - ox) ** 2 + (y - oy) ** 2);
           const ringDist = Math.abs(dist - waveRadius);
 
-          if (ringDist < RING_THICKNESS) {
-            // Fade based on distance from ring center
-            const fade = 1 - (ringDist / RING_THICKNESS);
-            // Fade in at start, fade out at end of cycle
-            const cycleFade = t < 0.05 ? t / 0.05 : t > 0.7 ? (1 - t) / 0.3 : 1;
-            const alpha = fade * cycleFade * MAX_OPACITY;
+          // Base dot opacity (always visible, fading down the page)
+          let alpha = BASE_OPACITY * vFade;
 
-            if (alpha > 0.005) {
-              ctx.beginPath();
-              ctx.arc(x, y, DOT_RADIUS, 0, Math.PI * 2);
-              ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-              ctx.fill();
-            }
+          // Add wave pulse on top
+          if (ringDist < RING_THICKNESS) {
+            const fade = 1 - (ringDist / RING_THICKNESS);
+            const cycleFade = t < 0.05 ? t / 0.05 : t > 0.7 ? (1 - t) / 0.3 : 1;
+            alpha = Math.max(alpha, fade * cycleFade * WAVE_OPACITY * vFade);
+          }
+
+          if (alpha > 0.003) {
+            ctx.beginPath();
+            ctx.arc(x, y, DOT_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.fill();
           }
         }
       }
@@ -188,8 +190,8 @@ const BackgroundBeams = () => {
           <path d="M389.557 1582.08c.096-.174.306-.384.48-.48-.033.009-.153.5-.48.48Z" />
         </svg>
       </AnimatedSVGOverlay>
-      <DotOverlay />
-      <DotWaveCanvas />
+      {/* Single unified dot layer — no more DotOverlay + DotWaveCanvas overlap */}
+      <UnifiedDotCanvas />
     </BackgroundContainer>
   );
 };
