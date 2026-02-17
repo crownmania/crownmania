@@ -917,8 +917,9 @@ overflow: visible;
 
 const IDCard = styled(Panel)`
 padding: 0;
-padding-bottom: 24px;
 height: 100%;
+display: flex;
+flex-direction: column;
 border: var(--glass-border);
 transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 overflow: visible;
@@ -928,14 +929,24 @@ position: relative;
     border-color: rgba(52, 199, 89, 0.3);
     box-shadow: 0 0 40px rgba(52, 199, 89, 0.1);
   `}
+
+@media (max-width: 900px) {
+  min-height: 500px;
+}
+
+@media (min-width: 901px) and (max-width: 1200px) {
+  min-height: 600px;
+}
 `;
 
 const IDImageContainer = styled.div`
 flex: 1;
+min-height: 0;
 position: relative;
 display: flex;
-background: rgba(0, 0, 0, 0.1);
+background: #000;
 overflow: hidden;
+border-radius: 0 0 20px 20px;
 `;
 
 const IDImageHalf = styled.div`
@@ -980,7 +991,7 @@ z-index: ${props => props.$active ? 1 : 0};
 
 const IDFooter = styled.div`
 position: absolute;
-bottom: 4px;
+bottom: -12px;
 left: 50%;
 transform: translateX(-50%);
 background: #000;
@@ -2300,13 +2311,19 @@ export default function Vault() {
               <ActionButton
                 $primary
                 style={{
-                  width: 'auto', padding: '0.6rem 1.2rem', fontSize: '0.85rem',
-                  background: `linear-gradient(90deg, ${themes[currentTheme].color}33 0%, ${themes[currentTheme].color}66 50%, ${themes[currentTheme].color}33 100%)`,
-                  border: `1px solid ${themes[currentTheme].color}`
+                  width: '100px', height: '100px', padding: '0.5rem',
+                  fontSize: '0.65rem', flexDirection: 'column', gap: '0.25rem',
+                  position: 'relative', overflow: 'hidden', borderRadius: '14px',
+                  background: `linear-gradient(135deg, ${themes[currentTheme].color}33 0%, ${themes[currentTheme].color}66 50%, ${themes[currentTheme].color}33 100%)`,
+                  border: `1px solid ${themes[currentTheme].color}`,
+                  flexShrink: 0
                 }}
                 onClick={() => setShowQRScanner(true)}
               >
-                <FaQrcode size={20} /> SCAN QR CODE
+                {/* Watermark QR icon */}
+                <FaQrcode size={60} style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.12, pointerEvents: 'none' }} />
+                <FaQrcode size={22} style={{ position: 'relative', zIndex: 1 }} />
+                <span style={{ position: 'relative', zIndex: 1, lineHeight: 1.2, textAlign: 'center' }}>SCAN QR<br />CODE</span>
               </ActionButton>
             </PanelTitle>
             {infoPopup === 'verify' && (
@@ -2728,7 +2745,7 @@ export default function Vault() {
                       src={idCardImages[idCardImageIndex].src}
                       alt={idCardImages[idCardImageIndex].label}
                       style={{
-                        width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.6)', transformOrigin: 'center center',
+                        width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.05)', transformOrigin: 'center 40%',
                         filter: isAssetVerified ? 'none saturate(1.1)' : 'grayscale(100%) contrast(1.1) brightness(0.85)',
                         transition: 'filter 1.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease'
                       }}
