@@ -23,7 +23,7 @@ const MintNFTPage = React.lazy(() => import('./pages/MintNFTPage'));
 const SuccessPage = React.lazy(() => import('./pages/SuccessPage'));
 const CancelPage = React.lazy(() => import('./pages/CancelPage'));
 const LegalPage = React.lazy(() => import('./pages/LegalPage'));
-// Password protection removed
+import PasswordGate from './components/PasswordGate';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -85,31 +85,33 @@ function App() {
   }, []);
 
   return (
-    <AppContainer>
-      <GlobalStyles />
-      <BackgroundBeams />
-      <Router>
-        <Header />
-        <MainContent>
-          <Suspense fallback={<LoadingSpinner fullScreen />}>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/forum" element={<ForumPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/product/:id" element={<ProductPage />} />
-              <Route path="/verify/:serial" element={<VerifyPage />} />
-              <Route path="/mintNFT" element={<MintNFTPage />} />
-              <Route path="/success" element={<SuccessPage />} />
-              <Route path="/cancel" element={<CancelPage />} />
-              <Route path="/legal" element={<LegalPage />} />
-              <Route path="/privacy-policy" element={<LegalPage />} />
-              <Route path="/terms-of-service" element={<LegalPage />} />
-              <Route path="/returns" element={<LegalPage />} />
-            </Routes>
-          </Suspense>
-        </MainContent>
-      </Router>
-    </AppContainer>
+    <PasswordGate>
+      <AppContainer>
+        <GlobalStyles />
+        <BackgroundBeams />
+        <Router>
+          <Header />
+          <MainContent>
+            <Suspense fallback={<LoadingSpinner fullScreen />}>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/forum" element={<ForumPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/product/:id" element={<ProductPage />} />
+                <Route path="/verify/:serial" element={<VerifyPage />} />
+                <Route path="/mintNFT" element={<MintNFTPage />} />
+                <Route path="/success" element={<SuccessPage />} />
+                <Route path="/cancel" element={<CancelPage />} />
+                <Route path="/legal" element={<LegalPage />} />
+                <Route path="/privacy-policy" element={<LegalPage />} />
+                <Route path="/terms-of-service" element={<LegalPage />} />
+                <Route path="/returns" element={<LegalPage />} />
+              </Routes>
+            </Suspense>
+          </MainContent>
+        </Router>
+      </AppContainer>
+    </PasswordGate>
   );
 }
 

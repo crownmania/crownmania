@@ -17,14 +17,8 @@ const ShopSection = styled.section`
   position: relative;
   overflow: hidden;
   
-  /* Inherit Vault-like transparency to show global background */
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 0.6) 10%,
-    rgba(0, 0, 0, 0.6) 90%,
-    transparent 100%
-  );
+  /* Transparent to show halftone dot wave background */
+  background: transparent;
 
   /* Vault Theme Variables for consistency */
   --vault-accent: #4169E1;
