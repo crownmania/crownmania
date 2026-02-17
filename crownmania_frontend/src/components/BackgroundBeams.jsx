@@ -91,52 +91,83 @@ const UnifiedDotCanvas = () => {
 
     const DOT_SPACING = 20;
     const DOT_RADIUS = 1;
-    const CYCLE_DURATION = 3000; // ms per wave cycle
-    const RING_THICKNESS = 250; // px — wave ring width
-    const MAX_RADIUS = 2500;   // max expansion radius
-    const BASE_OPACITY = 0.08; // resting dot brightness
-    const WAVE_OPACITY = 0.35; // peak brightness during wave
+    const CYCLE_DURATION = 8000; // ms per single wave cycle
+    const NUM_WAVES = 3;         // concurrent overlapping waves
+    const RING_THICKNESS = 300;  // px — wave ring width
+    const BASE_OPACITY = 0.08;   // resting dot brightness
+    const WAVE_OPACITY = 0.30;   // peak brightness during wave
 
     let ox = window.innerWidth / 2;
-    let oy = window.innerHeight * 0.62;
+    let landingCenterY = window.innerHeight / 2;
+    let scrollY = 0;
+    let maxRadius = 8000;
 
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       ox = window.innerWidth / 2;
-      oy = window.innerHeight * 0.62;
+      landingCenterY = window.innerHeight / 2;
+      // Max reach: diagonal from landing center to farthest scrollable point
+      const pageHeight = document.documentElement.scrollHeight;
+      const diag = Math.sqrt(window.innerWidth ** 2 + (pageHeight + window.innerHeight) ** 2);
+      maxRadius = Math.max(diag, 8000);
     };
     resize();
     window.addEventListener('resize', resize);
 
-    const animate = (timestamp) => {
-      const t = (timestamp % CYCLE_DURATION) / CYCLE_DURATION; // 0→1
-      const waveRadius = t * MAX_RADIUS;
+    const onScroll = () => { scrollY = window.scrollY; };
+    window.addEventListener('scroll', onScroll, { passive: true });
 
+    const animate = (timestamp) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Vertical fade mask: full at top, fading toward bottom
+      // Wave origin in viewport coords
+      const oy = landingCenterY - scrollY;
+
+      // Compute each wave's current radius + cycle fade
+      const waves = [];
+      for (let w = 0; w < NUM_WAVES; w++) {
+        const wt = ((timestamp / CYCLE_DURATION) + w / NUM_WAVES) % 1;
+        const radius = wt * maxRadius;
+        // Smooth fade: ramp in at start, fade out in last 30%
+        const cycleFade = wt < 0.05 ? wt / 0.05 : wt > 0.7 ? (1 - wt) / 0.3 : 1;
+        waves.push({ radius, cycleFade });
+      }
+
+      // Vertical fade: full opacity across 80% of viewport, then gentle falloff
       const verticalFade = (y) => {
         const ratio = y / canvas.height;
-        if (ratio < 0.3) return 1;
-        if (ratio < 0.6) return 1 - (ratio - 0.3) / 0.3 * 0.6; // 1 → 0.4
-        return 0.4 - (ratio - 0.6) / 0.4 * 0.3; // 0.4 → 0.1
+        if (ratio < 0.8) return 1;
+        return 1 - (ratio - 0.8) / 0.2 * 0.9; // 1 → 0.1 over last 20%
       };
 
       for (let x = 0; x < canvas.width; x += DOT_SPACING) {
+        // Column-level frustum cull: can ANY wave ring hit this column?
+        const colDist = Math.abs(x - ox);
+        let anyWaveCanHit = false;
+        for (let w = 0; w < NUM_WAVES; w++) {
+          if (colDist <= waves[w].radius + RING_THICKNESS) {
+            anyWaveCanHit = true;
+            break;
+          }
+        }
+
         for (let y = 0; y < canvas.height; y += DOT_SPACING) {
           const vFade = verticalFade(y);
-          const dist = Math.sqrt((x - ox) ** 2 + (y - oy) ** 2);
-          const ringDist = Math.abs(dist - waveRadius);
-
-          // Base dot opacity (always visible, fading down the page)
           let alpha = BASE_OPACITY * vFade;
 
-          // Add wave pulse on top
-          if (ringDist < RING_THICKNESS) {
-            const fade = 1 - (ringDist / RING_THICKNESS);
-            const cycleFade = t < 0.05 ? t / 0.05 : t > 0.7 ? (1 - t) / 0.3 : 1;
-            alpha = Math.max(alpha, fade * cycleFade * WAVE_OPACITY * vFade);
+          // Check all waves — brightest one wins
+          if (anyWaveCanHit) {
+            const dist = Math.sqrt((x - ox) ** 2 + (y - oy) ** 2);
+
+            for (let w = 0; w < NUM_WAVES; w++) {
+              const ringDist = Math.abs(dist - waves[w].radius);
+              if (ringDist < RING_THICKNESS) {
+                const fade = 1 - (ringDist / RING_THICKNESS);
+                const waveAlpha = fade * waves[w].cycleFade * WAVE_OPACITY * vFade;
+                if (waveAlpha > alpha) alpha = waveAlpha;
+              }
+            }
           }
 
           if (alpha > 0.003) {
@@ -156,6 +187,7 @@ const UnifiedDotCanvas = () => {
     return () => {
       cancelAnimationFrame(animRef.current);
       window.removeEventListener('resize', resize);
+      window.removeEventListener('scroll', onScroll);
     };
   }, []);
 

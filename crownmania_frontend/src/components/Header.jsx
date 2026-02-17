@@ -32,6 +32,18 @@ const HeaderContainer = styled(motion.header)`
   @media (max-width: 768px) {
     padding: 1rem 1.5rem;
   }
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 50px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent);
+    pointer-events: none;
+    z-index: -1;
+  }
 `;
 
 const LogoContainer = styled.a`
