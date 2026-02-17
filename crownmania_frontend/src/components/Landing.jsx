@@ -15,33 +15,38 @@ const LandingSection = styled.section`
 
 const MainTitle = styled(motion.h1)`
   font-family: var(--font-primary);
-  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-size: clamp(1.5rem, 4vw, 2.75rem);
   color: white;
   margin: 0;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   line-height: 1.1;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.25), 0 0 16px rgba(255, 255, 255, 0.15);
+  text-shadow:
+    0 0 10px rgba(255, 255, 255, 0.3),
+    0 0 30px rgba(255, 255, 255, 0.15),
+    0 0 60px rgba(255, 255, 255, 0.05);
 `;
 
 const Tagline = styled(motion.p)`
   font-family: var(--font-secondary);
-  font-size: clamp(0.8rem, 2vw, 1.1rem);
+  font-size: clamp(0.4rem, 1vw, 0.55rem);
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  margin-top: 1.5rem;
+  margin-top: 0.75rem;
   font-weight: 400;
 `;
 
 const LogoContainer = styled(motion.div)`
-  margin-top: 2.5rem;
+  margin-top: 1.25rem;
 
   img {
-    width: 80px;
+    width: 40px;
     height: auto;
     opacity: 0.9;
-    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.15));
+    filter:
+      drop-shadow(0 0 8px rgba(255, 255, 255, 0.25))
+      drop-shadow(0 0 20px rgba(255, 255, 255, 0.1));
   }
 `;
 
