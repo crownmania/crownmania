@@ -22,9 +22,10 @@ const MainTitle = styled(motion.h1)`
   text-transform: uppercase;
   line-height: 1.1;
   text-shadow:
-    0 0 10px rgba(255, 255, 255, 0.3),
-    0 0 30px rgba(255, 255, 255, 0.15),
-    0 0 60px rgba(255, 255, 255, 0.05);
+    0 0 10px rgba(255, 255, 255, 0.5),
+    0 0 30px rgba(255, 255, 255, 0.3),
+    0 0 60px rgba(255, 255, 255, 0.15),
+    0 0 80px rgba(255, 255, 255, 0.08);
 `;
 
 const Tagline = styled(motion.p)`
