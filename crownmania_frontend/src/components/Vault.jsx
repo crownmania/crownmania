@@ -2270,7 +2270,7 @@ export default function Vault() {
       <LogoWatermark>
         <img src={crownLogo} alt="" aria-hidden="true" />
       </LogoWatermark>
-      <BlueprintBackground />
+      {/* Blueprint removed — using global BlueprintLayer from BackgroundBeams */}
 
       <MainTitle>
         <h1>THE VAULT</h1>
