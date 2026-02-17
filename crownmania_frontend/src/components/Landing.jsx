@@ -15,7 +15,7 @@ const LandingSection = styled.section`
 
 const MainTitle = styled(motion.h1)`
   font-family: var(--font-primary);
-  font-size: clamp(1.8rem, 4.8vw, 3.3rem);
+  font-size: clamp(2.16rem, 5.76vw, 3.96rem);
   color: white;
   margin: 0;
   letter-spacing: 0.15em;

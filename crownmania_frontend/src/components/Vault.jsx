@@ -900,6 +900,7 @@ margin: 0 auto 3rem;
 position: relative;
 z-index: 1;
 align-items: stretch;
+overflow: visible;
 
 @media(max-width: 1200px) {
   grid-template-columns: 1fr 1.2fr;
@@ -916,10 +917,12 @@ align-items: stretch;
 
 const IDCard = styled(Panel)`
 padding: 0;
+padding-bottom: 24px;
 height: 100%;
 border: var(--glass-border);
 transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-overflow: visible; /* Allow Series label to stick out */
+overflow: visible;
+position: relative;
 
   ${props => props.$owned && css`
     border-color: rgba(52, 199, 89, 0.3);
@@ -977,7 +980,7 @@ z-index: ${props => props.$active ? 1 : 0};
 
 const IDFooter = styled.div`
 position: absolute;
-bottom: -12px;
+bottom: 4px;
 left: 50%;
 transform: translateX(-50%);
 background: #000;
@@ -1417,20 +1420,22 @@ align-items: center;
 gap: 0.75rem;
 justify-content: space-between;
 width: 100%;
-flex-wrap: wrap;
+flex-wrap: nowrap;
+
+/* Title text wraps to 2 lines if needed; button stays right */
+> span, > :first-child:not(button) {
+  flex: 1;
+  min-width: 0;
+}
+
+> button, > [class*="ActionButton"] {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 
 @media (max-width: 768px) {
   font-size: 1.1rem;
   gap: 0.5rem;
-
-  /* Make the QR button drop below title and span full width */
-  > button, > [class*="ActionButton"] {
-    order: 3;
-    width: 100%;
-    margin-top: 0.25rem;
-    font-size: 0.9rem;
-    padding: 0.75rem 1rem;
-  }
 }
 `;
 
