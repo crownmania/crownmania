@@ -76,33 +76,45 @@ function getServiceAccount() {
 
 const serviceAccount = getServiceAccount();
 
+let firebaseReady = false;
+let db, functions, messaging, storage, adminStorage;
+
 try {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     storageBucket: process.env.FIREBASE_STORAGE_BUCKET
   });
   console.log('✅ Firebase Admin initialized successfully');
+
+  // Initialize services - using 'crownmania' named database (Native mode)
+  // The default database is in Datastore mode, so we use a named database
+  db = getFirestore(admin.app(), 'crownmania');
+  functions = getFunctions();
+  messaging = getMessaging();
+  storage = getStorage();
+  adminStorage = {
+    bucket: (name) => name ? storage.bucket(name) : (process.env.FIREBASE_STORAGE_BUCKET ? storage.bucket() : null)
+  };
+
+  console.log('📊 Using Firestore database: crownmania');
+
+  // Configure Firestore settings
+  db.settings({ ignoreUndefinedProperties: true });
+
+  firebaseReady = true;
 } catch (error) {
-  console.error('Firebase admin initialization error:', error.message);
+  console.error('⚠️ Firebase admin initialization failed:', error.message);
   console.error('\n💡 TIP: Copy your Firebase service account JSON file to:');
   console.error(`   ${join(__dirname, 'serviceAccountKey.json')}`);
   console.error('\nOr fix the FIREBASE_PRIVATE_KEY in your .env file.');
-  throw error;
+  console.error('\n⚠️ Server will start but routes requiring Firebase will return 503.');
+
+  // Create stub objects so imports don't crash
+  db = null;
+  functions = null;
+  messaging = null;
+  storage = null;
+  adminStorage = { bucket: () => null };
 }
 
-// Initialize services - using 'crownmania' named database (Native mode)
-// The default database is in Datastore mode, so we use a named database
-const db = getFirestore(admin.app(), 'crownmania');
-const functions = getFunctions();
-const messaging = getMessaging();
-const storage = getStorage();
-const adminStorage = {
-  bucket: (name) => name ? storage.bucket(name) : (process.env.FIREBASE_STORAGE_BUCKET ? storage.bucket() : null)
-};
-
-console.log('📊 Using Firestore database: crownmania');
-
-// Configure Firestore settings
-db.settings({ ignoreUndefinedProperties: true });
-
-export { admin, db, functions, messaging, storage, adminStorage };
+export { admin, db, functions, messaging, storage, adminStorage, firebaseReady };
