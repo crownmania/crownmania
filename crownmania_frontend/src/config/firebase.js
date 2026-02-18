@@ -15,8 +15,8 @@ const firebaseConfig = {
 };
 
 // Check if we have real Firebase config
-const hasValidConfig = import.meta.env.VITE_FIREBASE_API_KEY && 
-                       import.meta.env.VITE_FIREBASE_PROJECT_ID;
+const hasValidConfig = import.meta.env.VITE_FIREBASE_API_KEY &&
+  import.meta.env.VITE_FIREBASE_PROJECT_ID;
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -56,6 +56,13 @@ if (hasValidConfig && typeof window !== 'undefined') {
             .register('/firebase-messaging-sw.js')
             .then((registration) => {
               console.log('Service Worker registered with scope:', registration.scope);
+              // Send Firebase config to the service worker (avoids hardcoded keys in SW file)
+              if (registration.active) {
+                registration.active.postMessage({ type: 'FIREBASE_CONFIG', config: firebaseConfig });
+              }
+              navigator.serviceWorker.ready.then((reg) => {
+                reg.active?.postMessage({ type: 'FIREBASE_CONFIG', config: firebaseConfig });
+              });
             })
             .catch((error) => {
               console.warn('Service Worker registration failed:', error.message);
