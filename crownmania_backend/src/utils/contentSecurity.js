@@ -7,10 +7,14 @@ const CONTENT_ACCESS_SECRET = process.env.CONTENT_ACCESS_SECRET;
 
 if (process.env.NODE_ENV === 'production') {
   if (!SERIAL_HASH_SALT) {
-    throw new Error('FATAL: SERIAL_HASH_SALT env var is required in production');
+    console.error('🚨 CRITICAL: SERIAL_HASH_SALT env var is not set in production!');
+    console.error('   Serial number hashing will use an insecure fallback.');
+    console.error('   Set this variable immediately: SERIAL_HASH_SALT=<random-32-char-string>');
   }
   if (!CONTENT_ACCESS_SECRET) {
-    throw new Error('FATAL: CONTENT_ACCESS_SECRET env var is required in production');
+    console.error('🚨 CRITICAL: CONTENT_ACCESS_SECRET env var is not set in production!');
+    console.error('   Content access signatures will use an insecure fallback.');
+    console.error('   Set this variable immediately: CONTENT_ACCESS_SECRET=<random-32-char-string>');
   }
 } else {
   if (!SERIAL_HASH_SALT) {
