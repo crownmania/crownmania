@@ -1,12 +1,12 @@
 import crypto from 'crypto';
 import logger from '../config/logger.js';
 
-// ── Fail-fast: PII encryption key must exist in production ──
+// ── PII encryption key validation ──
 if (process.env.NODE_ENV === 'production' && !process.env.PII_ENCRYPTION_KEY) {
-    throw new Error(
-        'FATAL: PII_ENCRYPTION_KEY env var is required in production. ' +
-        'Without it, encrypted PII data is permanently lost on restart.'
-    );
+    console.error('🚨 CRITICAL: PII_ENCRYPTION_KEY env var is not set in production!');
+    console.error('   PII encryption will use an insecure fallback key.');
+    console.error('   Any data encrypted now will NOT be decryptable if the key changes.');
+    console.error('   Set this variable immediately with a 64-char hex string.');
 }
 
 // In dev/test, use a deterministic (but insecure) key so data survives restarts
