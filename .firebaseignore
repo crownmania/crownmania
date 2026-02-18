@@ -1,0 +1,6 @@
+# Firebase-specific ignore rules
+# When this file exists, Firebase CLI ONLY uses this file (NOT .gitignore)
+# We need the dist/ folder to be uploaded, so we don't exclude it here
+node_modules
+.git
+.github

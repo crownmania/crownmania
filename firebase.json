@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "crownmania_frontend/dist2",
+    "public": "crownmania_frontend/dist",
     "ignore": [
       "firebase.json",
       "**/.*",
