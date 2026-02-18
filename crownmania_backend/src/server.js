@@ -231,11 +231,22 @@ app.use('/api/webhooks', webhooksRouter);
 app.use('/api/notifications', notificationPreferencesRouter);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+  // Dynamically check Firebase status
+  let firebaseStatus = 'unknown';
+  try {
+    const { firebaseReady } = await import('./config/firebase.js');
+    firebaseStatus = firebaseReady ? 'connected' : 'not_initialized';
+  } catch (e) {
+    firebaseStatus = 'error: ' + e.message;
+  }
+
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    environment: isProduction ? 'production' : 'development'
+    environment: isProduction ? 'production' : 'development',
+    firebase: firebaseStatus,
+    uptime: Math.floor(process.uptime()) + 's'
   });
 });
 
