@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Use environment variable for API URL, fallback to local development or production
 const isDev = import.meta.env.DEV;
-const API_BASE_URL = import.meta.env.VITE_API_URL || (isDev ? 'http://localhost:5001' : 'https://api.crownmania.com');
+const API_BASE_URL = import.meta.env.VITE_API_URL || (isDev ? 'http://localhost:5001' : 'https://crownmania-backend-production.up.railway.app');
 console.log('[API] Base URL:', API_BASE_URL, '| isDev:', isDev);
 
 // Security configuration
