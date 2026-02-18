@@ -6,9 +6,10 @@ node_modules
 # Testing
 /coverage
 
-# Production
+# Production / Build output
 /build
-/dist
+**/dist/
+**/dist2/
 dist-ssr
 *.local
 
@@ -25,6 +26,8 @@ dist-ssr
 .env.production
 .env.production.local
 .env*.local
+.env_utf8*
+.vercel
 
 # Firebase Service Account Keys - CRITICAL SECURITY
 **/serviceAccountKey.json

@@ -1,30 +1,30 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-// Firebase config - these are public web config values (safe to expose)
-firebase.initializeApp({
-  apiKey: "AIzaSyCWUFvCqGeCTYPZ5RNTE5JRdg8044lay94",
-  authDomain: "sonorous-crane-440603-s6.firebaseapp.com",
-  projectId: "sonorous-crane-440603-s6",
-  storageBucket: "sonorous-crane-440603-s6.firebasestorage.app",
-  messagingSenderId: "4886730691",
-  appId: "1:515434599532:web:c803494515474ffa053449",
-  measurementId: "G-KGLV8Y6S5G"
-});
+// Firebase web config values are injected at build time via the main app.
+// The service worker receives the config via a message from the main thread.
+// Fallback: if no config is received, messaging won't initialize (safe default).
 
-const messaging = firebase.messaging();
+let isInitialized = false;
 
-// Handle background messages
-messaging.onBackgroundMessage((payload) => {
-  console.log('Received background message:', payload);
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'FIREBASE_CONFIG' && !isInitialized) {
+    firebase.initializeApp(event.data.config);
+    isInitialized = true;
 
-  const notificationTitle = payload.notification?.title || 'New notification';
-  const notificationOptions = {
-    body: payload.notification?.body || '',
-    icon: '/crown_logo_white.svg',
-    badge: '/crown_logo_white.svg',
-    data: payload.data
-  };
+    const messaging = firebase.messaging();
+    messaging.onBackgroundMessage((payload) => {
+      console.log('Received background message:', payload);
 
-  return self.registration.showNotification(notificationTitle, notificationOptions);
+      const notificationTitle = payload.notification?.title || 'New notification';
+      const notificationOptions = {
+        body: payload.notification?.body || '',
+        icon: '/crown_logo_white.svg',
+        badge: '/crown_logo_white.svg',
+        data: payload.data
+      };
+
+      return self.registration.showNotification(notificationTitle, notificationOptions);
+    });
+  }
 });
