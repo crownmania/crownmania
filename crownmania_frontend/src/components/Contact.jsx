@@ -145,6 +145,8 @@ const SubmitButton = styled(motion.button)`
   }
 `;
 
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
 export default function Contact() {
   const [formData, setFormData] = useState({
     name: '',
@@ -152,6 +154,8 @@ export default function Contact() {
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     setFormData({
@@ -163,13 +167,28 @@ export default function Contact() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError('');
 
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
 
-    // Reset form
-    setFormData({ name: '', email: '', message: '' });
-    setIsSubmitting(false);
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Something went wrong. Please try again.');
+      } else {
+        setSubmitted(true);
+        setFormData({ name: '', email: '', message: '' });
+      }
+    } catch (err) {
+      setError('Unable to send. Check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -198,59 +217,79 @@ export default function Contact() {
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
-        <Form onSubmit={handleSubmit}>
-          <InputGroup>
-            <Label htmlFor="name">Full Identity</Label>
-            <Input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Your Name"
-              required
-            />
-          </InputGroup>
-
-          <InputGroup>
-            <Label htmlFor="email">Nexus Address</Label>
-            <Input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="email@example.com"
-              required
-            />
-          </InputGroup>
-
-          <InputGroup>
-            <Label htmlFor="message">Transmission</Label>
-            <TextArea
-              id="message"
-              name="message"
-              value={formData.message}
-              onChange={handleChange}
-              placeholder="Describe your inquiry..."
-              required
-            />
-          </InputGroup>
-
-          <SubmitButton
-            type="submit"
-            disabled={isSubmitting}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
+        {submitted ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{ textAlign: 'center', padding: '2rem 0' }}
           >
-            {isSubmitting ? 'TRANSMITTING...' : (
-              <>
-                SEND TRANSMISSION
-                <FaPaperPlane size={14} />
-              </>
+            <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>👑</div>
+            <h3 style={{ fontFamily: 'var(--font-primary)', color: 'white', marginBottom: '0.75rem', fontSize: '1.5rem' }}>TRANSMISSION SENT</h3>
+            <p style={{ fontFamily: 'var(--font-secondary)', color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', lineHeight: 1.7 }}>
+              We've received your message. Expect a reply within 1–2 business days.
+            </p>
+          </motion.div>
+        ) : (
+          <Form onSubmit={handleSubmit}>
+            <InputGroup>
+              <Label htmlFor="name">Full Identity</Label>
+              <Input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Your Name"
+                required
+              />
+            </InputGroup>
+
+            <InputGroup>
+              <Label htmlFor="email">Nexus Address</Label>
+              <Input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="email@example.com"
+                required
+              />
+            </InputGroup>
+
+            <InputGroup>
+              <Label htmlFor="message">Transmission</Label>
+              <TextArea
+                id="message"
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                placeholder="Describe your inquiry..."
+                required
+              />
+            </InputGroup>
+
+            {error && (
+              <p style={{ color: '#ff4d4d', fontFamily: 'var(--font-secondary)', fontSize: '0.85rem', margin: 0 }}>
+                ⚠️ {error}
+              </p>
             )}
-          </SubmitButton>
-        </Form>
+
+            <SubmitButton
+              type="submit"
+              disabled={isSubmitting}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              {isSubmitting ? 'TRANSMITTING...' : (
+                <>
+                  SEND TRANSMISSION
+                  <FaPaperPlane size={14} />
+                </>
+              )}
+            </SubmitButton>
+          </Form>
+        )}
       </ContactContainer>
     </ContactSection>
   );

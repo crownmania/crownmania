@@ -90,5 +90,45 @@ router.put('/preferences', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/notifications/register-push
+ * Register a Push (FCM) token for web push notifications
+ */
+router.post('/register-push', async (req, res) => {
+    try {
+        const { token, platform = 'web' } = req.body;
+
+        if (!token) {
+            return res.status(400).json({ error: 'token is required' });
+        }
+
+        // Check if token already exists (dedup)
+        const existing = await db.collection('pushTokens')
+            .where('token', '==', token)
+            .limit(1)
+            .get();
+
+        if (existing.empty) {
+            await db.collection('pushTokens').add({
+                token,
+                platform,
+                createdAt: new Date(),
+                lastSeenAt: new Date(),
+            });
+            logger.info(`[Push] New FCM token registered (${platform})`);
+        } else {
+            // Update last seen timestamp
+            await db.collection('pushTokens').doc(existing.docs[0].id).update({
+                lastSeenAt: new Date(),
+            });
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('Error registering push token:', error);
+        res.status(500).json({ error: 'Failed to register push token' });
+    }
+});
+
 export { router as notificationPreferencesRouter };
 export default router;
