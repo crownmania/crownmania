@@ -2,7 +2,8 @@ import express from 'express';
 import { verificationService } from '../services/verificationService.js';
 import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
 import { sendClaimConfirmationEmail } from '../config/email.js';
-import { sendScanAttemptEmail, sendCodeEntryEmail, sendClaimAttemptEmail } from '../services/notificationService.js';
+import { sendScanAttemptEmail, sendCodeEntryEmail, sendClaimAttemptEmail, sendAdminSMS } from '../services/notificationService.js';
+import { notifyNewClaim } from '../services/pushService.js';
 import { serialNumberLimiter, claimLimiter } from '../middleware/rateLimiter.js';
 import { validateSerialNumber, validateWallet } from '../middleware/validation.js';
 const router = express.Router();
@@ -29,13 +30,18 @@ router.post('/verify-serial', serialNumberLimiter, validateSerialNumber, async (
 
     const result = await verificationService.verifySerialNumber(serialNumber);
 
-    // Send admin notification
+    // Send admin email notification
     sendCodeEntryEmail(serialNumber, {
       ip: req.ip || req.headers['x-forwarded-for'],
       userAgent: req.headers['user-agent'],
       verified: result.verified,
       productName: result.product?.name
     }).catch(err => console.error('Notification error:', err));
+
+    // Send admin SMS notification
+    sendAdminSMS(
+      `🔔 CrownMania: Code ${serialNumber.substring(0, 8)}... was ${result.verified ? '✅ verified' : '❌ failed'}${result.product?.name ? ` (${result.product.name})` : ''} at ${new Date().toLocaleTimeString()}`
+    ).catch(err => console.error('SMS notification error:', err));
 
     res.json(result);
   } catch (error) {
@@ -60,13 +66,18 @@ router.get('/verify-product/:id', async (req, res) => {
 
     const result = await verificationService.verifyProductById(id, type);
 
-    // Send admin notification
+    // Send admin email notification
     sendScanAttemptEmail(id, 'qr_scan', {
       ip: req.ip || req.headers['x-forwarded-for'],
       userAgent: req.headers['user-agent'],
       verified: result.verified,
       productName: result.product?.name
     }).catch(err => console.error('Notification error:', err));
+
+    // Send admin SMS notification
+    sendAdminSMS(
+      `📱 CrownMania: QR scan ${id.substring(0, 8)}... ${result.verified ? '✅ verified' : '❌ failed'}${result.product?.name ? ` (${result.product.name})` : ''}`
+    ).catch(err => console.error('SMS notification error:', err));
 
     res.json(result);
   } catch (error) {
@@ -90,7 +101,7 @@ router.post('/claim', claimLimiter, validateWallet, authenticateWallet, async (r
 
     const result = await verificationService.claimProduct(productId, walletAddress, signature, message);
 
-    // Send admin notification for claim attempt
+    // Send admin email notification for claim attempt
     sendClaimAttemptEmail({
       claimCodeId: productId,
       walletAddress,
@@ -98,6 +109,19 @@ router.post('/claim', claimLimiter, validateWallet, authenticateWallet, async (r
       edition: result.edition,
       ip: req.ip || req.headers['x-forwarded-for']
     }).catch(err => console.error('Claim notification error:', err));
+
+    // Send admin SMS notification for claim
+    sendAdminSMS(
+      result.success
+        ? `🎉 CrownMania: NFT CLAIMED! Edition #${result.edition}/500 by ${walletAddress.substring(0, 8)}...`
+        : `⚠️ CrownMania: NFT claim FAILED for ${productId.substring(0, 8)}... by ${walletAddress.substring(0, 8)}...`
+    ).catch(err => console.error('SMS claim notification error:', err));
+
+    // Send push notification to all users on successful claim
+    if (result.success && result.edition) {
+      notifyNewClaim(result.edition, result.productName || 'Lil Durk Figure')
+        .catch(err => console.error('Push notification error:', err));
+    }
 
     // Send confirmation email if email is provided
     if (email && result.success) {

@@ -172,10 +172,37 @@ const SuccessMessage = styled.p`
 `;
 
 
+// Award crown weight once per social platform when user clicks the link
+function useSocialCrownReward() {
+  const award = (platform, points) => {
+    const key = `crownmania_social_${platform}_clicked`;
+    if (localStorage.getItem(key)) return null; // already awarded
+    // Add to crown weight
+    const savedRaw = localStorage.getItem('crownmania_crown_weight');
+    const saved = savedRaw ? JSON.parse(savedRaw) : { weight: 0 };
+    const newWeight = (saved.weight || 0) + points;
+    localStorage.setItem('crownmania_crown_weight', JSON.stringify({ weight: newWeight }));
+    localStorage.setItem(key, '1');
+    return `+${points} Crown Weight`;
+  };
+  return award;
+}
+
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [socialToast, setSocialToast] = useState(null);
+  const awardSocialCrown = useSocialCrownReward();
+
+  const handleSocialClick = (platform, points, url) => {
+    const reward = awardSocialCrown(platform, points);
+    if (reward) {
+      setSocialToast(`👑 ${reward} earned!`);
+      setTimeout(() => setSocialToast(null), 3000);
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
@@ -222,40 +249,58 @@ export default function Footer() {
           transition={{ delay: 0.3 }}
         >
           <h3>Follow Us</h3>
+          {/* Crown Weight toast for social clicks */}
+          {socialToast && (
+            <div style={{
+              fontSize: '0.75rem',
+              color: '#FFD700',
+              fontFamily: 'var(--font-secondary)',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              marginBottom: '0.75rem',
+              animation: 'fadeIn 0.3s ease'
+            }}>
+              {socialToast}
+            </div>
+          )}
           <SocialLinks>
             <SocialIcon
-              href="https://twitter.com/crownmania"
-              target="_blank"
-              rel="noopener noreferrer"
+              as="button"
+              onClick={() => handleSocialClick('twitter', 20, 'https://x.com/crownmania_')}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
+              title="Follow us on Twitter (+20 Crown Weight)"
+              style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
             >
               <FaTwitter size={18} />
             </SocialIcon>
             <SocialIcon
-              href="https://instagram.com/crownmania"
-              target="_blank"
-              rel="noopener noreferrer"
+              as="button"
+              onClick={() => handleSocialClick('instagram', 30, 'https://instagram.com/crownmania_')}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
+              title="Follow us on Instagram (+30 Crown Weight)"
+              style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
             >
               <FaInstagram size={18} />
             </SocialIcon>
             <SocialIcon
-              href="https://discord.gg/crownmania"
-              target="_blank"
-              rel="noopener noreferrer"
+              as="button"
+              onClick={() => handleSocialClick('discord', 50, 'https://discord.gg/crownmania')}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
+              title="Join our Discord (+50 Crown Weight)"
+              style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
             >
               <FaDiscord size={18} />
             </SocialIcon>
             <SocialIcon
-              href="https://tiktok.com/@crownmania"
-              target="_blank"
-              rel="noopener noreferrer"
+              as="button"
+              onClick={() => handleSocialClick('tiktok', 30, 'https://tiktok.com/@crownmania')}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
+              title="Follow us on TikTok (+30 Crown Weight)"
+              style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
             >
               <FaTiktok size={18} />
             </SocialIcon>
@@ -299,7 +344,7 @@ export default function Footer() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
         >
-          © 2025 Crownmania. All rights reserved.
+          © 2026 CrownMania. All rights reserved.
         </motion.p>
       </Copyright>
     </FooterContainer>

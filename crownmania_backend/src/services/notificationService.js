@@ -167,7 +167,36 @@ export const sendClaimAttemptEmail = async (claimDetails) => {
   }
 };
 
-export { sendContentDropNotification };
+export { sendContentDropNotification, sendAdminSMS };
+
+/**
+ * Send SMS notification to admin phone number
+ * @param {string} message - The SMS body text
+ */
+async function sendAdminSMS(message) {
+  const adminPhone = process.env.ADMIN_PHONE;
+  if (!adminPhone) {
+    logger.warn('[SMS] ADMIN_PHONE not configured – skipping admin SMS');
+    return;
+  }
+
+  try {
+    const smsService = (await import('../services/smsService.js')).default;
+    const client = smsService.getClient();
+    if (!client) {
+      logger.warn('[SMS] Twilio client not available – skipping admin SMS');
+      return;
+    }
+    await client.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: adminPhone,
+    });
+    logger.info('[SMS] Admin notification sent');
+  } catch (error) {
+    logger.error('[SMS] Failed to send admin notification:', error.message);
+  }
+}
 
 export default {
   sendConnectionAttemptEmail,
@@ -175,6 +204,7 @@ export default {
   sendCodeEntryEmail,
   sendClaimAttemptEmail,
   sendContentDropNotification,
+  sendAdminSMS,
 };
 
 /**

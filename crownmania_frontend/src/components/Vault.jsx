@@ -4,7 +4,10 @@ import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
-import { FaLock, FaCheck, FaTimes, FaSpinner, FaWallet, FaSignOutAlt, FaCube, FaChevronLeft, FaChevronRight, FaKeyboard, FaQrcode, FaDiscord, FaGift, FaTag, FaInfoCircle, FaCopy, FaExternalLinkAlt, FaExchangeAlt, FaTwitter, FaInstagram, FaYoutube, FaTiktok, FaShieldAlt, FaArrowRight, FaExclamationTriangle } from 'react-icons/fa';
+import { FaLock, FaCheck, FaTimes, FaSpinner, FaWallet, FaSignOutAlt, FaCube, FaChevronLeft, FaChevronRight, FaKeyboard, FaQrcode, FaDiscord, FaGift, FaTag, FaInfoCircle, FaCopy, FaExternalLinkAlt, FaExchangeAlt, FaTwitter, FaInstagram, FaYoutube, FaTiktok, FaShieldAlt, FaArrowRight, FaExclamationTriangle, FaImages, FaBell, FaGem, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
+
+import { playVerificationSuccess, playError, playUnlock, playClick, playRarityReveal, setSoundEnabled as setGlobalSound } from '../utils/soundEffects';
+import { isPushSupported, getPermissionStatus, requestPushPermission, onForegroundMessage } from '../utils/pushNotifications';
 
 import useWeb3Auth from '../hooks/useWeb3Auth';
 import { verificationAPI, transferAPI } from '../services/api';
@@ -83,6 +86,35 @@ const pulseGlow = keyframes`
 const rotateRing = keyframes`
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+`;
+
+// Rarity reveal animations
+const diamondSparkle = keyframes`
+  0% { text-shadow: 0 0 4px rgba(185, 242, 255, 0.2); transform: scale(0.8); opacity: 0; }
+  30% { transform: scale(1.15); opacity: 1; }
+  50% { text-shadow: 0 0 20px rgba(185, 242, 255, 0.8), 0 0 40px rgba(185, 242, 255, 0.4), 0 0 60px rgba(185, 242, 255, 0.2); }
+  100% { text-shadow: 0 0 12px rgba(185, 242, 255, 0.4), 0 0 30px rgba(185, 242, 255, 0.15); transform: scale(1); opacity: 1; }
+`;
+
+const platinumShine = keyframes`
+  0% { text-shadow: 0 0 4px rgba(229, 228, 226, 0.2); transform: scale(0.8); opacity: 0; }
+  30% { transform: scale(1.1); opacity: 1; }
+  50% { text-shadow: 0 0 18px rgba(229, 228, 226, 0.6), 0 0 35px rgba(229, 228, 226, 0.3); }
+  100% { text-shadow: 0 0 12px rgba(229, 228, 226, 0.3); transform: scale(1); opacity: 1; }
+`;
+
+const goldGlow = keyframes`
+  0% { text-shadow: 0 0 4px rgba(255, 215, 0, 0.2); transform: scale(0.8); opacity: 0; }
+  30% { transform: scale(1.08); opacity: 1; }
+  50% { text-shadow: 0 0 16px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.3); }
+  100% { text-shadow: 0 0 12px rgba(255, 215, 0, 0.3); transform: scale(1); opacity: 1; }
+`;
+
+const silverGleam = keyframes`
+  0% { text-shadow: 0 0 4px rgba(192, 192, 192, 0.2); transform: scale(0.8); opacity: 0; }
+  30% { transform: scale(1.05); opacity: 1; }
+  50% { text-shadow: 0 0 12px rgba(192, 192, 192, 0.5); }
+  100% { text-shadow: 0 0 8px rgba(192, 192, 192, 0.2); transform: scale(1); opacity: 1; }
 `;
 
 // Verify Modal Components
@@ -539,6 +571,9 @@ align-items: stretch;
 
 @media(max-width: 900px) {
   grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 `;
 
@@ -560,9 +595,9 @@ padding: 1.5rem 1.75rem;
 }
   
   h3 {
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   color: var(--vault-accent);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   opacity: 0.9;
   font-weight: 500;
   white-space: nowrap;
@@ -589,19 +624,20 @@ padding: 1.5rem 1.75rem;
 const ArtistDetails = styled.div`
 display: grid;
 grid-template-columns: 1fr 1fr;
-gap: 0.4rem 1rem;
-margin-bottom: 0.75rem;
+gap: 0.8rem 1.5rem;
+margin-bottom: 1rem;
+margin-top: 0.25rem;
 `;
 
 const ArtistDetailItem = styled.div`
 display: flex;
 flex-direction: column;
-gap: 0.2rem;
+gap: 0.3rem;
   
   .label {
   font-family: var(--font-secondary);
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
   text-transform: uppercase;
   letter-spacing: 0.15em;
   font-weight: 600;
@@ -609,16 +645,17 @@ gap: 0.2rem;
   
   .value {
   font-family: var(--font-primary);
-  font-size: 1rem;
+  font-size: 1.25rem;
   color: white;
+  font-weight: 600;
 }
 `;
 
 const SocialMediaLinks = styled.div`
 display: flex;
-gap: 0.6rem;
-margin-top: 0.5rem;
-padding-top: 0.5rem;
+gap: 0.75rem;
+margin-top: 0.75rem;
+padding-top: 0.75rem;
 border-top: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
@@ -679,8 +716,9 @@ gap: 1rem;
 align-items: flex-start;
 
 @media(max-width: 900px) {
-  flex-direction: column-reverse;
+  flex-direction: column;
   align-items: stretch;
+  order: -1;
 }
 `;
 
@@ -696,13 +734,13 @@ padding: 0;
 border: 1px solid rgba(255, 255, 255, 0.2);
 position: relative;
 
-@media(max-width: 768px) {
+@media(max-width: 900px) {
   grid-template-columns: repeat(4, 1fr);
+  width: 100%;
 }
 
 @media(max-width: 500px) {
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(4, 1fr);
+  grid-template-columns: repeat(4, 1fr);
 }
 `;
 
@@ -797,7 +835,9 @@ box-shadow: var(--vault-shadow);
 
 @media(max-width: 900px) {
   width: 100%;
-  max-height: 180px;
+  min-height: 220px;
+  padding: 2rem;
+  order: -2;
 }
 `;
 
@@ -806,14 +846,25 @@ position: absolute;
 top: 50%;
 left: 50%;
 transform: translate(-50%, -50%);
-width: 120%;
-opacity: 0.05;
+width: 65%;
+max-width: 180px;
+opacity: 0.10;
 pointer-events: none;
 transition: all 1s ease;
   
   ${CrownWeightModule}: hover & {
-  opacity: 0.1;
+  opacity: 0.18;
   transform: translate(-50%, -50%) scale(1.05);
+}
+
+@media(max-width: 900px) {
+  width: 40%;
+  max-width: 140px;
+}
+
+@media(max-width: 500px) {
+  width: 35%;
+  max-width: 120px;
 }
   `;
 
@@ -918,11 +969,12 @@ overflow: visible;
 const IDCard = styled(Panel)`
 padding: 0;
 height: 100%;
+min-height: 500px;
 display: flex;
 flex-direction: column;
 border: var(--glass-border);
-transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-overflow: visible;
+transition: border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+overflow: hidden;
 position: relative;
 
   ${props => props.$owned && css`
@@ -990,25 +1042,21 @@ z-index: ${props => props.$active ? 1 : 0};
 `;
 
 const IDFooter = styled.div`
-position: absolute;
-bottom: -12px;
-left: 50%;
-transform: translateX(-50%);
-background: #000;
-padding: 0.4rem 1.5rem;
-border: 1px solid rgba(255, 255, 255, 0.2);
-border-radius: 20px;
+position: relative;
+background: rgba(0, 0, 0, 0.9);
+padding: 0.6rem 1.5rem;
+border-top: 1px solid rgba(255, 255, 255, 0.1);
 display: flex;
 justify-content: center;
 align-items: center;
 z-index: 5;
-box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+flex-shrink: 0;
   
   .series-label {
   font-family: var(--font-primary);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: white;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   font-weight: 800;
 }
@@ -1111,6 +1159,11 @@ const DetailsPanel = styled(Panel)`
 display: flex;
 flex-direction: column;
 gap: 1.75rem;
+min-height: 500px;
+
+@media (max-width: 900px) {
+  min-height: 450px;
+}
 `;
 
 const DetailHeader = styled.div`
@@ -1133,12 +1186,12 @@ gap: 1.5rem;
 const DetailItem = styled.div`
 display: flex;
 flex-direction: column;
-gap: 0.4rem;
+gap: 0.5rem;
 
   label {
   font-family: var(--font-secondary);
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.45);
   text-transform: uppercase;
   letter-spacing: 0.15em;
   font-weight: 600;
@@ -1146,7 +1199,7 @@ gap: 0.4rem;
 
   div {
   font-family: var(--font-primary);
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   color: white;
   white-space: nowrap;
   overflow: hidden;
@@ -1160,6 +1213,58 @@ gap: 0.4rem;
     &.dim {
     color: rgba(255, 255, 255, 0.2);
   }
+    
+    &.rarity-diamond {
+    color: #b9f2ff;
+    text-shadow: 0 0 12px rgba(185, 242, 255, 0.4), 0 0 30px rgba(185, 242, 255, 0.15);
+  }
+    &.rarity-platinum {
+    color: #e5e4e2;
+    text-shadow: 0 0 12px rgba(229, 228, 226, 0.3);
+  }
+    &.rarity-gold {
+    color: #ffd700;
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+  }
+    &.rarity-silver {
+    color: #c0c0c0;
+    text-shadow: 0 0 8px rgba(192, 192, 192, 0.2);
+  }
+}
+`;
+
+// Animated rarity text that plays a reveal animation
+const RarityRevealText = styled.div`
+display: flex;
+align-items: center;
+gap: 0.5rem;
+font-family: var(--font-primary);
+font-size: 1.5rem;
+font-weight: 700;
+letter-spacing: 0.05em;
+
+${props => props.$tier === 'diamond' && css`
+  color: #b9f2ff;
+  animation: ${diamondSparkle} 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+`}
+
+${props => props.$tier === 'platinum' && css`
+  color: #e5e4e2;
+  animation: ${platinumShine} 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+`}
+
+${props => props.$tier === 'gold' && css`
+  color: #ffd700;
+  animation: ${goldGlow} 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+`}
+
+${props => props.$tier === 'silver' && css`
+  color: #c0c0c0;
+  animation: ${silverGleam} 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+`}
+
+.rarity-icon {
+  font-size: 1.3rem;
 }
 `;
 
@@ -1228,11 +1333,11 @@ const OwnerBadge = styled.div`
 background: ${props => props.$owned ? 'rgba(52, 199, 89, 0.08)' : 'rgba(255, 59, 48, 0.08)'};
 border: 1px solid ${props => props.$owned ? 'var(--vault-success)' : 'var(--vault-error)'};
 color: ${props => props.$owned ? 'var(--vault-success)' : 'var(--vault-error)'};
-padding: 1rem;
+padding: 1.1rem;
 border-radius: 12px;
 text-align: center;
 font-family: var(--font-primary);
-font-size: 0.9rem;
+font-size: 1.1rem;
 text-transform: uppercase;
 letter-spacing: 0.15em;
 margin-top: auto;
@@ -1778,6 +1883,39 @@ export default function Vault() {
     exclusive: 'Verified collectible owners unlock exclusive utilities — early access to content, limited merchandise, concert tickets, and future airdrops.',
   };
 
+  // ========== FEATURE: Sound Design ==========
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('crownmania_sound');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  useEffect(() => {
+    setGlobalSound(soundEnabled);
+    localStorage.setItem('crownmania_sound', String(soundEnabled));
+  }, [soundEnabled]);
+
+  // ========== FEATURE: Push Notifications ==========
+  const [pushPermission, setPushPermission] = useState(getPermissionStatus());
+
+  const handleEnablePush = async () => {
+    const result = await requestPushPermission();
+    setPushPermission(getPermissionStatus());
+    if (result.success) {
+      showToastMessage('🔔 Push notifications enabled!');
+    }
+  };
+
+  useEffect(() => {
+    // Listen for foreground push messages
+    onForegroundMessage((notification) => {
+      showToastMessage(`${notification.title}: ${notification.body}`);
+    });
+  }, []);
+
+  // ========== FEATURE: Rarity Reveal Animation ==========
+  const [rarityRevealed, setRarityRevealed] = useState(false);
+  const prevRarityRef = useRef(null);
+
   // Auto-close info popup after 10 seconds
   useEffect(() => {
     if (!infoPopup) return;
@@ -1980,6 +2118,17 @@ export default function Vault() {
     isOwned('lil-durk-figure');
   const displayEdition = verificationResult?.editionNumber || currentEdition;
 
+  // Rarity tier based on edition number (music industry inspired)
+  const getRarityTier = (edition) => {
+    if (!edition) return null;
+    const num = parseInt(edition);
+    if (num <= 25) return { label: 'DIAMOND', icon: '💎', className: 'rarity-diamond' };
+    if (num <= 100) return { label: 'PLATINUM', icon: '💿', className: 'rarity-platinum' };
+    if (num <= 250) return { label: 'GOLD', icon: '🥇', className: 'rarity-gold' };
+    return { label: 'SILVER', icon: '🥈', className: 'rarity-silver' };
+  };
+  const rarityTier = getRarityTier(displayEdition);
+
   const handleConnect = async () => {
     await login();
   };
@@ -2002,6 +2151,7 @@ export default function Vault() {
     setScanProgress(0);
     setIsVerifying(true);
     setVerificationResult(null);
+    playUnlock(); // Sound: scan begins
 
     // Animate the scan progress bar
     const scanDuration = 2500;
@@ -2075,11 +2225,26 @@ export default function Vault() {
 
     // Auto-close after success and show toast
     if (result.status === 'success') {
+      playVerificationSuccess(); // Sound: success chime
       showToastMessage('✓ Product Verified Successfully!');
+
+      // Trigger rarity reveal animation + sound after a short delay
+      const newRarity = getRarityTier(result.editionNumber);
+      if (newRarity && prevRarityRef.current !== newRarity.label) {
+        setRarityRevealed(false);
+        setTimeout(() => {
+          setRarityRevealed(true);
+          playRarityReveal(newRarity.label);
+          prevRarityRef.current = newRarity.label;
+        }, 800);
+      }
+
       setTimeout(() => {
         setShowVerifyModal(false);
         setVerifyStep(1);
       }, 4000);
+    } else {
+      playError(); // Sound: error buzz
     }
   };
 
@@ -2303,11 +2468,11 @@ export default function Vault() {
             viewport={{ once: true }}
             style={{ borderColor: themes[currentTheme].color }}
           >
-            <PanelTitle style={{ color: 'white', justifyContent: 'flex-start' }}>
+            <PanelTitle style={{ color: 'white', justifyContent: 'flex-start', position: 'relative' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <FaLock size={20} /> VERIFY & AUTHENTICATE
-                <motion.button onClick={() => handleInfoClick('verify')} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', opacity: 0.15, padding: '2px', lineHeight: 1 }} whileHover={{ opacity: 0.8 }}><FaInfoCircle size={14} /></motion.button>
               </div>
+              <motion.button onClick={() => handleInfoClick('verify')} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', opacity: 0.15, padding: '2px', lineHeight: 1, position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }} whileHover={{ opacity: 0.8 }}><FaInfoCircle size={14} /></motion.button>
               <ActionButton
                 $primary
                 style={{
@@ -2385,11 +2550,11 @@ export default function Vault() {
             transition={{ delay: 0.1 }}
             style={{ borderColor: themes[currentTheme].color }}
           >
-            <PanelTitle style={{ color: 'white', justifyContent: 'flex-start' }}>
+            <PanelTitle style={{ color: 'white', justifyContent: 'flex-start', position: 'relative' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <FaWallet size={20} /> VAULT CONNECTION
-                <motion.button onClick={() => handleInfoClick('vault')} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', opacity: 0.15, padding: '2px', lineHeight: 1 }} whileHover={{ opacity: 0.8 }}><FaInfoCircle size={14} /></motion.button>
               </div>
+              <motion.button onClick={() => handleInfoClick('vault')} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', opacity: 0.15, padding: '2px', lineHeight: 1, position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }} whileHover={{ opacity: 0.8 }}><FaInfoCircle size={14} /></motion.button>
             </PanelTitle>
             {infoPopup === 'vault' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }} style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', right: '0.5rem', zIndex: 10, background: 'rgba(8, 8, 20, 0.98)', backdropFilter: 'blur(16px)', border: `1px solid ${themes[currentTheme].color}66`, borderRadius: '12px', padding: '1rem 1.2rem', fontFamily: 'var(--font-secondary)', fontSize: '0.85rem', color: 'rgba(255,255,255,0.95)', lineHeight: 1.6, boxShadow: `0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 ${themes[currentTheme].color}22` }}>
@@ -2448,6 +2613,78 @@ export default function Vault() {
                   </>
                 )}
               </div>
+
+              {/* Push Notifications + Sound Toggle */}
+              {!isVaultLocked && (
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '0.75rem' }}>
+                  {isPushSupported() && pushPermission !== 'granted' && (
+                    <motion.button
+                      onClick={handleEnablePush}
+                      whileHover={{ scale: 1.03, opacity: 1 }}
+                      whileTap={{ scale: 0.97 }}
+                      style={{
+                        flex: 1,
+                        background: 'rgba(65, 105, 225, 0.08)',
+                        border: '1px solid rgba(65, 105, 225, 0.25)',
+                        borderRadius: '8px',
+                        padding: '0.5rem',
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-secondary)',
+                        fontSize: '0.7rem',
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.4rem',
+                      }}
+                    >
+                      <FaBell size={11} /> ENABLE NOTIFICATIONS
+                    </motion.button>
+                  )}
+                  {pushPermission === 'granted' && (
+                    <div style={{
+                      flex: 1,
+                      background: 'rgba(52, 199, 89, 0.06)',
+                      border: '1px solid rgba(52, 199, 89, 0.2)',
+                      borderRadius: '8px',
+                      padding: '0.5rem',
+                      color: 'rgba(52, 199, 89, 0.6)',
+                      fontFamily: 'var(--font-secondary)',
+                      fontSize: '0.7rem',
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      textAlign: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.4rem',
+                    }}>
+                      <FaBell size={11} /> NOTIFICATIONS ON
+                    </div>
+                  )}
+                  <motion.button
+                    onClick={() => { setSoundEnabled(!soundEnabled); playClick(); }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '8px',
+                      padding: '0.5rem 0.75rem',
+                      color: soundEnabled ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    title={soundEnabled ? 'Mute sounds' : 'Enable sounds'}
+                  >
+                    {soundEnabled ? <FaVolumeUp size={13} /> : <FaVolumeMute size={13} />}
+                  </motion.button>
+                </div>
+              )}
             </IdentityInfo>
           </IdentityPanel>
         </TopPanelsRow>
@@ -2494,9 +2731,31 @@ export default function Vault() {
               <>
                 <h2>COMING SOON</h2>
                 <h3 style={{ color: themes[currentTheme].color }}>To Be Announced</h3>
-                <div style={{ flex: 1 }}></div>
+                <ArtistDetails>
+                  <ArtistDetailItem>
+                    <span className="label">Origin</span>
+                    <span className="value" style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>
+                  </ArtistDetailItem>
+                  <ArtistDetailItem>
+                    <span className="label">Birthday</span>
+                    <span className="value" style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>
+                  </ArtistDetailItem>
+                  <ArtistDetailItem>
+                    <span className="label">Height</span>
+                    <span className="value" style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>
+                  </ArtistDetailItem>
+                  <ArtistDetailItem>
+                    <span className="label">Weight</span>
+                    <span className="value" style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>
+                  </ArtistDetailItem>
+                </ArtistDetails>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <div style={{ width: '180px' }}></div>
+                  <SocialMediaLinks style={{ visibility: 'hidden' }}>
+                    <SocialIcon as="span" className="twitter"><FaTwitter /></SocialIcon>
+                    <SocialIcon as="span" className="instagram"><FaInstagram /></SocialIcon>
+                    <SocialIcon as="span" className="youtube"><FaYoutube /></SocialIcon>
+                    <SocialIcon as="span" className="tiktok"><FaTiktok /></SocialIcon>
+                  </SocialMediaLinks>
                   <div className="status" style={{ color: themes[currentTheme].color, borderColor: themes[currentTheme].color }}>
                     <FaLock /> ASSET LOCKED
                   </div>
@@ -2540,7 +2799,7 @@ export default function Vault() {
             )}
           </CharacterTitlePanel>
 
-          {/* Row 2 Right: Grid + Crown Weight */}
+          {/* Row 2 Right: Grid only */}
           <CharacterSelectSection>
             <SelectGrid $verified={isAssetVerified} style={{ borderColor: themes[currentTheme].color }}>
               {/* Slot 0: Lil Durk */}
@@ -2652,7 +2911,7 @@ export default function Vault() {
           </CharacterSelectSection>
         </ControlDeckRow>
 
-        <MiddleRow>
+        <MiddleRow style={{ gridTemplateRows: 'auto' }}>
           {isComingSoonSelected ? (
             <>
               {/* Coming Soon Placeholder - ID Card */}
@@ -2663,21 +2922,22 @@ export default function Vault() {
                 viewport={{ once: true }}
                 style={{ borderColor: themes[currentTheme].color }}
               >
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  height: '100%', minHeight: '300px',
-                  background: `radial-gradient(circle at center, ${themes[currentTheme].color}15 0%, transparent 70%)`,
-                }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <FaLock size={48} style={{ color: themes[currentTheme].color, opacity: 0.4, marginBottom: '1rem' }} />
-                    <div style={{ fontFamily: 'var(--font-primary)', fontSize: '1.5rem', color: 'white', letterSpacing: '0.1em' }}>
-                      COMING SOON
-                    </div>
-                    <div style={{ fontFamily: 'var(--font-secondary)', fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.5rem' }}>
-                      New Character Reveal Pending
+                <IDImageContainer style={{ position: 'relative' }}>
+                  <div style={{
+                    width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: `radial-gradient(circle at center, ${themes[currentTheme].color}15 0%, transparent 70%)`,
+                  }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <FaLock size={48} style={{ color: themes[currentTheme].color, opacity: 0.4, marginBottom: '1rem' }} />
+                      <div style={{ fontFamily: 'var(--font-primary)', fontSize: '1.5rem', color: 'white', letterSpacing: '0.1em' }}>
+                        COMING SOON
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-secondary)', fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.5rem' }}>
+                        New Character Reveal Pending
+                      </div>
                     </div>
                   </div>
-                </div>
+                </IDImageContainer>
                 <IDFooter>
                   <div className="series-label" style={{ color: themes[currentTheme].color }}>?</div>
                 </IDFooter>
@@ -2716,7 +2976,7 @@ export default function Vault() {
                 <ModelHeader>
                   <h3 style={{ color: 'white' }}><FaCube size={14} /> 3D VIEWER</h3>
                 </ModelHeader>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', background: `radial-gradient(circle at center, ${themes[currentTheme].color}10 0%, transparent 60%)` }}>
+                <ModelCanvas $locked={true} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', background: `radial-gradient(circle at center, ${themes[currentTheme].color}10 0%, transparent 60%)` }}>
                   <motion.div
                     animate={{ scale: [0.9, 1.1, 0.9], opacity: [0.3, 0.6, 0.3] }}
                     transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -2727,7 +2987,7 @@ export default function Vault() {
                       MODEL PENDING
                     </div>
                   </motion.div>
-                </div>
+                </ModelCanvas>
               </ModelViewerPanel>
             </>
           ) : (
@@ -2740,6 +3000,9 @@ export default function Vault() {
                 viewport={{ once: true }}
                 style={{ borderColor: themes[currentTheme].color }}
               >
+                <ModelHeader>
+                  <h3 style={{ color: 'white' }}><FaImages size={14} /> GALLERY</h3>
+                </ModelHeader>
                 <IDImageContainer style={{ position: 'relative' }}>
                   {/* Single image carousel */}
                   <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
@@ -2752,10 +3015,7 @@ export default function Vault() {
                         transition: 'filter 1.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease'
                       }}
                     />
-                    {/* Image label */}
-                    <div style={{ position: 'absolute', top: '8px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', padding: '2px 10px', borderRadius: '4px', fontSize: '0.6rem', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.15em', fontFamily: 'var(--font-secondary)', zIndex: 3, whiteSpace: 'nowrap' }}>
-                      {idCardImages[idCardImageIndex].label} ({idCardImageIndex + 1}/{idCardImages.length})
-                    </div>
+
                   </div>
                   {/* Left arrow */}
                   <button
@@ -2786,9 +3046,6 @@ export default function Vault() {
                     <FaChevronRight size={12} />
                   </button>
                 </IDImageContainer>
-                <IDFooter>
-                  <div className="series-label">SERIES 1</div>
-                </IDFooter>
               </IDCard>
 
               <DetailsPanel
@@ -2798,10 +3055,15 @@ export default function Vault() {
                 transition={{ delay: 0.2 }}
                 style={{ borderColor: themes[currentTheme].color }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                  <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}><AssetTitle style={{ margin: 0 }}>Digital Collectible</AssetTitle><motion.button onClick={() => handleInfoClick('collectible')} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', opacity: 0.15, padding: '2px', lineHeight: 1, position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }} whileHover={{ opacity: 0.8 }}><FaInfoCircle size={12} /></motion.button></div>
-                  <AssetSubtitle style={{ fontFamily: 'var(--font-primary)', fontWeight: 400, textAlign: 'center', marginBottom: '0.5rem' }}>Collectible details</AssetSubtitle>
-                  <img src={crownLogo} alt="Crownmania" style={{ height: '32px', width: 'auto', opacity: 0.9 }} />
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}><AssetTitle style={{ margin: 0 }}>Digital Collectible</AssetTitle></div>
+                    <AssetSubtitle style={{ fontFamily: 'var(--font-primary)', fontWeight: 400, textAlign: 'left', marginBottom: 0 }}>Collectible details</AssetSubtitle>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                    <img src={crownLogo} alt="Crownmania" style={{ height: '48px', width: 'auto', opacity: 0.9 }} />
+                    <motion.button onClick={() => handleInfoClick('collectible')} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', opacity: 0.15, padding: '2px', lineHeight: 1 }} whileHover={{ opacity: 0.8 }}><FaInfoCircle size={14} /></motion.button>
+                  </div>
                 </div>
                 {infoPopup === 'collectible' && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }} style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', right: '0.5rem', zIndex: 10, background: 'rgba(8, 8, 20, 0.98)', backdropFilter: 'blur(16px)', border: `1px solid ${themes[currentTheme].color}66`, borderRadius: '12px', padding: '1rem 1.2rem', fontFamily: 'var(--font-secondary)', fontSize: '0.85rem', color: 'rgba(255,255,255,0.95)', lineHeight: 1.6, boxShadow: `0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 ${themes[currentTheme].color}22` }}>
@@ -2836,6 +3098,18 @@ export default function Vault() {
                     </div>
                   </DetailItem>
                   <DetailItem>
+                    <label>Rarity</label>
+                    {rarityTier ? (
+                      <RarityRevealText $tier={rarityTier.label.toLowerCase()} key={rarityTier.label}>
+                        <span className="rarity-icon">{rarityTier.icon}</span> {rarityTier.label}
+                      </RarityRevealText>
+                    ) : (
+                      <div className="dim" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <FaLock size={14} /> UNASSIGNED
+                      </div>
+                    )}
+                  </DetailItem>
+                  <DetailItem>
                     <label>Date Claimed</label>
                     <div className={verificationResult?.claimDate ? 'highlight' : 'dim'}>
                       {verificationResult?.claimDate ? formatClaimDate(verificationResult.claimDate) : '---'}
@@ -2851,11 +3125,12 @@ export default function Vault() {
                     </div>
                   </DetailItem>
                 </DetailGrid>
+
                 <div style={{ marginTop: 'auto' }}>
                   <label style={{
                     fontFamily: 'var(--font-secondary)',
-                    fontSize: '0.7rem',
-                    color: 'rgba(255, 255, 255, 0.4)',
+                    fontSize: '0.85rem',
+                    color: 'rgba(255, 255, 255, 0.45)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.15em',
                     fontWeight: 600,
@@ -2951,13 +3226,13 @@ export default function Vault() {
               {!isDurkOwned && <FaLock size={12} />}
             </ActionButton>
             <ActionButton
-              style={{ justifyContent: 'space-between', flex: 1, minWidth: '200px' }}
-              onClick={() => window.open('https://discord.gg/crownmania', '_blank')}
+              style={{ justifyContent: 'space-between', flex: 1, minWidth: '200px', opacity: 0.6, cursor: 'default' }}
+              onClick={() => showToastMessage('Collector perks coming soon — stay tuned!')}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <FaDiscord /> COLLECTOR ACCESS
+                <FaGem /> EXCLUSIVE PERKS
               </span>
-              <FaCheck size={12} color="var(--vault-success)" />
+              <span style={{ fontSize: '0.6rem', letterSpacing: '0.12em', opacity: 0.6, border: '1px solid rgba(255,255,255,0.2)', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>SOON</span>
             </ActionButton>
             <ActionButton
               style={{ justifyContent: 'space-between', flex: 1, minWidth: '200px' }}
@@ -3017,6 +3292,10 @@ export default function Vault() {
                     <div>💎 <strong style={{ color: 'white' }}>Own rare editions</strong> — Limited pieces carry more</div>
                     <div>🔗 <strong style={{ color: 'white' }}>Connect your wallet</strong> — Forge your crown</div>
                     <div>🏆 <strong style={{ color: 'white' }}>Complete your collection</strong> — Unlock elite status</div>
+                    <div>🐦 <strong style={{ color: 'white' }}>Follow on Twitter</strong> — +20 CW (one time)</div>
+                    <div>📸 <strong style={{ color: 'white' }}>Follow on Instagram</strong> — +30 CW (one time)</div>
+                    <div>💬 <strong style={{ color: 'white' }}>Join the Discord</strong> — +50 CW (one time)</div>
+                    <div>🎵 <strong style={{ color: 'white' }}>Follow on TikTok</strong> — +30 CW (one time)</div>
                   </div>
                 </div>
                 <p style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: '0.8rem', textAlign: 'center', margin: 0 }}>
