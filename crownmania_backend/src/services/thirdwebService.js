@@ -63,7 +63,9 @@ export const claimNFTToWallet = async (recipientWallet, quantity = 1) => {
         if (privateKey) {
             const rpcUrl = process.env.ALCHEMY_RPC_URL
                 || (IS_TESTNET ? process.env.ALCHEMY_AMOY_URL : process.env.ALCHEMY_POLYGON_URL)
-                || `https://polygon-${IS_TESTNET ? 'amoy' : 'mainnet'}.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || ''}`;
+                || (process.env.ALCHEMY_API_KEY
+                    ? `https://polygon-${IS_TESTNET ? 'amoy' : 'mainnet'}.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`
+                    : (IS_TESTNET ? 'https://rpc-amoy.polygon.technology' : 'https://polygon-bor-rpc.publicnode.com'));
             const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
             const wallet = new ethers.Wallet(privateKey, provider);
 
