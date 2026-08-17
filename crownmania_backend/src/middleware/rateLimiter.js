@@ -67,7 +67,7 @@ export const serialNumberLimiter = rateLimit({
 // Stricter rate limiter for claim attempts (post-verification)
 export const claimLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 5, // Limit each IP to 5 claim attempts per day
+  max: 50, // Limit each IP to 50 claim attempts per day (temporarily increased for testing)
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Daily claim limit reached, please try again tomorrow.' },
