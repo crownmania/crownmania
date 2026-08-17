@@ -19,7 +19,7 @@ const skip = (t) => SKIP.some((s) => String(t).includes(s));
 
 function wirePage(page, label) {
   page.on('console', (msg) => { if (!skip(msg.text())) log(`${label} console.${msg.type()}: ${msg.text().slice(0, 500)}`); });
-  page.on('pageerror', (err) => log(`${label} PAGEERROR: ${String(err).slice(0, 600)}`));
+  page.on('pageerror', (err) => log(`${label} PAGEERROR: ${String(err).slice(0, 600)}\n${String(err.stack || '').slice(0, 1000)}`));
   page.on('requestfailed', (req) => { if (!skip(req.url())) log(`${label} REQFAIL: ${req.url().slice(0, 180)} :: ${req.failure()?.errorText}`); });
   page.on('response', (res) => { if (res.status() >= 400 && !skip(res.url())) log(`${label} HTTP ${res.status()}: ${res.url().slice(0, 220)}`); });
   page.on('framenavigated', (fr) => { if (fr === page.mainFrame()) log(`${label} NAVIGATED: ${fr.url().slice(0, 180)}`); });
