@@ -19,7 +19,6 @@ export default defineConfig({
   assetsInclude: ['**/*.otf', '**/*.ttf', '**/*.woff', '**/*.woff2'],
   define: {
     'process.env': {},
-    'global': 'globalThis',
   },
   resolve: {
     alias: {
