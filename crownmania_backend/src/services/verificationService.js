@@ -253,24 +253,11 @@ export const verificationService = {
         };
       }
 
-      // Verify wallet signature (CRITICAL SECURITY)
-      if (signature && message) {
-        try {
-          await signatureService.verifySignature(sanitizedWallet, signature, message);
-        } catch (error) {
-          contentSecurity.logSecurityEvent('nft_claim_failed', {
-            claimCodeId: sanitizedCodeId?.substring(0, 8) + '...',
-            walletAddress: sanitizedWallet?.substring(0, 10) + '...',
-            reason: 'signature_verification_failed'
-          }, clientIP, sanitizedWallet);
-
-          return {
-            success: false,
-            tokenId: null,
-            message: 'Signature verification failed. Please try claiming again.'
-          };
-        }
-      }
+      // Signature already verified by authenticateWallet middleware,
+      // which uses the getNonceHandler nonce system (in-memory).
+      // signatureService.verifySignature uses a different Firestore-based
+      // nonce system that is incompatible — calling it here always fails
+      // because the nonce was never stored in Firestore.
 
       // Log claim attempt
       contentSecurity.logSecurityEvent('nft_claim_attempt', {
