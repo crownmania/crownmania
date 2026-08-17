@@ -97,9 +97,19 @@ export const claimNFTToWallet = async (recipientWallet, quantity = 1) => {
                 currency: ethers.constants.AddressZero
             };
 
+            // Fetch current gas fees from the network to avoid "gas price below minimum" errors
+            const feeData = await provider.getFeeData();
+            const maxFeePerGas = feeData.maxFeePerGas?.mul(120).div(100) || undefined;  // 20% bump
+            const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas?.mul(120).div(100) || undefined;
+
             const tx = await claimContract.claim(
                 recipientWallet, quantity, currency, condition.pricePerToken, allowlistProof, '0x',
-                { value: isNative ? claimPrice : 0 }
+                {
+                    value: isNative ? claimPrice : 0,
+                    maxFeePerGas,
+                    maxPriorityFeePerGas,
+                    gasLimit: 300000
+                }
             );
 
             const receipt = await tx.wait(1);

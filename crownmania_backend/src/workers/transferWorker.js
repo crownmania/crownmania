@@ -105,10 +105,17 @@ export const transferWorker = new Worker(
             logger.info(`[Transfer Worker] Gas estimate: ${gasEstimate.toString()}`);
             await job.updateProgress(40);
 
+            // Fetch current gas fees to avoid "gas price below minimum" on Polygon
+            const feeData = await provider.getFeeData();
+            const maxFeePerGas = feeData.maxFeePerGas?.mul(120).div(100);
+            const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas?.mul(120).div(100);
+
             // Execute claim (mints + transfers in one tx)
             const tx = await contract.claim(...claimArgs, {
                 value: txValue,
-                gasLimit: gasEstimate.mul(130).div(100) // 30% buffer for drop contracts
+                gasLimit: gasEstimate.mul(130).div(100), // 30% buffer for drop contracts
+                maxFeePerGas,
+                maxPriorityFeePerGas
             });
 
             logger.info(`[Transfer Worker] Claim transaction submitted: ${tx.hash}`);
