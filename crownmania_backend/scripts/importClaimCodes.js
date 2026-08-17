@@ -31,22 +31,25 @@ async function importClaimCodes(csvPath) {
     const hasHeader = !lines[0].match(/^[a-f0-9]{32}$/i);
     const codes = hasHeader ? lines.slice(1) : lines;
 
-    console.log(`📊 Found ${codes.length} claim codes to import`);
+    // Deduplicate codes
+    const uniqueCodes = [...new Set(codes.map(line => {
+        const parts = line.split(',');
+        return parts[0].trim().replace(/"/g, '').toLowerCase();
+    }).filter(code => code.match(/^[a-f0-9]{32}$/)))];
+
+    const duplicates = codes.length - uniqueCodes.length;
+    console.log(`📊 Found ${codes.length} total entries (${duplicates} duplicates removed → ${uniqueCodes.length} unique codes)`);
 
     // Batch write for efficiency (Firestore limit: 500 per batch)
-    const batchSize = 500;
+    const batchSize = 400;
     let imported = 0;
     let skipped = 0;
 
-    for (let i = 0; i < codes.length; i += batchSize) {
+    for (let i = 0; i < uniqueCodes.length; i += batchSize) {
         const batch = db.batch();
-        const chunk = codes.slice(i, Math.min(i + batchSize, codes.length));
+        const chunk = uniqueCodes.slice(i, Math.min(i + batchSize, uniqueCodes.length));
 
-        for (const line of chunk) {
-            // Extract the claim code (handle CSV with multiple columns)
-            const parts = line.split(',');
-            const claimCode = parts[0].trim().replace(/"/g, '').toLowerCase();
-
+        for (const claimCode of chunk) {
             // Validate format (32 hex characters)
             if (!claimCode.match(/^[a-f0-9]{32}$/)) {
                 console.log(`⚠️  Skipping invalid code: ${claimCode}`);
@@ -54,7 +57,7 @@ async function importClaimCodes(csvPath) {
                 continue;
             }
 
-            // Create the claim code document
+            // Create the claim code document with merge so existing claims aren't overwritten
             const claimCodeRef = db.collection('claimCodes').doc(claimCode);
             batch.set(claimCodeRef, {
                 productId: PRODUCT_ID,
@@ -63,19 +66,20 @@ async function importClaimCodes(csvPath) {
                 claimedAt: null,
                 tokenId: null,
                 createdAt: new Date(),
-            });
+            }, { merge: true });
 
             imported++;
         }
 
         await batch.commit();
-        console.log(`✅ Imported ${Math.min(i + batchSize, codes.length)} / ${codes.length}`);
+        console.log(`✅ Imported ${Math.min(i + batchSize, uniqueCodes.length)} / ${uniqueCodes.length}`);
     }
 
     console.log('');
     console.log('🎉 Import complete!');
     console.log(`   ✅ Imported: ${imported}`);
     console.log(`   ⚠️  Skipped: ${skipped}`);
+    console.log(`   🔁 Duplicates removed: ${duplicates}`);
 }
 
 // Create the Lil Durk product if it doesn't exist
@@ -109,6 +113,7 @@ Designed to capture Lil Durk's signature style and presence, it's the perfect pi
         imageUrl: 'https://storage.googleapis.com/sonorous-crane-440603-s6.appspot.com/products/lil-durk-figure/front.jpg',
         modelUrl: null, // 3D model URL if available
         price: null, // Set your price
+        totalEditions: 500,
         createdAt: new Date(),
         active: true
     });

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaShieldAlt, FaCheckCircle, FaExclamationTriangle, FaWallet, FaArrowRight, FaCrown } from 'react-icons/fa';
+import { FaShieldAlt, FaCheckCircle, FaExclamationTriangle, FaWallet, FaArrowRight, FaCrown, FaExternalLinkAlt } from 'react-icons/fa';
 import { verificationAPI } from '../services/api';
 
 const PageContainer = styled.div`
@@ -143,6 +143,25 @@ const ErrorMessage = styled.div`
   border-radius: 8px;
 `;
 
+const BlockchainLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #a5b4fc;
+  font-size: 0.9rem;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(165, 180, 252, 0.3);
+  border-radius: 8px;
+  margin: 0.5rem 0 1.5rem;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(165, 180, 252, 0.1);
+    border-color: rgba(165, 180, 252, 0.6);
+  }
+`;
+
 import useWeb3Auth from '../hooks/useWeb3Auth';
 
 // Product type mapping (fallback)
@@ -169,6 +188,10 @@ export default function MintNFTPage() {
     // Check if product is already claimed
     const [alreadyClaimed, setAlreadyClaimed] = useState(false);
 
+    // Transfer delivery status polling
+    const [deliveryStatus, setDeliveryStatus] = useState(null); // null | 'delivering' | 'delivered' | 'timeout'
+    const [deliveryInfo, setDeliveryInfo] = useState(null);
+
     // Sync wallet address from Web3Auth
     useEffect(() => {
         const syncWallet = async () => {
@@ -181,6 +204,67 @@ export default function MintNFTPage() {
         };
         syncWallet();
     }, [user, getAddress]);
+
+    // Poll for NFT delivery status after claim succeeds
+    useEffect(() => {
+        if (status !== 'claimed' || !id) return;
+
+        let cancelled = false;
+        let pollCount = 0;
+        const maxPolls = 36; // 36 x 5s = 3 minutes max
+
+        setDeliveryStatus('delivering');
+
+        const poll = async () => {
+            if (cancelled) return;
+            pollCount++;
+
+            try {
+                const result = await verificationAPI.getTransferStatus(id);
+
+                if (cancelled) return;
+
+                if (result.status === 'transferred') {
+                    setDeliveryStatus('delivered');
+                    setDeliveryInfo({
+                        transactionHash: result.transactionHash,
+                        tokenId: result.tokenId,
+                        contractAddress: result.contractAddress,
+                        edition: result.edition,
+                        totalEditions: result.totalEditions
+                    });
+                    return; // Stop polling
+                }
+
+                if (result.status === 'not_claimed') {
+                    // Claim record not found yet — keep polling
+                }
+
+                // Still pending
+                if (pollCount >= maxPolls) {
+                    setDeliveryStatus('timeout');
+                } else {
+                    setTimeout(poll, 5000);
+                }
+            } catch (err) {
+                if (cancelled) return;
+                // Network error — retry unless we've exhausted attempts
+                if (pollCount >= maxPolls) {
+                    setDeliveryStatus('timeout');
+                } else {
+                    setTimeout(poll, 5000);
+                }
+            }
+        };
+
+        // Start polling after a short delay (give worker time to pick up the job)
+        const initialDelay = setTimeout(poll, 3000);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(initialDelay);
+        };
+    }, [status, id]);
 
     useEffect(() => {
         const verifyProduct = async () => {
@@ -209,21 +293,8 @@ export default function MintNFTPage() {
                 }
             } catch (err) {
                 console.error('Verification error:', err);
-                // Fallback to mock verification for demo if API fails
-                // Accept 'LIL_DURK_001' or standard MD5-like hashes (32 chars) as demo IDs
-                const isDemoId = id === 'LIL_DURK_001' || (id && id.length >= 32);
-
-                if (isDemoId) {
-                    setProduct({
-                        id,
-                        name: PRODUCT_TYPES[type] || 'Lil Durk Collectible Figure',
-                        type: parseInt(type) || 1
-                    });
-                    setStatus('valid');
-                } else {
-                    setStatus('invalid');
-                    setError(err.error || 'Failed to verify product');
-                }
+                setStatus('invalid');
+                setError(err.error || err.message || 'Failed to verify product. Please check your connection and try again.');
             }
         };
 
@@ -421,19 +492,74 @@ export default function MintNFTPage() {
                         </motion.div>
                     )}
 
-                    {status === 'claimed' && (
+                    {status === 'claimed' && deliveryStatus === 'delivering' && (
                         <motion.div
-                            key="success"
+                            key="delivering"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                        >
+                            <StatusIcon className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
+                                <FaShieldAlt />
+                            </StatusIcon>
+                            <Title>Claim Successful!</Title>
+                            <ProductType>{productName}</ProductType>
+                            <Message>
+                                Your digital collectible is being delivered to your wallet. This usually takes under a minute.
+                            </Message>
+                        </motion.div>
+                    )}
+
+                    {status === 'claimed' && deliveryStatus === 'delivered' && (
+                        <motion.div
+                            key="delivered"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                        >
+                            <StatusIcon className="valid" initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                                <FaCheckCircle />
+                            </StatusIcon>
+                            <Title>Delivered to Your Wallet!</Title>
+                            <ProductType>{productName}</ProductType>
+                            <Message>
+                                {deliveryInfo?.edition
+                                    ? `Edition #${deliveryInfo.edition} of ${deliveryInfo.totalEditions || 500} is now yours.`
+                                    : 'Your digital collectible has been delivered to your wallet.'}
+                            </Message>
+                            {deliveryInfo?.transactionHash && deliveryInfo?.contractAddress && (
+                                <BlockchainLink
+                                    href={`https://polygonscan.com/tx/${deliveryInfo.transactionHash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    View Transaction <FaExternalLinkAlt />
+                                </BlockchainLink>
+                            )}
+                            <ActionButton
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => navigate('/#vault')}
+                            >
+                                View in Your Vault
+                            </ActionButton>
+                            <SecondaryButton onClick={() => navigate('/')}>
+                                Explore More
+                            </SecondaryButton>
+                        </motion.div>
+                    )}
+
+                    {status === 'claimed' && deliveryStatus === 'timeout' && (
+                        <motion.div
+                            key="timeout"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                         >
                             <StatusIcon className="valid">
                                 <FaCheckCircle />
                             </StatusIcon>
-                            <Title>NFT Minted Successfully!</Title>
+                            <Title>Claim Successful!</Title>
                             <ProductType>{productName}</ProductType>
                             <Message>
-                                Congratulations! Your Digital Twin NFT has been minted. This product is now cryptographically linked to your wallet.
+                                Your claim is confirmed! Delivery is taking longer than usual but will complete automatically — no action needed from you.
                             </Message>
                             <ActionButton
                                 whileHover={{ scale: 1.05 }}
@@ -445,6 +571,23 @@ export default function MintNFTPage() {
                             <SecondaryButton onClick={() => navigate('/')}>
                                 Explore More
                             </SecondaryButton>
+                        </motion.div>
+                    )}
+
+                    {status === 'claimed' && !deliveryStatus && (
+                        <motion.div
+                            key="success"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                        >
+                            <StatusIcon className="valid">
+                                <FaCheckCircle />
+                            </StatusIcon>
+                            <Title>Claim Successful!</Title>
+                            <ProductType>{productName}</ProductType>
+                            <Message>
+                                Your digital collectible is being prepared. Please wait...
+                            </Message>
                         </motion.div>
                     )}
 

@@ -1,5 +1,5 @@
 import { db } from '../config/firebase.js';
-import { transferNFTToWallet } from './thirdwebService.js';
+import { claimNFTToWallet, transferNFTToWallet } from './thirdwebService.js';
 import { sendClaimConfirmationEmail } from '../config/email.js';
 import logger from '../config/logger.js';
 
@@ -47,11 +47,22 @@ export async function retryPendingTransfers() {
             logger.info(`[NFT Retry Service] Retrying collectible ${collectibleId} (attempt #${retryCount})`);
 
             try {
-                // Attempt the NFT transfer
-                const transferResult = await transferNFTToWallet(
-                    data.ownerId,
-                    data.blockchainTokenId || null
-                );
+                // Attempt the NFT claim (mint + send for lazy-mint Drop contract)
+                // If the token was already minted (blockchainTokenId exists), fall back to transfer
+                let transferResult;
+                if (data.blockchainTokenId && data.nftTransferred === false && data.status === 'pending_transfer') {
+                    // Token may have been minted by a previous partial claim — try transfer first
+                    try {
+                        transferResult = await transferNFTToWallet(data.ownerId, data.blockchainTokenId);
+                    } catch (transferErr) {
+                        // Transfer failed (token may not exist yet) — fall back to claim
+                        logger.warn(`[NFT Retry Service] Transfer failed, trying claim: ${transferErr.message}`);
+                        transferResult = await claimNFTToWallet(data.ownerId);
+                    }
+                } else {
+                    // No blockchain token ID yet — claim (mint + send)
+                    transferResult = await claimNFTToWallet(data.ownerId);
+                }
 
                 logger.info(`[NFT Retry Service] Transfer succeeded for ${collectibleId}:`, transferResult);
 

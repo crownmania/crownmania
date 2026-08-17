@@ -4,25 +4,40 @@ import { db } from '../config/firebase.js';
 import logger from '../config/logger.js';
 import { contentSecurity } from '../utils/contentSecurity.js';
 
-// Blockchain configuration - Polygon (chainId 137)
+// Blockchain configuration - Polygon mainnet (137) or Amoy testnet (80002)
+const IS_TESTNET = parseInt(process.env.POLYGON_CHAIN_ID || '137') === 80002;
 const provider = new ethers.providers.JsonRpcProvider(
-    process.env.ALCHEMY_RPC_URL || 'https://polygon-mainnet.g.alchemy.com/v2/' + process.env.ALCHEMY_API_KEY
+    process.env.ALCHEMY_RPC_URL
+    || (IS_TESTNET ? process.env.ALCHEMY_AMOY_URL : process.env.ALCHEMY_POLYGON_URL)
+    || (process.env.ALCHEMY_API_KEY
+        ? `https://polygon-${IS_TESTNET ? 'amoy' : 'mainnet'}.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`
+        : (IS_TESTNET ? 'https://rpc-amoy.polygon.technology' : 'https://polygon-bor-rpc.publicnode.com'))
 );
 
-const backendWallet = new ethers.Wallet(process.env.BACKEND_WALLET_PRIVATE_KEY, provider);
+const backendWallet = new ethers.Wallet(
+    process.env.BACKEND_WALLET_PRIVATE_KEY || process.env.MINTING_WALLET_PRIVATE_KEY,
+    provider
+);
 
-// Contract ABI (minimal - just what we need)
+// DropERC721 ABI — claim() mints + sends in one tx (lazy-mint drop contract)
 const contractABI = [
-    'function transferFrom(address from, address to, uint256 tokenId) public',
+    'function claim(address receiver, uint256 quantity, address currency, uint256 pricePerToken, tuple(bytes32[] proof, uint256 quantityLimitPerWallet, uint256 pricePerToken, address currency) allowlistProof, bytes data) external payable',
+    'function nextTokenIdToClaim() view returns (uint256)',
+    'function getActiveClaimConditionId() view returns (uint256)',
+    'function getClaimConditionById(uint256 conditionId) view returns (tuple(uint256 startTimestamp, uint256 maxClaimableSupply, uint256 supplyClaimed, uint256 quantityLimitPerWallet, bytes32 merkleRoot, uint256 pricePerToken, address currency, string metadata))',
     'function ownerOf(uint256 tokenId) public view returns (address)',
-    'function balanceOf(address owner) public view returns (uint256)'
+    'function balanceOf(address owner) public view returns (uint256)',
+    'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)'
 ];
 
 const contract = new ethers.Contract(
-    process.env.NFT_CONTRACT_ADDRESS,
+    process.env.NFT_CONTRACT_ADDRESS || process.env.THIRDWEB_NFT_CONTRACT,
     contractABI,
     backendWallet
 );
+
+const NATIVE_CURRENCY = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+const ZERO_ADDRESS = ethers.constants.AddressZero;
 
 /**
  * Transfer Worker - Processes NFT transfer jobs
@@ -30,65 +45,133 @@ const contract = new ethers.Contract(
 export const transferWorker = new Worker(
     'nft-transfer',
     async (job) => {
-        const { collectibleId, toAddress, tokenId } = job.data;
+        const { collectibleId, toAddress, tokenId: editionRef } = job.data;
 
-        logger.info(`[Transfer Worker] Processing job ${job.id}: tokenId=${tokenId}, to=${toAddress}`);
+        logger.info(`[Transfer Worker] Processing job ${job.id}: to=${toAddress}, editionRef=${editionRef}`);
 
         try {
             // Update progress
             await job.updateProgress(10);
 
-            // Verify we still own the token
-            const currentOwner = await contract.ownerOf(tokenId);
-            if (currentOwner.toLowerCase() !== backendWallet.address.toLowerCase()) {
-                throw new Error(`Backend wallet does not own tokenId ${tokenId}. Current owner: ${currentOwner}`);
+            // Read next token ID that will be claimed (for logging)
+            const nextTokenId = await contract.nextTokenIdToClaim();
+            logger.info(`[Transfer Worker] Next token ID to claim: ${nextTokenId.toString()}`);
+
+            // Read the active claim condition to get the correct price and currency
+            const activeConditionId = await contract.getActiveClaimConditionId();
+            const condition = await contract.getClaimConditionById(activeConditionId);
+            const pricePerToken = condition.pricePerToken;
+            const currency = condition.currency;
+            const isNativeCurrency = currency.toLowerCase() === NATIVE_CURRENCY.toLowerCase();
+
+            logger.info(`[Transfer Worker] Claim condition: price=${ethers.utils.formatEther(pricePerToken)} ${isNativeCurrency ? 'POL' : currency}`);
+
+            if (!isNativeCurrency && pricePerToken.gt(0)) {
+                throw new Error(`Claim condition requires ERC20 payment (${currency}) which is not supported by this worker`);
             }
 
             await job.updateProgress(25);
 
-            // Estimate gas
-            const gasEstimate = await contract.estimateGas.transferFrom(
-                backendWallet.address,
-                toAddress,
-                tokenId
-            );
+            // Build claim arguments for DropERC721
+            // Public claim (no allowlist): empty proof, zero limits
+            const allowlistProof = {
+                proof: [],
+                quantityLimitPerWallet: 0,
+                pricePerToken: 0,
+                currency: ZERO_ADDRESS
+            };
+
+            const claimArgs = [
+                toAddress,           // receiver
+                1,                   // quantity
+                currency,            // currency from active claim condition
+                pricePerToken,       // price from active claim condition
+                allowlistProof,      // allowlist proof (empty)
+                '0x'                 // data
+            ];
+
+            const txValue = isNativeCurrency ? pricePerToken : ethers.BigNumber.from(0);
+
+            // Estimate gas for claim
+            let gasEstimate;
+            try {
+                gasEstimate = await contract.estimateGas.claim(...claimArgs, { value: txValue });
+            } catch (estErr) {
+                logger.error(`[Transfer Worker] Gas estimation failed: ${estErr.message}`);
+                throw new Error(`Claim gas estimation failed: ${estErr.reason || estErr.message}`);
+            }
 
             logger.info(`[Transfer Worker] Gas estimate: ${gasEstimate.toString()}`);
             await job.updateProgress(40);
 
-            // Execute transfer
-            const tx = await contract.transferFrom(
-                backendWallet.address,
-                toAddress,
-                tokenId,
-                {
-                    gasLimit: gasEstimate.mul(120).div(100)  // 20% buffer
-                }
-            );
+            // Execute claim (mints + transfers in one tx)
+            const tx = await contract.claim(...claimArgs, {
+                value: txValue,
+                gasLimit: gasEstimate.mul(130).div(100) // 30% buffer for drop contracts
+            });
 
-            logger.info(`[Transfer Worker] Transaction submitted: ${tx.hash}`);
+            logger.info(`[Transfer Worker] Claim transaction submitted: ${tx.hash}`);
             await job.updateProgress(60);
 
             // Wait for confirmation
-            const receipt = await tx.wait(1);  // 1 confirmation
+            const receipt = await tx.wait(1);
 
             logger.info(`[Transfer Worker] Transaction confirmed: ${receipt.transactionHash}`);
             await job.updateProgress(80);
 
-            // Update database
+            // Parse Transfer event from receipt to get the actual minted token ID
+            const transferInterface = new ethers.utils.Interface(['event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)']);
+            let mintedTokenId = null;
+
+            for (const log of receipt.logs) {
+                try {
+                    const parsed = transferInterface.parseLog(log);
+                    if (parsed && parsed.name === 'Transfer') {
+                        mintedTokenId = parsed.args.tokenId.toString();
+                        logger.info(`[Transfer Worker] Minted token ID: ${mintedTokenId}`);
+                        break;
+                    }
+                } catch {
+                    // Not a Transfer event, skip
+                }
+            }
+
+            if (!mintedTokenId) {
+                logger.warn('[Transfer Worker] Could not parse token ID from receipt events, using nextTokenIdToClaim');
+                mintedTokenId = nextTokenId.toString();
+            }
+
+            // Update database with actual on-chain token ID
             await db.collection('collectibles').doc(collectibleId).update({
                 status: 'active',
+                tokenId: mintedTokenId,
+                blockchainTokenId: mintedTokenId,
                 transactionHash: receipt.transactionHash,
+                nftTransferred: true,
+                nftTransferredAt: new Date(),
                 transferAttempts: job.attemptsMade + 1,
                 lastTransferAttempt: new Date(),
                 updatedAt: new Date()
             });
 
+            // Also update the claim code with the real token ID
+            const collectibleDoc = await db.collection('collectibles').doc(collectibleId).get();
+            if (collectibleDoc.exists) {
+                const serialNumber = collectibleDoc.data().serialNumber;
+                if (serialNumber) {
+                    await db.collection('claimCodes').doc(serialNumber).update({
+                        tokenId: mintedTokenId,
+                        blockchainTokenId: mintedTokenId,
+                        transactionHash: receipt.transactionHash
+                    });
+                }
+            }
+
             // Log success to audit
             await db.collection('auditLogs').add({
-                event: 'nft_transfer_success',
+                event: 'nft_claim_success',
                 collectibleId,
-                tokenId,
+                tokenId: mintedTokenId,
                 toAddress,
                 transactionHash: receipt.transactionHash,
                 gasUsed: receipt.gasUsed.toString(),
@@ -98,11 +181,12 @@ export const transferWorker = new Worker(
 
             await job.updateProgress(100);
 
-            logger.info(`[Transfer Worker] Job ${job.id} completed successfully`);
+            logger.info(`[Transfer Worker] Job ${job.id} completed successfully. Token ${mintedTokenId} minted to ${toAddress}`);
 
             return {
                 success: true,
                 txHash: receipt.transactionHash,
+                tokenId: mintedTokenId,
                 blockNumber: receipt.blockNumber,
                 gasUsed: receipt.gasUsed.toString()
             };

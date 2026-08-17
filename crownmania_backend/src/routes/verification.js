@@ -4,7 +4,7 @@ import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
 import { sendClaimConfirmationEmail } from '../config/email.js';
 import { sendScanAttemptEmail, sendCodeEntryEmail, sendClaimAttemptEmail, sendAdminSMS } from '../services/notificationService.js';
 import { notifyNewClaim } from '../services/pushService.js';
-import { serialNumberLimiter, claimLimiter } from '../middleware/rateLimiter.js';
+import { serialNumberLimiter, claimLimiter, emailVerificationLimiter } from '../middleware/rateLimiter.js';
 import { validateSerialNumber, validateWallet } from '../middleware/validation.js';
 const router = express.Router();
 
@@ -153,7 +153,7 @@ router.post('/claim', claimLimiter, validateWallet, authenticateWallet, async (r
  * @desc Request email verification for a serial number
  * @access Public
  */
-router.post('/request-email-verification', serialNumberLimiter, async (req, res) => {
+router.post('/request-email-verification', emailVerificationLimiter, serialNumberLimiter, async (req, res) => {
   try {
     const { serialNumber, email } = req.body;
 
@@ -275,7 +275,8 @@ router.get('/transfer-status/:serialNumber', async (req, res) => {
       edition: data.edition,
       totalEditions: data.totalEditions || 500,
       transactionHash: data.transactionHash || null,
-      contractAddress: data.contractAddress || null,
+      contractAddress: data.contractAddress || process.env.NFT_CONTRACT_ADDRESS || process.env.THIRDWEB_NFT_CONTRACT || null,
+      tokenId: data.blockchainTokenId || data.tokenId || null,
       ownerId: data.ownerId,
       claimDate: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
       retryCount: data.retryCount || 0,

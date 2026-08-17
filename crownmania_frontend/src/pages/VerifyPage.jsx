@@ -388,7 +388,7 @@ const ProductDetails = ({ product, serial, showBadge = false, tokenId = null }) 
             )}
             {tokenId && (
                 <BlockchainLink
-                    href={`https://polygonscan.com/token/0x0000000000000000000000000000000000000000?a=${tokenId}`}
+                    href={`https://polygonscan.com/token/${import.meta.env.VITE_NFT_CONTRACT_ADDRESS || '0x4785DBa85de01B0DB84269F3fd471dDd8461623C'}?a=${tokenId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                 >

@@ -394,7 +394,7 @@ export const verificationService = {
         await queueService.enqueueTransfer({
           collectibleId: collectibleRef.id,
           toAddress: sanitizedWallet,
-          tokenId: claimResult.editionNumber  // Edition number = token ID
+          tokenId: claimResult.editionNumber  // Edition number (for logging; actual token ID assigned on-chain by claim)
         });
 
         logger.info(`NFT transfer job enqueued for collectible ${collectibleRef.id}`);
