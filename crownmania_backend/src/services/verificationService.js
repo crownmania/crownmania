@@ -2,7 +2,7 @@ import { db } from '../config/firebase.js';
 import { sendVerificationEmail, sendClaimConfirmationEmail } from '../config/email.js';
 import crypto from 'crypto';
 import { contentSecurity } from '../utils/contentSecurity.js';
-import { transferNFTToWallet, checkNFTOwnership } from './thirdwebService.js';
+import { claimNFTToWallet, transferNFTToWallet, checkNFTOwnership } from './thirdwebService.js';
 import signatureService from './signatureService.js';
 import { queueService } from './queueService.js';
 import logger from '../config/logger.js';
@@ -378,19 +378,46 @@ export const verificationService = {
       // Transaction succeeded - now enqueue NFT transfer job (outside transaction)
       // Using queue ensures reliability with automatic retries
       try {
-        await queueService.enqueueTransfer({
+        const job = await queueService.enqueueTransfer({
           collectibleId: collectibleRef.id,
           toAddress: sanitizedWallet,
           tokenId: claimResult.editionNumber  // Edition number (for logging; actual token ID assigned on-chain by claim)
         });
 
-        logger.info(`NFT transfer job enqueued for collectible ${collectibleRef.id}`);
-
-        // Update status to pending_transfer
         await collectibleRef.update({
           status: 'pending_transfer',
           transferEnqueuedAt: new Date()
         });
+
+        if (job) {
+          logger.info(`NFT transfer job enqueued for collectible ${collectibleRef.id}`);
+        } else {
+          // Redis queue unavailable — transfer directly (fire-and-forget so the
+          // claim response returns immediately; the frontend polls transfer-status)
+          logger.info(`Queue unavailable — transferring NFT directly for collectible ${collectibleRef.id}`);
+          (async () => {
+            try {
+              const transferResult = await claimNFTToWallet(sanitizedWallet);
+              await collectibleRef.update({
+                nftTransferred: true,
+                status: 'transferred',
+                transactionHash: transferResult.transactionHash,
+                contractAddress: transferResult.contractAddress,
+                blockchainTokenId: transferResult.tokenId,
+                transferredAt: new Date(),
+                transferError: null
+              });
+              logger.info(`Direct NFT transfer succeeded for ${collectibleRef.id}: tx=${transferResult.transactionHash}`);
+            } catch (transferErr) {
+              logger.error(`Direct NFT transfer failed for ${collectibleRef.id}:`, transferErr);
+              await collectibleRef.update({
+                status: 'failed_transfer',
+                transferError: transferErr.message,
+                lastRetryError: transferErr.message
+              }).catch(() => {});
+            }
+          })();
+        }
 
       } catch (queueError) {
         logger.error('Failed to enqueue transfer job:', queueError);

@@ -18,9 +18,10 @@ export async function retryPendingTransfers() {
 
     try {
         // Query all collectibles where claim succeeded but NFT transfer failed
+        // (claims are stored with status 'pending_transfer' or 'failed_transfer')
         const pendingQuery = await db.collection('collectibles')
             .where('nftTransferred', '==', false)
-            .where('status', '==', 'claimed')
+            .where('status', 'in', ['claimed', 'pending_transfer', 'failed_transfer'])
             .get();
 
         if (pendingQuery.empty) {
@@ -69,6 +70,7 @@ export async function retryPendingTransfers() {
                 // Update the collectible record with success
                 await doc.ref.update({
                     nftTransferred: true,
+                    status: 'transferred',
                     transactionHash: transferResult.transactionHash,
                     contractAddress: transferResult.contractAddress,
                     blockchainTokenId: transferResult.tokenId,
@@ -185,7 +187,7 @@ export async function getPendingTransferStats() {
     try {
         const pendingQuery = await db.collection('collectibles')
             .where('nftTransferred', '==', false)
-            .where('status', '==', 'claimed')
+            .where('status', 'in', ['claimed', 'pending_transfer', 'failed_transfer'])
             .get();
 
         if (pendingQuery.empty) {

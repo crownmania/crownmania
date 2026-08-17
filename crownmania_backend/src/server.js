@@ -301,6 +301,30 @@ const startServer = async (port = defaultPort) => {
     } else {
       logger.info('[Workers] Redis not configured – queue workers disabled');
     }
+
+    // Periodic NFT transfer retry — safety net for stuck/pending transfers.
+    // Runs regardless of Redis: picks up claims whose transfer never completed.
+    try {
+      const { retryPendingTransfers } = await import('./services/nftRetryService.js');
+      let retryRunning = false;
+      const runRetry = async () => {
+        if (retryRunning) return;
+        retryRunning = true;
+        try {
+          await retryPendingTransfers();
+        } catch (err) {
+          logger.error('[NFT Retry] Batch failed:', err.message);
+        } finally {
+          retryRunning = false;
+        }
+      };
+      // First pass shortly after boot, then every 5 minutes
+      setTimeout(runRetry, 15 * 1000);
+      setInterval(runRetry, 5 * 60 * 1000);
+      logger.info('[NFT Retry] Periodic transfer retry scheduled (every 5 minutes)');
+    } catch (err) {
+      logger.warn('[NFT Retry] Failed to schedule retry loop:', err.message);
+    }
   } catch (error) {
     if (error.code === 'EADDRINUSE') {
       logger.warn(`Port ${port} is in use, trying port ${port + 1}`);
