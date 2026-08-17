@@ -190,7 +190,9 @@ export default function MintNFTPage() {
 
     // Restore the canonical URL after returning from the login redirect
     useEffect(() => {
-        if (!urlId && id) {
+        // Never touch the URL while Web3Auth's auth result (#b64Params) is
+        // still in the hash — rewriting it destroys the login result.
+        if (!urlId && id && !window.location.hash.includes('b64Params')) {
             navigate(`/mintNFT?id=${id}${type ? `&type=${type}` : ''}`, { replace: true });
         }
     }, [urlId, id, type, navigate]);
