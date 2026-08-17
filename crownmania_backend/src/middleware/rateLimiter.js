@@ -122,6 +122,32 @@ export const mintingLimiter = rateLimit({
   }
 });
 
+// Rate limiter for email verification requests
+// SECURITY FIX (S6): Keys on destination email + IP so an attacker cannot
+// spam a victim's inbox by rotating serial numbers or IPs.
+export const emailVerificationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Max 3 verification emails per (email, IP) per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many email verification requests. Please try again later.' },
+  keyGenerator: (req) => {
+    const email = (req.body?.email || 'no-email').toLowerCase().trim();
+    return `email-verify:${email}:${req.ip}`;
+  },
+  handler: (req, res) => {
+    logger.warn(`Email verification rate limit exceeded`, {
+      email: req.body?.email,
+      ip: req.ip,
+      path: req.path
+    });
+    res.status(429).json({
+      error: 'Too many email verification requests. Please try again later.',
+      retryAfter: Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000)
+    });
+  }
+});
+
 // Rate limiter for order creation
 export const orderLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours

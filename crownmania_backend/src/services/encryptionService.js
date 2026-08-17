@@ -2,14 +2,25 @@ import crypto from 'crypto';
 import logger from '../config/logger.js';
 
 // ── PII encryption key validation ──
+// SECURITY FIX (S7): Fail-fast in production if the encryption key is missing.
+// Previously the service would fall through to a deterministic dev key, which
+// silently degraded PII protection. Booting without a real key in production
+// is now a fatal startup error.
 if (process.env.NODE_ENV === 'production' && !process.env.PII_ENCRYPTION_KEY) {
-    console.error('🚨 CRITICAL: PII_ENCRYPTION_KEY env var is not set in production!');
-    console.error('   PII encryption will use an insecure fallback key.');
-    console.error('   Any data encrypted now will NOT be decryptable if the key changes.');
-    console.error('   Set this variable immediately with a 64-char hex string.');
+    const msg = 'FATAL: PII_ENCRYPTION_KEY env var is not set in production. ' +
+        'Set it to a 64-char hex string (e.g. `openssl rand -hex 32`) before starting the server.';
+    console.error('🚨 ' + msg);
+    throw new Error(msg);
 }
 
-// In dev/test, use a deterministic (but insecure) key so data survives restarts
+// Validate key format if provided
+if (process.env.PII_ENCRYPTION_KEY && !/^[a-fA-F0-9]{64}$/.test(process.env.PII_ENCRYPTION_KEY)) {
+    const msg = 'FATAL: PII_ENCRYPTION_KEY must be a 64-character hex string (32 bytes).';
+    console.error('🚨 ' + msg);
+    throw new Error(msg);
+}
+
+// In dev/test only, use a deterministic (but insecure) key so data survives restarts.
 const DEV_FALLBACK_KEY = crypto.createHash('sha256').update('DEV_ONLY_INSECURE_PII_KEY').digest('hex');
 const ENCRYPTION_KEY = process.env.PII_ENCRYPTION_KEY || DEV_FALLBACK_KEY;
 const ALGORITHM = 'aes-256-gcm';

@@ -7,7 +7,7 @@
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "deploy": "npm run build && firebase deploy --only hosting",
+    "deploy": "npm run build && (cd .. && firebase deploy --only hosting)",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -16,7 +16,6 @@
   "dependencies": {
     "@react-three/drei": "^9.120.6",
     "@react-three/fiber": "^8.17.12",
-    "@sendgrid/mail": "^7.7.0",
     "@sentry/react": "^10.32.1",
     "@stripe/stripe-js": "^5.5.0",
     "axios": "^1.4.0",

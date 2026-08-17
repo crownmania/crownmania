@@ -427,6 +427,23 @@ export const verificationAPI = {
       throw error.response?.data || { error: 'Failed to verify serial' };
     }
   },
+
+  /**
+   * Check the transfer/claim status of a collectible by serial number
+   * @param {string} serialNumber - The serial number / claim code
+   * @returns {Promise<{status: string, edition: number, totalEditions: number, transactionHash: string|null, contractAddress: string|null, tokenId: string|null, message: string}>}
+   */
+  getTransferStatus: async (serialNumber) => {
+    try {
+      const response = await api.get(`/api/verification/transfer-status/${serialNumber}`, {
+        requiresAuth: false,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error checking transfer status:', error);
+      throw error.response?.data || { error: 'Failed to check transfer status' };
+    }
+  },
 };
 
 /**
