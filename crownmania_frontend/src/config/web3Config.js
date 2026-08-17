@@ -1,12 +1,10 @@
-// Web3Auth Configuration - CDN Version (v8.12.4)
-// Uses window.Modal and window.EthereumProvider from CDN
+// Web3Auth Configuration - npm SDK (@web3auth/modal v10)
 
 const isDev = import.meta.env.DEV;
 
 // Check if we have the necessary keys
 const HAS_WEB3_KEYS = Boolean(
-  import.meta.env.VITE_WEB3AUTH_CLIENT_ID &&
-  import.meta.env.VITE_WEB3_RPC_TARGET
+  import.meta.env.VITE_WEB3AUTH_CLIENT_ID
 );
 
 const WEB3_ENABLED = HAS_WEB3_KEYS;
@@ -55,95 +53,36 @@ const mockWeb3Auth = {
   }),
 };
 
-// Wait for CDN to load
-const waitForCDN = (timeout = 15000) => {
-  return new Promise((resolve) => {
-    const startTime = Date.now();
-
-    const checkInterval = setInterval(() => {
-      // Check for the CDN globals
-      const hasModal = window.Modal && window.Modal.Web3Auth;
-      const hasProvider = window.EthereumProvider && window.EthereumProvider.EthereumPrivateKeyProvider;
-
-      if (hasModal && hasProvider) {
-        clearInterval(checkInterval);
-        if (isDev) console.log('Web3Auth CDN loaded successfully (Modal + Provider)');
-        resolve(true);
-      } else if (Date.now() - startTime > timeout) {
-        clearInterval(checkInterval);
-        console.error('Web3Auth CDN timeout', { hasModal, hasProvider });
-        resolve(false);
-      }
-    }, 100);
-  });
-};
-
-// Initialize Web3Auth from CDN
+// Initialize Web3Auth using the npm SDK (@web3auth/modal v10)
 const getWeb3Auth = async () => {
   if (web3authInstance && isInitialized) {
     return web3authInstance;
   }
 
   const clientId = import.meta.env.VITE_WEB3AUTH_CLIENT_ID;
-  const rpcTarget = import.meta.env.VITE_WEB3_RPC_TARGET;
 
-  if (!clientId || !rpcTarget) {
+  if (!clientId) {
     if (isDev) console.warn('Web3Auth: No credentials, returning mock');
     return mockWeb3Auth;
   }
 
   try {
-    if (isDev) console.log('Web3Auth: Waiting for CDN...');
+    // Dynamic import keeps the heavy SDK out of the initial bundle
+    const { Web3Auth } = await import('@web3auth/modal');
 
-    const cdnLoaded = await waitForCDN();
-
-    if (!cdnLoaded) {
-      console.error('Web3Auth: CDN failed to load');
-      return mockWeb3Auth;
-    }
-
-    // Get classes from CDN globals
-    const { Web3Auth } = window.Modal;
-    const { EthereumPrivateKeyProvider } = window.EthereumProvider;
-
-    const chainId = import.meta.env.VITE_WEB3_CHAIN_ID || "0x89";
-
-    const chainNames = {
-      "0x1": { name: "Ethereum Mainnet", explorer: "https://etherscan.io", ticker: "ETH", tickerName: "Ethereum" },
-      "0x89": { name: "Polygon Mainnet", explorer: "https://polygonscan.com", ticker: "MATIC", tickerName: "Polygon" },
-      "0x38": { name: "BNB Smart Chain", explorer: "https://bscscan.com", ticker: "BNB", tickerName: "BNB" },
-    };
-
-    const chainInfo = chainNames[chainId] || chainNames["0x89"];
-
-    const chainConfig = {
-      chainNamespace: "eip155",
-      chainId: chainId,
-      rpcTarget: rpcTarget,
-      displayName: chainInfo.name,
-      blockExplorer: chainInfo.explorer,
-      ticker: chainInfo.ticker,
-      tickerName: chainInfo.tickerName
-    };
-
-    const privateKeyProvider = new EthereumPrivateKeyProvider({
-      config: { chainConfig }
-    });
-
-    const web3AuthNetwork = import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_devnet";
+    const web3AuthNetwork = import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_mainnet";
 
     web3authInstance = new Web3Auth({
       clientId,
       web3AuthNetwork,
-      privateKeyProvider,
     });
 
     if (isDev) console.log('Web3Auth: Using network:', web3AuthNetwork);
 
-    await web3authInstance.initModal();
+    await web3authInstance.init();
     isInitialized = true;
 
-    if (isDev) console.log('Web3Auth: Modal initialized successfully!');
+    if (isDev) console.log('Web3Auth: Initialized successfully!');
 
     return web3authInstance;
   } catch (err) {

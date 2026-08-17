@@ -18,6 +18,7 @@
     "@react-three/fiber": "^8.17.12",
     "@sentry/react": "^10.32.1",
     "@stripe/stripe-js": "^5.5.0",
+    "@web3auth/modal": "^10.16.0",
     "axios": "^1.4.0",
     "buffer": "^6.0.3",
     "canvas-confetti": "^1.9.4",
