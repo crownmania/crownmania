@@ -177,8 +177,23 @@ export default function MintNFTPage() {
     const navigate = useNavigate();
     const { login, user, getAddress, signMessage, isInitialized, isLoading: isWeb3Loading } = useWeb3Auth();
 
-    const id = searchParams.get('id');
-    const type = searchParams.get('type');
+    // Persist claim params across the Web3Auth login redirect,
+    // which returns to /mintNFT without the original query string.
+    const urlId = searchParams.get('id');
+    const urlType = searchParams.get('type');
+    if (urlId) {
+        sessionStorage.setItem('claim_id', urlId);
+        if (urlType) sessionStorage.setItem('claim_type', urlType);
+    }
+    const id = urlId || sessionStorage.getItem('claim_id');
+    const type = urlType || sessionStorage.getItem('claim_type');
+
+    // Restore the canonical URL after returning from the login redirect
+    useEffect(() => {
+        if (!urlId && id) {
+            navigate(`/mintNFT?id=${id}${type ? `&type=${type}` : ''}`, { replace: true });
+        }
+    }, [urlId, id, type, navigate]);
 
     const [status, setStatus] = useState('checking');
     const [product, setProduct] = useState(null);

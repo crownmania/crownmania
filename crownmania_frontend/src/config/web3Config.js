@@ -75,6 +75,9 @@ const getWeb3Auth = async () => {
     web3authInstance = new Web3Auth({
       clientId,
       web3AuthNetwork,
+      uiConfig: {
+        uxMode: 'redirect',
+      },
     });
 
     if (isDev) console.log('Web3Auth: Using network:', web3AuthNetwork);
