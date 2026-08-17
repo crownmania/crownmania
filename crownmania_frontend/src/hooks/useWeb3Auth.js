@@ -326,14 +326,20 @@ const useWeb3Auth = () => {
             console.warn('Web3 initialization skipped:', err.message);
           }
 
-          // Initial address fetch
-          const address = await fetchAddress(web3auth.provider, web3Instance);
+          // Initial address fetch (with retry — provider may not be ready immediately after redirect)
+          let address = null;
+          for (let attempt = 0; attempt < 3 && !address; attempt++) {
+            if (attempt > 0) await new Promise(r => setTimeout(r, 1000));
+            address = await fetchAddress(web3auth.provider, web3Instance);
+          }
           if (address) {
             setWalletAddress(address);
             addressChecksumRef.current = calculateAddressChecksum(address);
             generateNonce();
             setSessionExpiry(Date.now() + SECURITY_CONFIG.SESSION_TIMEOUT);
             startHeartbeat();
+          } else {
+            console.warn('[useWeb3Auth] Address fetch failed after retries — Vault will retry via getAddress()');
           }
         }
 
@@ -586,7 +592,19 @@ const useWeb3Auth = () => {
     sessionExpiry,
     login,
     logout,
-    getAddress: () => Promise.resolve(walletAddress),
+    getAddress: async () => {
+      if (walletAddress) return walletAddress;
+      // If not cached, try to fetch from provider
+      if (provider) {
+        const addr = await fetchAddress(provider, web3);
+        if (addr) {
+          setWalletAddress(addr);
+          addressChecksumRef.current = calculateAddressChecksum(addr);
+          return addr;
+        }
+      }
+      return null;
+    },
     getBalance: async () => {
       // Validate before balance fetch
       try {
