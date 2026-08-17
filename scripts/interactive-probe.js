@@ -27,8 +27,8 @@ function wirePage(page, label) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ headless: false, channel: undefined });
-  const context = await browser.newContext();
+  const context = await chromium.launchPersistentContext('/tmp/crownmania-probe-profile', { headless: false });
+  const browser = context;
   const page = await context.newPage();
   wirePage(page, '[MAIN]');
 
@@ -48,11 +48,19 @@ function wirePage(page, label) {
     if (page.isClosed()) { log('Main page closed by user; stopping.'); break; }
     // Periodic state snapshot
     try {
-      const state = await page.evaluate(() => ({
-        modal: !!document.querySelector('[class*="w3a"]'),
-        bodySnippet: document.body.innerText.replace(/\s+/g, ' ').slice(0, 200),
-      }));
-      log(`STATE: modal=${state.modal} text="${state.bodySnippet}"`);
+      const state = await page.evaluate(() => {
+        const grab = (store) => Object.keys(store)
+          .filter((k) => /web3auth|auth_store|openlogin|adapter|Web3Auth/i.test(k))
+          .map((k) => `${k}=${String(store.getItem(k)).slice(0, 120)}`);
+        return {
+          bodySnippet: document.body.innerText.replace(/\s+/g, ' ').slice(0, 150),
+          ls: grab(localStorage),
+          ss: grab(sessionStorage),
+        };
+      });
+      log(`STATE: text="${state.bodySnippet}"`);
+      log(`STORAGE local: ${JSON.stringify(state.ls)}`);
+      log(`STORAGE session: ${JSON.stringify(state.ss)}`);
     } catch { /* page busy/navigating */ }
   }
 

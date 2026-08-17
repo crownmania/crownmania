@@ -70,6 +70,21 @@ const getWeb3Auth = async () => {
     // Dynamic import keeps the heavy SDK out of the initial bundle
     const { Web3Auth } = await import('@web3auth/modal');
 
+    // Workaround for a v10 redirect-mode bug: the SDK persists the login
+    // session (auth_store.sessionId) but not cachedConnector, and its
+    // auto-reconnect only fires when cachedConnector === 'auth'. Restore
+    // the pointer so init() rehydrates the session after the redirect.
+    try {
+      const authStore = JSON.parse(localStorage.getItem('auth_store') || '{}');
+      if (authStore.sessionId) {
+        const w3aState = JSON.parse(localStorage.getItem('Web3Auth-state') || '{}');
+        if (!w3aState.cachedConnector) {
+          w3aState.cachedConnector = 'auth';
+          localStorage.setItem('Web3Auth-state', JSON.stringify(w3aState));
+        }
+      }
+    } catch { /* non-fatal */ }
+
     const web3AuthNetwork = import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_mainnet";
 
     web3authInstance = new Web3Auth({
