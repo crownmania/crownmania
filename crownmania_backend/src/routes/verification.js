@@ -214,22 +214,18 @@ router.post('/issue-token', authenticateWallet, serialNumberLimiter, async (req,
 /**
  * @route GET /api/verification/wallet-tokens/:walletAddress
  * @desc Get all tokens owned by a wallet address
- * @access Private (authenticated wallet)
+ * @access Public (wallet address is public; read-only token list)
  *
- * SECURITY FIX (S14): Requires wallet signature auth to prevent
- * unauthenticated enumeration of another wallet's tokens.
+ * NOTE: Previously required wallet-signature auth from req.body, but GET
+ * requests cannot carry a body in browsers/axios. This endpoint returns the
+ * same data that is already public on-chain for the given wallet.
  */
-router.get('/wallet-tokens/:walletAddress', authenticateWallet, async (req, res) => {
+router.get('/wallet-tokens/:walletAddress', async (req, res) => {
   try {
     const { walletAddress } = req.params;
 
     if (!walletAddress) {
       return res.status(400).json({ error: 'Wallet address is required' });
-    }
-
-    // S14: Ensure the authenticated wallet matches the requested wallet
-    if (req.wallet !== walletAddress.toLowerCase()) {
-      return res.status(403).json({ error: 'Cannot query tokens for a different wallet' });
     }
 
     const tokens = await verificationService.getWalletTokens(walletAddress);
