@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     nodePolyfills({
       // Enable comprehensive polyfills for Web3Auth
-      include: ['buffer', 'stream', 'events', 'util', 'process', 'crypto', 'string_decoder', 'path', 'os', 'fs', 'vm'],
+      include: ['buffer', 'stream', 'events', 'util', 'crypto', 'string_decoder', 'path', 'os', 'fs', 'vm'],
       globals: {
         Buffer: true,
         global: true,
@@ -30,6 +30,7 @@ export default defineConfig({
       os: 'os-browserify/browser',
       url: 'url',
       zlib: 'browserify-zlib',
+      process: new URL('./src/shims/process-shim.js', import.meta.url).pathname,
     },
   },
   optimizeDeps: {
@@ -40,7 +41,6 @@ export default defineConfig({
     },
     include: [
       'buffer',
-      'process',
       'events',
       'util',
     ],
