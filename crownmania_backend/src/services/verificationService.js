@@ -634,9 +634,12 @@ export const verificationService = {
    */
   getWalletTokens: async (walletAddress) => {
     try {
+      // Normalize wallet address for case-insensitive comparison
+      const normalizedAddress = walletAddress.toLowerCase();
+
       // Find all collectibles owned by the wallet address
       const collectiblesRef = db.collection('collectibles');
-      const snapshot = await collectiblesRef.where('ownerId', '==', walletAddress).get();
+      const snapshot = await collectiblesRef.where('ownerId', '==', normalizedAddress).get();
 
       if (snapshot.empty) {
         return [];
@@ -650,14 +653,19 @@ export const verificationService = {
           productId: data.productId,
           productName: data.productName,
           serialNumber: data.serialNumber,
-          tokenId: data.tokenId,
+          tokenId: data.blockchainTokenId || data.tokenId,
           edition: data.edition,
           editionNumber: data.edition,
           tokenAddress: data.contractAddress,
+          transactionHash: data.transactionHash,
+          status: data.status,
+          nftTransferred: data.nftTransferred,
           modelUrl: data.metadata?.modelUrl || data.modelUrl,
           imageUrl: data.metadata?.image,
           issuedAt: data.createdAt ? data.createdAt.toDate() : new Date(),
-          claimDate: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+          claimDate: data.claimedAt?.toDate ? data.claimedAt.toDate().toISOString() :
+                      (data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString()),
+          verifiedAt: data.claimedAt?.toDate ? data.claimedAt.toDate().toISOString() : null,
           metadata: data.metadata
         };
       });

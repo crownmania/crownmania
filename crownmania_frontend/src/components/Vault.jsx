@@ -2109,14 +2109,26 @@ export default function Vault() {
     return userTokens.some(token => token.productId === characterId);
   }, [userTokens]);
 
+  // Owned Lil Durk token (if any)
+  const durkToken = userTokens.find(t => t.productId === 'lil-durk-figure');
+
   // Derived state-asset is verified if:
   // 1. First-time correct product code entry, OR
   // 2. Recurring visitor with verified serial in localStorage, OR  
-  // 3. Wallet connection with owned tokens
+  // 3. Wallet connection with owned tokens, OR
+  // 4. Token record shows a successful transfer
   const isAssetVerified = verificationResult?.status === 'success' ||
     isPersistentlyVerified ||
-    isOwned('lil-durk-figure');
-  const displayEdition = verificationResult?.editionNumber || currentEdition;
+    isOwned('lil-durk-figure') ||
+    !!durkToken?.nftTransferred;
+
+  // Display data can come from manual verification, wallet tokens, or localStorage
+  const displayEdition = verificationResult?.editionNumber || currentEdition || durkToken?.edition || durkToken?.editionNumber;
+  const displayTokenAddress = verificationResult?.tokenAddress || durkToken?.tokenAddress;
+  const displayClaimDate = verificationResult?.claimDate || durkToken?.claimDate || durkToken?.verifiedAt;
+  const displayVerifiedAt = verificationResult?.verifiedAt || verifiedSerials.find(s => s.productId === 'lil-durk-figure')?.verifiedAt || durkToken?.verifiedAt || durkToken?.claimDate;
+  const displayTransactionHash = durkToken?.transactionHash || verificationResult?.transactionHash;
+  const displayTokenId = durkToken?.tokenId;
 
   // Rarity tier based on edition number (music industry inspired)
   const getRarityTier = (edition) => {
@@ -2285,8 +2297,8 @@ export default function Vault() {
   };
 
   const handleCopyTokenAddress = () => {
-    if (verificationResult?.tokenAddress) {
-      navigator.clipboard.writeText(verificationResult.tokenAddress);
+    if (displayTokenAddress) {
+      navigator.clipboard.writeText(displayTokenAddress);
       showToastMessage('Token address copied to clipboard!');
     }
   };
@@ -3081,14 +3093,35 @@ export default function Vault() {
                   <DetailItem>
                     <label>Token Address</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span className={verificationResult?.tokenAddress ? '' : 'dim'} style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>
-                        {verificationResult?.tokenAddress ? formatAddress(verificationResult.tokenAddress) : '0x...'}
+                      <span className={displayTokenAddress ? '' : 'dim'} style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>
+                        {displayTokenAddress ? formatAddress(displayTokenAddress) : '0x...'}
                       </span>
-                      {verificationResult?.tokenAddress && (
+                      {displayTokenAddress && (
                         <CopyButton onClick={handleCopyTokenAddress} title="Copy token address" style={{ padding: '0.1rem' }}>
                           <FaCopy size={12} />
                         </CopyButton>
                       )}
+                    </div>
+                  </DetailItem>
+                  <DetailItem>
+                    <label>Token ID</label>
+                    <div className={displayTokenId ? 'highlight' : 'dim'} style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>
+                      {displayTokenId ? displayTokenId : '—'}
+                    </div>
+                  </DetailItem>
+                  <DetailItem>
+                    <label>Transaction Hash</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <a
+                        href={displayTransactionHash ? `https://polygonscan.com/tx/${displayTransactionHash}` : undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={displayTransactionHash ? 'highlight' : 'dim'}
+                        style={{ fontFamily: 'monospace', fontSize: '0.9rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                      >
+                        {displayTransactionHash ? formatAddress(displayTransactionHash) : '—'}
+                        {displayTransactionHash && <FaExternalLinkAlt size={10} />}
+                      </a>
                     </div>
                   </DetailItem>
                   <DetailItem>
@@ -3111,17 +3144,14 @@ export default function Vault() {
                   </DetailItem>
                   <DetailItem>
                     <label>Date Claimed</label>
-                    <div className={verificationResult?.claimDate ? 'highlight' : 'dim'}>
-                      {verificationResult?.claimDate ? formatClaimDate(verificationResult.claimDate) : '---'}
+                    <div className={displayClaimDate ? 'highlight' : 'dim'}>
+                      {displayClaimDate ? formatClaimDate(displayClaimDate) : '---'}
                     </div>
                   </DetailItem>
                   <DetailItem>
                     <label>Verified On</label>
-                    <div className={(verificationResult?.verifiedAt || verifiedSerials.find(s => s.productId === 'lil-durk-figure')?.verifiedAt) ? 'highlight' : 'dim'}>
-                      {(() => {
-                        const verifiedAt = verificationResult?.verifiedAt || verifiedSerials.find(s => s.productId === 'lil-durk-figure')?.verifiedAt;
-                        return verifiedAt ? formatClaimDate(verifiedAt) : 'Not Verified';
-                      })()}
+                    <div className={displayVerifiedAt ? 'highlight' : 'dim'}>
+                      {displayVerifiedAt ? formatClaimDate(displayVerifiedAt) : 'Not Verified'}
                     </div>
                   </DetailItem>
                 </DetailGrid>
