@@ -1778,7 +1778,7 @@ z-index: 10;
 // ============================================
 export default function Vault() {
   const navigate = useNavigate();
-  const { isInitialized, isWeb3Available, user, isLoading, login, logout, getAddress, signMessageWithNonce } = useWeb3Auth();
+  const { isInitialized, isWeb3Available, user, isLoading, login, logout, getAddress, signMessageWithNonce, walletAddress: hookWalletAddress } = useWeb3Auth();
   const isVaultLocked = !isInitialized || !user;
 
   const [walletAddress, setWalletAddress] = useState('');
@@ -2051,7 +2051,11 @@ export default function Vault() {
     const fetchData = async () => {
       try {
         if (isInitialized && user) {
-          const address = await getAddress();
+          // Use hook's walletAddress if available, otherwise fetch via getAddress()
+          let address = hookWalletAddress;
+          if (!address) {
+            address = await getAddress();
+          }
           if (address && isMounted) {
             setWalletAddress(address);
             try {
@@ -2082,6 +2086,9 @@ export default function Vault() {
               console.error('Error fetching tokens:', err);
               if (isMounted) setUserTokens([]);
             }
+          } else if (isMounted) {
+            // Connected but no address yet — clear tokens but don't reset
+            setUserTokens([]);
           }
         } else if (isMounted) {
           // Clear wallet-specific state when user disconnects
@@ -2101,7 +2108,7 @@ export default function Vault() {
     return () => {
       isMounted = false;
     };
-  }, [isInitialized, user]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isInitialized, user, hookWalletAddress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check if user owns a character
   const isOwned = useCallback((characterId) => {
@@ -2310,16 +2317,18 @@ export default function Vault() {
   };
 
   const handleCopyAddress = () => {
-    if (walletAddress) {
-      navigator.clipboard.writeText(walletAddress);
+    const addr = walletAddress || hookWalletAddress;
+    if (addr) {
+      navigator.clipboard.writeText(addr);
       showToastMessage('Address copied to clipboard!');
       setShowAddressModal(false);
     }
   };
 
   const handleViewOnPolygon = () => {
-    if (walletAddress) {
-      window.open(`https://polygonscan.com/address/${walletAddress}`, '_blank');
+    const addr = walletAddress || hookWalletAddress;
+    if (addr) {
+      window.open(`https://polygonscan.com/address/${addr}`, '_blank');
     }
   };
 
@@ -2576,7 +2585,7 @@ export default function Vault() {
             <IdentityInfo>
               <div style={{ width: '100%', textAlign: 'center', marginBottom: '1.5rem' }}>
                 {!isVaultLocked ? (
-                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Connected: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</p>
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Connected: {(walletAddress || hookWalletAddress || '').slice(0, 6)}...{(walletAddress || hookWalletAddress || '').slice(-4)}</p>
                 ) : (
                   <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1.1rem' }}>Create or connect your Crown to unlock the Vault.</p>
                 )}
@@ -3542,7 +3551,7 @@ export default function Vault() {
               </p>
               <ModalInput
                 readOnly
-                value={walletAddress}
+                value={walletAddress || hookWalletAddress || ''}
               />
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <ActionButton $primary onClick={handleCopyAddress} style={{ flex: 1 }}>
