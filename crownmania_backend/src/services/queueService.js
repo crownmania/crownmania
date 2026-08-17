@@ -11,9 +11,7 @@ function getConnection() {
     if (connection) return connection;
 
     try {
-        connection = new IORedis({
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT || '6379'),
+        const redisOptions = {
             maxRetriesPerRequest: null,
             enableReadyCheck: false,
             lazyConnect: true,
@@ -25,8 +23,15 @@ function getConnection() {
                 }
                 return Math.min(times * 200, 2000);
             }
-        });
+        };
 
+        connection = process.env.REDIS_URL
+            ? new IORedis(process.env.REDIS_URL, redisOptions)
+            : new IORedis({
+                host: process.env.REDIS_HOST || 'localhost',
+                port: parseInt(process.env.REDIS_PORT || '6379'),
+                ...redisOptions
+            });
         connection.on('error', (err) => {
             if (!connectionFailed) {
                 logger.warn('Redis connection error (queue service unavailable):', err.message);
