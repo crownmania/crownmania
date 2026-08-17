@@ -2629,7 +2629,7 @@ export default function Vault() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <FaSignOutAlt /> SEAL
+                      <FaSignOutAlt /> Disconnect
                     </ActionButton>
                   </>
                 )}
@@ -3032,7 +3032,9 @@ export default function Vault() {
                       alt={idCardImages[idCardImageIndex].label}
                       style={{
                         width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.05)', transformOrigin: 'center 40%',
-                        filter: isAssetVerified ? 'none saturate(1.1)' : 'grayscale(100%) contrast(1.1) brightness(0.85)',
+                        filter: isAssetVerified
+                          ? 'saturate(1.15) contrast(1.05) brightness(1.02)'
+                          : 'grayscale(100%) contrast(1.1) brightness(0.85)',
                         transition: 'filter 1.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease'
                       }}
                     />
