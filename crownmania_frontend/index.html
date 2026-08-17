@@ -20,6 +20,7 @@
     if (typeof global === 'undefined') { window.global = window; }
     if (typeof process === 'undefined') { window.process = { env: {}, versions: { node: '18.0.0' } }; }
     else if (!process.versions) { process.versions = { node: '18.0.0' }; }
+    if (!process.nextTick) { process.nextTick = function (fn) { var args = Array.prototype.slice.call(arguments, 1); queueMicrotask(function () { fn.apply(null, args); }); }; }
     if (typeof Buffer === 'undefined') {
       window.Buffer = {
         isBuffer: function () { return false; },
