@@ -97,10 +97,17 @@ export const claimNFTToWallet = async (recipientWallet, quantity = 1) => {
                 currency: ethers.constants.AddressZero
             };
 
-            // Fetch current gas fees from the network to avoid "gas price below minimum" errors
+            // Fetch current gas fees to avoid "gas price below minimum" on Polygon.
+            // Some public RPCs return incorrect fee data, so enforce a minimum.
             const feeData = await provider.getFeeData();
-            const maxFeePerGas = feeData.maxFeePerGas?.mul(120).div(100) || undefined;  // 20% bump
-            const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas?.mul(120).div(100) || undefined;
+            const MIN_PRIORITY_FEE = ethers.BigNumber.from('30000000000'); // 30 gwei
+            const MIN_MAX_FEE = ethers.BigNumber.from('350000000000'); // 350 gwei
+            const maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas && feeData.maxPriorityFeePerGas.gte(MIN_PRIORITY_FEE))
+                ? feeData.maxPriorityFeePerGas.mul(120).div(100)
+                : MIN_PRIORITY_FEE;
+            const maxFeePerGas = (feeData.maxFeePerGas && feeData.maxFeePerGas.gte(MIN_MAX_FEE))
+                ? feeData.maxFeePerGas.mul(120).div(100)
+                : MIN_MAX_FEE;
 
             const tx = await claimContract.claim(
                 recipientWallet, quantity, currency, condition.pricePerToken, allowlistProof, '0x',
