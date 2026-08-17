@@ -1,5 +1,16 @@
 // Web3Auth Configuration - npm SDK (@web3auth/modal v10)
 
+// Vite's node-polyfills plugin provides its own `process` object that
+// overwrites the index.html shim — and it lacks `nextTick`, which
+// crashes Web3Auth's internal stream processing. Patch it here at
+// module level so it's fixed before any dynamic import runs.
+if (typeof process !== 'undefined' && typeof process.nextTick !== 'function') {
+  process.nextTick = function (fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    queueMicrotask(function () { fn.apply(null, args); });
+  };
+}
+
 const isDev = import.meta.env.DEV;
 
 // Check if we have the necessary keys
