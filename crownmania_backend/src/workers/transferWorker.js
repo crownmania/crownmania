@@ -1,4 +1,5 @@
 import { Worker } from 'bullmq';
+import IORedis from 'ioredis';
 import { ethers } from 'ethers';
 import { db } from '../config/firebase.js';
 import logger from '../config/logger.js';
@@ -216,10 +217,12 @@ export const transferWorker = new Worker(
         }
     },
     {
-        connection: {
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT || '6379')
-        },
+        connection: process.env.REDIS_URL
+            ? new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
+            : {
+                host: process.env.REDIS_HOST || 'localhost',
+                port: parseInt(process.env.REDIS_PORT || '6379')
+            },
         concurrency: 3,  // Process up to 3 transfers simultaneously
         limiter: {
             max: 10,       // Max 10 jobs
