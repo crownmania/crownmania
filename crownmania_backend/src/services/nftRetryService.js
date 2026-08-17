@@ -17,14 +17,19 @@ export async function retryPendingTransfers() {
     logger.info('[NFT Retry Service] Starting retry of pending NFT transfers...');
 
     try {
-        // Query all collectibles where claim succeeded but NFT transfer failed
-        // (claims are stored with status 'pending_transfer' or 'failed_transfer')
+        // Query collectibles that were claimed but NFT transfer hasn't completed.
+        // nftTransferred may be undefined (not set during claim) so we query by
+        // status alone and filter out already-transferred ones in JS.
         const pendingQuery = await db.collection('collectibles')
-            .where('nftTransferred', '==', false)
             .where('status', 'in', ['claimed', 'pending_transfer', 'failed_transfer'])
             .get();
 
-        if (pendingQuery.empty) {
+        // Filter out any that are already transferred
+        const pendingDocs = pendingQuery.docs.filter(doc => {
+            return doc.data().nftTransferred !== true;
+        });
+
+        if (pendingDocs.length === 0) {
             logger.info('[NFT Retry Service] No pending transfers found');
             return {
                 attempted: 0,
@@ -34,13 +39,13 @@ export async function retryPendingTransfers() {
             };
         }
 
-        logger.info(`[NFT Retry Service] Found ${pendingQuery.size} pending transfers`);
+        logger.info(`[NFT Retry Service] Found ${pendingDocs.length} pending transfers`);
 
         const results = [];
         let succeeded = 0;
         let failed = 0;
 
-        for (const doc of pendingQuery.docs) {
+        for (const doc of pendingDocs) {
             const data = doc.data();
             const collectibleId = doc.id;
             const retryCount = (data.retryCount || 0) + 1;
@@ -141,7 +146,7 @@ export async function retryPendingTransfers() {
         }
 
         const summary = {
-            attempted: pendingQuery.size,
+            attempted: pendingDocs.length,
             succeeded,
             failed,
             results
@@ -186,11 +191,13 @@ async function sendAdminAlert(alertData) {
 export async function getPendingTransferStats() {
     try {
         const pendingQuery = await db.collection('collectibles')
-            .where('nftTransferred', '==', false)
             .where('status', 'in', ['claimed', 'pending_transfer', 'failed_transfer'])
             .get();
 
-        if (pendingQuery.empty) {
+        // Filter out already-transferred
+        const pendingDocs = pendingQuery.docs.filter(doc => doc.data().nftTransferred !== true);
+
+        if (pendingDocs.length === 0) {
             return {
                 total: 0,
                 byRetryCount: {},
@@ -201,7 +208,7 @@ export async function getPendingTransferStats() {
         const byRetryCount = {};
         let oldestPending = null;
 
-        pendingQuery.docs.forEach(doc => {
+        pendingDocs.forEach(doc => {
             const data = doc.data();
             const retryCount = data.retryCount || 0;
 
@@ -218,7 +225,7 @@ export async function getPendingTransferStats() {
         });
 
         return {
-            total: pendingQuery.size,
+            total: pendingDocs.length,
             byRetryCount,
             oldestPending
         };
