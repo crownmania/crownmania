@@ -228,8 +228,8 @@ router.get('/wallet-tokens/:walletAddress', async (req, res) => {
       return res.status(400).json({ error: 'Wallet address is required' });
     }
 
-    const tokens = await verificationService.getWalletTokens(walletAddress);
-    res.json({ tokens });
+    const result = await verificationService.getWalletTokens(walletAddress);
+    res.json(result);
   } catch (error) {
     console.error('Error getting wallet tokens:', error);
     res.status(500).json({ error: error.message || 'Server error while retrieving tokens' });
