@@ -1,16 +1,17 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { storage } from '../../config/firebase';
-import { ref, getDownloadURL } from 'firebase/storage';
 import * as THREE from 'three';
 
 // Shared loader instance to avoid re-creation on re-renders
 const gltfLoader = new GLTFLoader();
 
-const MODEL_PATHS = [
-  'models/DURK Action Figure Low Poly FINAL .glb',
-  'models/LIL DURK HEAD and HAIR4 .glb',
+const STORAGE_BASE =
+  'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o';
+
+const MODEL_URLS = [
+  `${STORAGE_BASE}/models%2FDURK%20Action%20Figure%20Low%20Poly%20FINAL%20.glb?alt=media`,
+  `${STORAGE_BASE}/models%2FLIL%20DURK%20HEAD%20and%20HAIR4%20.glb?alt=media`,
 ];
 
 function Loader() {
@@ -31,41 +32,85 @@ function Loader() {
 
 function RealModel({ scene, isUnlocked }) {
   const groupRef = useRef();
+  const clonedRef = useRef(null);
+  const unlockProgress = useRef(isUnlocked ? 1 : 0);
 
   useEffect(() => {
     if (!scene || !groupRef.current) return;
-    // Clone so we don’t share the same scene across renders
     const cloned = scene.clone(true);
     cloned.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
+        if (child.material) {
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          child.material = mats.map((m) => {
+            const mat = m.clone();
+            if (mat.color) {
+              mat.userData.baseColor = mat.color.clone();
+            }
+            if (mat.emissive) {
+              mat.userData.baseEmissive = mat.emissive.clone();
+              mat.userData.baseEmissiveIntensity = mat.emissiveIntensity || 0;
+            }
+            return mat;
+          });
+          if (!Array.isArray(child.material)) {
+            child.material = child.material[0];
+          }
+        }
       }
     });
+    clonedRef.current = cloned;
     groupRef.current.add(cloned);
     return () => {
-      groupRef.current.remove(cloned);
+      if (groupRef.current && cloned) {
+        groupRef.current.remove(cloned);
+      }
       cloned.traverse((child) => {
         if (child.geometry) child.geometry.dispose();
         if (child.material) {
-          if (Array.isArray(child.material)) {
-            child.material.forEach((m) => m.dispose());
-          } else {
-            child.material.dispose();
-          }
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach((m) => m.dispose());
         }
       });
     };
   }, [scene]);
 
   useFrame((state) => {
-    if (groupRef.current) {
-      const speed = isUnlocked ? 1.0 : 0.5;
-      groupRef.current.rotation.y += 0.01 * speed;
-      groupRef.current.position.y = isUnlocked
-        ? -0.3 + Math.sin(state.clock.elapsedTime * 2) * 0.05
-        : -0.3;
-    }
+    if (!groupRef.current || !clonedRef.current) return;
+
+    const target = isUnlocked ? 1 : 0;
+    const rate = isUnlocked ? 0.03 : 0.08;
+    unlockProgress.current += (target - unlockProgress.current) * rate;
+
+    const speed = isUnlocked ? 1.0 : 0.5;
+    groupRef.current.rotation.y += 0.01 * speed;
+    groupRef.current.position.y = isUnlocked
+      ? -0.3 + Math.sin(state.clock.elapsedTime * 2) * 0.05
+      : -0.3;
+
+    clonedRef.current.traverse((child) => {
+      if (child.isMesh && child.material) {
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((mat) => {
+          const progress = Math.max(0, Math.min(1, unlockProgress.current));
+
+          if (mat.userData.baseColor) {
+            const hsl = { h: 0, s: 0, l: 0 };
+            mat.userData.baseColor.getHSL(hsl);
+            mat.color.setHSL(hsl.h, hsl.s * progress, hsl.l);
+          }
+
+          if (mat.userData.baseEmissive) {
+            const e = mat.userData.baseEmissive;
+            const intensity = mat.userData.baseEmissiveIntensity * progress;
+            mat.emissive.setRGB(e.r * progress, e.g * progress, e.b * progress);
+            mat.emissiveIntensity = intensity;
+          }
+        });
+      }
+    });
   });
 
   return (
@@ -246,64 +291,41 @@ export function DurkModel({ usePlaceholder = false, isUnlocked = false }) {
   }, []);
 
   useEffect(() => {
-    if (usePlaceholder) {
-      setHasError(false);
-      setIsLoading(false);
-      return;
-    }
-
     let cancelled = false;
 
-    async function loadModel() {
-      try {
-        if (!storage) throw new Error('Firebase storage not available');
-
-        let url = null;
-        for (const path of MODEL_PATHS) {
-          try {
-            const modelRef = ref(storage, path);
-            url = await getDownloadURL(modelRef);
-            break;
-          } catch {
-            // Try next path
-          }
-        }
-
-        if (!url) throw new Error('Model not found in Firebase Storage');
-
-        if (cancelled || !mounted.current) return;
-
-        setModelUrl(url);
-
-        gltfLoader.load(
-          url,
-          (gltf) => {
-            if (cancelled || !mounted.current) return;
-            setScene(gltf.scene);
-            setIsLoading(false);
-          },
-          undefined,
-          (err) => {
-            if (cancelled || !mounted.current) return;
-            if (import.meta.env.DEV) console.warn('GLTF load failed:', err?.message);
-            setHasError(true);
-            setIsLoading(false);
-          }
-        );
-      } catch (err) {
-        if (cancelled || !mounted.current) return;
-        if (import.meta.env.DEV) console.warn('Model URL resolve failed:', err?.message);
+    function tryLoad(index) {
+      if (index >= MODEL_URLS.length) {
+        if (import.meta.env.DEV) console.warn('All model URLs failed to load');
         setHasError(true);
         setIsLoading(false);
+        return;
       }
+
+      if (cancelled || !mounted.current) return;
+      setModelUrl(MODEL_URLS[index]);
+
+      gltfLoader.load(
+        MODEL_URLS[index],
+        (gltf) => {
+          if (cancelled || !mounted.current) return;
+          setScene(gltf.scene);
+          setIsLoading(false);
+        },
+        undefined,
+        (err) => {
+          if (cancelled || !mounted.current) return;
+          if (import.meta.env.DEV) console.warn(`GLTF load ${index} failed:`, err?.message);
+          tryLoad(index + 1);
+        }
+      );
     }
 
-    loadModel();
+    tryLoad(0);
 
     return () => {
       cancelled = true;
     };
-  }, [usePlaceholder]);
+  }, []);
 
   if (isLoading) {
     return <Loader />;

@@ -57,6 +57,8 @@ function App() {
     }
 
     async function checkStorage() {
+      if (!import.meta.env.DEV) return;
+
       try {
         const result = await verifyStorageSetup();
         if (import.meta.env.DEV) {
