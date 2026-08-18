@@ -102,7 +102,7 @@ const getWeb3Auth = async () => {
       clientId,
       web3AuthNetwork,
       uiConfig: {
-        uxMode: 'redirect',
+        uxMode: 'popup',
       },
     });
 
