@@ -1794,6 +1794,7 @@ export default function Vault() {
   const [verificationResult, setVerificationResult] = useState(null);
   const [currentEdition, setCurrentEdition] = useState(null);
   const [selectedToken, setSelectedToken] = useState(null);
+  const [totalClaims, setTotalClaims] = useState(0);
 
   // Crown Weight Logic
   const [crownWeight, setCrownWeight] = useState(0);
@@ -2083,6 +2084,7 @@ export default function Vault() {
               if (isMounted) {
                 const tokens = result.tokens || [];
                 setUserTokens(tokens);
+                setTotalClaims(result.totalClaims || 0);
 
                 // Check if wallet has tokens and auto-unlock vault
                 if (tokens.length > 0) {
@@ -2197,6 +2199,7 @@ export default function Vault() {
     setWalletAddress('');
     setUserTokens([]);
     setSelectedToken(null);
+    setTotalClaims(0);
     setCurrentEdition(null);
     setVerificationResult(null);
     setIsPersistentlyVerified(false);
@@ -3141,7 +3144,9 @@ export default function Vault() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}><AssetTitle style={{ margin: 0 }}>Digital Collectible</AssetTitle></div>
                     <AssetSubtitle style={{ fontFamily: 'var(--font-primary)', fontWeight: 400, textAlign: 'left', marginBottom: 0 }}>
-                      {userTokens.length > 0 ? `${userTokens.length} token${userTokens.length !== 1 ? 's' : ''} in this vault` : 'Collectible details'}
+                      {userTokens.length > 0
+                        ? `${userTokens.length} token${userTokens.length !== 1 ? 's' : ''} in this vault ${totalClaims > userTokens.length ? `(${totalClaims} total claims)` : ''}`
+                        : 'Collectible details'}
                     </AssetSubtitle>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>

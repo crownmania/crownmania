@@ -677,11 +677,31 @@ export const verificationService = {
       const snapshot = await collectiblesRef.where('ownerId', '==', normalizedAddress).get();
 
       if (snapshot.empty) {
-        return [];
+        return { tokens: [], claimHistory: [], totalClaims: 0 };
+      }
+
+      // Find all claim codes ever claimed by this wallet (including transferred-away ones)
+      let claimHistory = [];
+      try {
+        const claimCodesSnapshot = await db.collection('claimCodes')
+          .where('claimedBy', '==', normalizedAddress)
+          .get();
+        claimHistory = claimCodesSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            serialNumber: doc.id,
+            productId: data.productId,
+            edition: data.edition,
+            tokenId: data.tokenId,
+            claimedAt: data.claimedAt?.toDate ? data.claimedAt.toDate().toISOString() : null
+          };
+        });
+      } catch (historyErr) {
+        logger.warn('Could not load claim history:', historyErr.message);
       }
 
       // Map the collectibles to a user-friendly format
-      return snapshot.docs.map(doc => {
+      const tokens = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -704,6 +724,12 @@ export const verificationService = {
           metadata: data.metadata
         };
       });
+
+      return {
+        tokens,
+        claimHistory,
+        totalClaims: claimHistory.length
+      };
     } catch (error) {
       logger.error('Error getting wallet tokens:', error);
       throw new Error('Failed to get wallet tokens');
