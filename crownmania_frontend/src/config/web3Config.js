@@ -102,19 +102,31 @@ const getWeb3Auth = async () => {
     } catch { /* non-fatal */ }
 
     const web3AuthNetwork = import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_mainnet";
+    const chainId = import.meta.env.VITE_WEB3_CHAIN_ID || "0x89";
+    const rpcTarget = import.meta.env.VITE_WEB3_RPC_TARGET || "https://polygon-rpc.com";
 
     web3authInstance = new Web3Auth({
       clientId,
       web3AuthNetwork,
+      defaultChainId: chainId,
+      chains: [{
+        chainNamespace: 'eip155',
+        chainId,
+        rpcTarget,
+        displayName: 'Polygon Mainnet',
+        blockExplorerUrl: 'https://polygonscan.com',
+        ticker: 'MATIC',
+        tickerName: 'Matic',
+        logo: 'https://cryptologos.cc/logos/polygon-matic-logo.png',
+      }],
       uiConfig: {
         uxMode: WEB3AUTH_UX_MODE,
       },
     });
 
-    if (isDev) console.log('Web3Auth: Using network:', web3AuthNetwork);
+    if (isDev) console.log('Web3Auth: Using network:', web3AuthNetwork, 'chain:', chainId);
 
     await web3authInstance.init();
-    await web3authInstance.initModal();
     isInitialized = true;
 
     if (isDev) console.log('Web3Auth: Initialized successfully!');
@@ -171,14 +183,11 @@ const initMoralis = async () => {
 // Check if Web3Auth modal is ready
 const isWeb3AuthReady = () => isInitialized;
 
-// Initialize the modal (helper for hooks)
+// Initialize Web3Auth (helper for hooks)
 const initializeModal = async () => {
   if (isInitialized) return true;
 
-  const instance = await getWeb3Auth();
-  if (instance && !instance.isMock && instance.initModal) {
-    await instance.initModal();
-  }
+  await getWeb3Auth();
   return isInitialized;
 };
 
