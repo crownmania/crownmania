@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 import { getModelURL } from '../../utils/modelStorage';
 import { useScroll } from 'framer-motion';
 import * as THREE from 'three';
 
 const gltfLoader = new GLTFLoader();
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('/draco/');
+gltfLoader.setDRACOLoader(dracoLoader);
 
 const Model3D = () => {
   const groupRef = useRef();
