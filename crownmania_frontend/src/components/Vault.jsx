@@ -25,6 +25,12 @@ const DURK_FRONT_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-cra
 const DURK_BACK_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy3.webp?alt=media';
 const DURK_BACKGROUND_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy4.webp?alt=media';
 
+// Product display mapping (expand as new characters launch)
+const PRODUCT_NAMES = {
+  'lil-durk-figure': { name: 'LIL DURK', subtitle: 'FREE THE VOICE' },
+  'default': { name: 'CROWNMANIA', subtitle: 'DIGITAL COLLECTIBLE' }
+};
+
 // Animations
 const packAPunchGlow = keyframes`
   0%, 100% { 
@@ -1787,6 +1793,7 @@ export default function Vault() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState(null);
   const [currentEdition, setCurrentEdition] = useState(null);
+  const [selectedToken, setSelectedToken] = useState(null);
 
   // Crown Weight Logic
   const [crownWeight, setCrownWeight] = useState(0);
@@ -1970,6 +1977,17 @@ export default function Vault() {
               transactionHash: mostRecent.transactionHash,
               claimDate: mostRecent.claimDate
             });
+            setSelectedToken({
+              productId: mostRecent.productId || 'lil-durk-figure',
+              tokenAddress: mostRecent.tokenAddress,
+              tokenId: mostRecent.tokenId,
+              transactionHash: mostRecent.transactionHash,
+              edition: mostRecent.editionNumber,
+              editionNumber: mostRecent.editionNumber,
+              claimDate: mostRecent.claimDate,
+              verifiedAt: mostRecent.verifiedAt,
+              nftTransferred: true
+            });
             if (mostRecent.editionNumber) {
               setCurrentEdition(mostRecent.editionNumber);
             }
@@ -2067,14 +2085,18 @@ export default function Vault() {
                 setUserTokens(tokens);
 
                 // Check if wallet has tokens and auto-unlock vault
-                const durkToken = tokens.find(t => t.productId === 'lil-durk-figure');
-                if (durkToken) {
+                if (tokens.length > 0) {
+                  // Default select the first token; user can switch in the details panel
+                  setSelectedToken(prev => prev || tokens[0]);
+                  const durkToken = tokens.find(t => t.productId === 'lil-durk-figure') || tokens[0];
                   setCurrentEdition(durkToken.edition || durkToken.editionNumber);
 
                   // Merge with localStorage-save token info as verified serial
                   const tokenVerification = {
                     serialNumber: `wallet_${address}_${durkToken.tokenAddress || durkToken.productId} `,
                     tokenAddress: durkToken.tokenAddress,
+                    tokenId: durkToken.tokenId,
+                    transactionHash: durkToken.transactionHash,
                     editionNumber: durkToken.edition || durkToken.editionNumber,
                     productId: durkToken.productId,
                     verifiedAt: new Date().toISOString(),
@@ -2118,26 +2140,42 @@ export default function Vault() {
     return userTokens.some(token => token.productId === characterId);
   }, [userTokens]);
 
-  // Owned Lil Durk token (if any)
-  const durkToken = userTokens.find(t => t.productId === 'lil-durk-figure');
+  // Switch the active token the user is viewing
+  const handleSelectToken = useCallback((token) => {
+    setSelectedToken(token);
+    setCurrentEdition(token.edition || token.editionNumber);
+  }, []);
+
+  // The active token can be the user's selected wallet token, or a manually verified token
+  const activeToken = selectedToken || (verificationResult ? {
+    productId: verificationResult.productId,
+    tokenAddress: verificationResult.tokenAddress,
+    tokenId: verificationResult.tokenId,
+    transactionHash: verificationResult.transactionHash,
+    edition: verificationResult.editionNumber,
+    editionNumber: verificationResult.editionNumber,
+    claimDate: verificationResult.claimDate,
+    verifiedAt: verificationResult.verifiedAt,
+    nftTransferred: !!verificationResult.tokenId
+  } : null);
 
   // Derived state-asset is verified if:
   // 1. First-time correct product code entry, OR
-  // 2. Recurring visitor with verified serial in localStorage, OR  
+  // 2. Recurring visitor with verified serial in localStorage, OR
   // 3. Wallet connection with owned tokens, OR
   // 4. Token record shows a successful transfer
   const isAssetVerified = verificationResult?.status === 'success' ||
     isPersistentlyVerified ||
-    isOwned('lil-durk-figure') ||
-    !!durkToken?.nftTransferred;
+    (userTokens && userTokens.length > 0) ||
+    !!activeToken?.nftTransferred;
 
-  // Display data can come from manual verification, wallet tokens, or localStorage
-  const displayEdition = verificationResult?.editionNumber || currentEdition || durkToken?.edition || durkToken?.editionNumber;
-  const displayTokenAddress = verificationResult?.tokenAddress || durkToken?.tokenAddress;
-  const displayClaimDate = verificationResult?.claimDate || durkToken?.claimDate || durkToken?.verifiedAt;
-  const displayVerifiedAt = verificationResult?.verifiedAt || verifiedSerials.find(s => s.productId === 'lil-durk-figure')?.verifiedAt || durkToken?.verifiedAt || durkToken?.claimDate;
-  const displayTransactionHash = durkToken?.transactionHash || verificationResult?.transactionHash;
-  const displayTokenId = durkToken?.tokenId || verificationResult?.tokenId;
+  // Display data can come from the selected wallet token or manual verification
+  const displayEdition = activeToken?.edition || activeToken?.editionNumber || currentEdition;
+  const displayTokenAddress = activeToken?.tokenAddress;
+  const displayClaimDate = activeToken?.claimDate || activeToken?.verifiedAt;
+  const displayVerifiedAt = verificationResult?.verifiedAt || verifiedSerials.find(s => s.productId === (activeToken?.productId || 'lil-durk-figure'))?.verifiedAt || activeToken?.verifiedAt || activeToken?.claimDate;
+  const displayTransactionHash = activeToken?.transactionHash;
+  const displayTokenId = activeToken?.tokenId;
 
   // Rarity tier based on edition number (music industry inspired)
   const getRarityTier = (edition) => {
@@ -2158,6 +2196,7 @@ export default function Vault() {
     await logout();
     setWalletAddress('');
     setUserTokens([]);
+    setSelectedToken(null);
     setCurrentEdition(null);
     setVerificationResult(null);
     setIsPersistentlyVerified(false);
@@ -2226,6 +2265,18 @@ export default function Vault() {
           productId: productId,
           claimDate: apiResult.claimDate || new Date().toISOString(),
           source: 'manual_entry'
+        });
+
+        setSelectedToken({
+          productId,
+          tokenAddress: apiResult.tokenAddress || apiResult.contractAddress,
+          tokenId: apiResult.tokenId,
+          transactionHash: apiResult.transactionHash,
+          edition: editionNum,
+          editionNumber: editionNum,
+          claimDate: apiResult.claimDate || new Date().toISOString(),
+          verifiedAt: new Date().toISOString(),
+          nftTransferred: true
         });
 
         setIsPersistentlyVerified(true);
@@ -2425,12 +2476,12 @@ export default function Vault() {
     setTransferError('');
 
     try {
-      // Get the collectible ID (first owned Durk token)
-      const durkToken = userTokens.find(t => t.productId === 'lil-durk-figure');
-      if (!durkToken) {
+      // Get the collectible ID from the currently selected token
+      const tokenToTransfer = selectedToken || userTokens[0];
+      if (!tokenToTransfer) {
         throw { error: 'No collectible found to transfer.' };
       }
-      const collectibleId = durkToken.collectibleId || durkToken.id || durkToken.tokenId;
+      const collectibleId = tokenToTransfer.collectibleId || tokenToTransfer.id || tokenToTransfer.tokenId;
 
       // Sign a message to prove wallet ownership
       const signResult = await signMessageWithNonce(
@@ -3101,12 +3152,55 @@ export default function Vault() {
                     {INFO_TEXT.collectible}
                   </motion.div>
                 )}
+                {userTokens.length > 1 && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{
+                      fontFamily: 'var(--font-secondary)',
+                      fontSize: '0.7rem',
+                      color: 'rgba(255,255,255,0.45)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.15em',
+                      fontWeight: 600,
+                      marginBottom: '0.5rem',
+                      display: 'block'
+                    }}>Select Collectible</label>
+                    <select
+                      value={userTokens.findIndex(t =>
+                        (t.id && t.id === activeToken?.id) ||
+                        (String(t.tokenId) === String(activeToken?.tokenId) && String(t.edition || t.editionNumber) === String(activeToken?.edition || activeToken?.editionNumber))
+                      )}
+                      onChange={(e) => handleSelectToken(userTokens[parseInt(e.target.value)])}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.75rem',
+                        background: 'rgba(0,0,0,0.4)',
+                        border: `1px solid ${themes[currentTheme].color}66`,
+                        borderRadius: '8px',
+                        color: 'white',
+                        fontFamily: 'var(--font-secondary)',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        outline: 'none'
+                      }}
+                    >
+                      {userTokens.map((token, i) => (
+                        <option key={i} value={i} style={{ background: '#0a0a1a' }}>
+                          {PRODUCT_NAMES[token.productId]?.name || token.productName || 'Unknown'} #{token.edition || token.editionNumber || token.tokenId} — Token #{token.tokenId}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <DetailGrid>
                   <DetailItem>
                     <label>Collection Name</label>
                     <div>
-                      <span style={{ fontSize: '1.8rem', display: 'block', lineHeight: 1.2 }}>LIL DURK</span>
-                      <span style={{ fontSize: '1.3rem', color: 'rgba(255,255,255,0.7)' }}>FREE THE VOICE</span>
+                      <span style={{ fontSize: '1.8rem', display: 'block', lineHeight: 1.2 }}>
+                        {PRODUCT_NAMES[activeToken?.productId]?.name || activeToken?.productName || 'CROWNMANIA'}
+                      </span>
+                      <span style={{ fontSize: '1.3rem', color: 'rgba(255,255,255,0.7)' }}>
+                        {PRODUCT_NAMES[activeToken?.productId]?.subtitle || 'DIGITAL COLLECTIBLE'}
+                      </span>
                     </div>
                   </DetailItem>
                   <DetailItem>

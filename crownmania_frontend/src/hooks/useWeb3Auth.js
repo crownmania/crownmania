@@ -395,6 +395,10 @@ const useWeb3Auth = () => {
         return null;
       }
 
+      if (web3authProvider?.setMaxListeners) {
+        web3authProvider.setMaxListeners(50);
+      }
+
       setProvider(web3authProvider);
       setIsConnected(true);
 
