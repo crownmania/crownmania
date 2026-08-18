@@ -20,6 +20,11 @@ const HAS_WEB3_KEYS = Boolean(
 
 const WEB3_ENABLED = HAS_WEB3_KEYS;
 
+// iOS and many mobile browsers block popups, so we use redirect mode there.
+// Desktop can use the cleaner popup mode.
+const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const WEB3AUTH_UX_MODE = isMobile ? 'redirect' : 'popup';
+
 // Lazy-initialized instance
 let web3authInstance = null;
 let moralisInstance = null;
@@ -102,7 +107,7 @@ const getWeb3Auth = async () => {
       clientId,
       web3AuthNetwork,
       uiConfig: {
-        uxMode: 'popup',
+        uxMode: WEB3AUTH_UX_MODE,
       },
     });
 

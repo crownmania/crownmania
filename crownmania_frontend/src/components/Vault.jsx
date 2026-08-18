@@ -2691,8 +2691,9 @@ export default function Vault() {
                   <ActionButton
                     $primary
                     onClick={handleConnect}
-                    whileHover={{ scale: 1.05, boxShadow: '0 0 25px var(--vault-glow)' }}
-                    whileTap={{ scale: 0.95 }}
+                    disabled={isLoading}
+                    whileHover={!isLoading ? { scale: 1.05, boxShadow: '0 0 25px var(--vault-glow)' } : undefined}
+                    whileTap={!isLoading ? { scale: 0.95 } : undefined}
                     style={{
                       width: '100%',
                       padding: '1rem 2rem',
@@ -2702,11 +2703,14 @@ export default function Vault() {
                       fontSize: '1rem',
                       gap: '0.4rem',
                       background: `linear-gradient(90deg, ${themes[currentTheme].color}33 0%, ${themes[currentTheme].color}66 50%, ${themes[currentTheme].color}33 100%)`,
-                      border: `1px solid ${themes[currentTheme].color}`
+                      border: `1px solid ${themes[currentTheme].color}`,
+                      opacity: isLoading ? 0.7 : 1
                     }}
                   >
-                    <FaWallet size={18} />
-                    <span style={{ fontWeight: 800, letterSpacing: '0.05em' }}>CONNECT<span style={{ margin: '0 0.3rem', opacity: 0.5 }}>|</span>CREATE</span>
+                    {isLoading ? <FaSpinner className="spin" size={18} /> : <FaWallet size={18} />}
+                    <span style={{ fontWeight: 800, letterSpacing: '0.05em' }}>
+                      {isLoading ? 'CONNECTING...' : <>CONNECT<span style={{ margin: '0 0.3rem', opacity: 0.5 }}>|</span>CREATE</>}
+                    </span>
                   </ActionButton>
                 ) : (
                   <>
