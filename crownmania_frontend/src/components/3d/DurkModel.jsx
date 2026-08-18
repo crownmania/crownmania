@@ -10,6 +10,7 @@ const STORAGE_BASE =
   'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o';
 
 const MODEL_URLS = [
+  `${STORAGE_BASE}/models%2Fdurk-model2.glb?alt=media`,
   `${STORAGE_BASE}/models%2FDURK%20Action%20Figure%20Low%20Poly%20FINAL%20.glb?alt=media`,
   `${STORAGE_BASE}/models%2FLIL%20DURK%20HEAD%20and%20HAIR4%20.glb?alt=media`,
 ];
