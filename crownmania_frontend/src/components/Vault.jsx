@@ -1966,6 +1966,8 @@ export default function Vault() {
               editionNumber: mostRecent.editionNumber,
               productId: mostRecent.productId || 'lil-durk-figure',
               tokenAddress: mostRecent.tokenAddress,
+              tokenId: mostRecent.tokenId,
+              transactionHash: mostRecent.transactionHash,
               claimDate: mostRecent.claimDate
             });
             if (mostRecent.editionNumber) {
@@ -2135,7 +2137,7 @@ export default function Vault() {
   const displayClaimDate = verificationResult?.claimDate || durkToken?.claimDate || durkToken?.verifiedAt;
   const displayVerifiedAt = verificationResult?.verifiedAt || verifiedSerials.find(s => s.productId === 'lil-durk-figure')?.verifiedAt || durkToken?.verifiedAt || durkToken?.claimDate;
   const displayTransactionHash = durkToken?.transactionHash || verificationResult?.transactionHash;
-  const displayTokenId = durkToken?.tokenId;
+  const displayTokenId = durkToken?.tokenId || verificationResult?.tokenId;
 
   // Rarity tier based on edition number (music industry inspired)
   const getRarityTier = (edition) => {
@@ -2159,7 +2161,7 @@ export default function Vault() {
     setCurrentEdition(null);
     setVerificationResult(null);
     setIsPersistentlyVerified(false);
-    setVerifiedSerials([]);
+    clearVerifiedSerialsFromStorage();
   };
 
   const handleVerify = async (codeOverride) => {
@@ -2210,12 +2212,16 @@ export default function Vault() {
           editionNumber: editionNum,
           productId: productId,
           tokenAddress: apiResult.tokenAddress || apiResult.contractAddress,
+          tokenId: apiResult.tokenId,
+          transactionHash: apiResult.transactionHash,
           claimDate: apiResult.claimDate || new Date().toISOString()
         };
 
         saveVerifiedSerialToStorage({
           serialNumber: serialNumber.trim(),
           tokenAddress: apiResult.tokenAddress || apiResult.contractAddress,
+          tokenId: apiResult.tokenId,
+          transactionHash: apiResult.transactionHash,
           editionNumber: editionNum,
           productId: productId,
           claimDate: apiResult.claimDate || new Date().toISOString(),

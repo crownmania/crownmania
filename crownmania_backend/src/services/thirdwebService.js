@@ -27,6 +27,15 @@ export const claimNFTToWallet = async (recipientWallet, quantity = 1) => {
             try {
                 const sdk = ThirdwebSDK.fromPrivateKey(privateKey, SDK_NETWORK, { secretKey });
                 const contract = await sdk.getContract(contractAddress);
+
+                // Read the token ID that will be minted as a fallback if event parsing fails
+                let expectedTokenId = null;
+                try {
+                    expectedTokenId = (await contract.call('nextTokenIdToClaim')).toString();
+                } catch (predictErr) {
+                    logger.warn('Could not predict next token ID:', predictErr.message);
+                }
+
                 const tx = await contract.erc721.claim(recipientWallet, quantity);
 
                 const receipt = tx.receipt;
@@ -44,6 +53,11 @@ export const claimNFTToWallet = async (recipientWallet, quantity = 1) => {
                             }
                         } catch { /* skip */ }
                     }
+                }
+
+                if (!mintedTokenId && expectedTokenId) {
+                    logger.warn(`Transfer event not parsed for sdk-claim; using predicted token ID ${expectedTokenId}`);
+                    mintedTokenId = expectedTokenId;
                 }
 
                 return {
@@ -73,11 +87,20 @@ export const claimNFTToWallet = async (recipientWallet, quantity = 1) => {
                 'function claim(address receiver, uint256 quantity, address currency, uint256 pricePerToken, tuple(bytes32[] proof, uint256 quantityLimitPerWallet, uint256 pricePerToken, address currency) allowlistProof, bytes data) external payable',
                 'function getActiveClaimConditionId() view returns (uint256)',
                 'function getClaimConditionById(uint256 conditionId) view returns (tuple(uint256 startTimestamp, uint256 maxClaimableSupply, uint256 supplyClaimed, uint256 quantityLimitPerWallet, bytes32 merkleRoot, uint256 pricePerToken, address currency, string metadata))',
+                'function nextTokenIdToClaim() view returns (uint256)',
                 'event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)'
             ];
 
             const claimContract = new ethers.Contract(contractAddress, claimABI, wallet);
             const NATIVE = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+
+            // Predict the token ID that will be minted as a fallback if event parsing fails
+            let expectedTokenId = null;
+            try {
+                expectedTokenId = (await claimContract.nextTokenIdToClaim()).toString();
+            } catch (predictErr) {
+                logger.warn('Could not predict next token ID via ethers:', predictErr.message);
+            }
 
             // Read price and currency from the active claim condition
             const activeConditionId = await claimContract.getActiveClaimConditionId();
@@ -132,6 +155,11 @@ export const claimNFTToWallet = async (recipientWallet, quantity = 1) => {
                         break;
                     }
                 } catch { /* skip */ }
+            }
+
+            if (!mintedTokenId && expectedTokenId) {
+                logger.warn(`Transfer event not parsed for ethers-claim; using predicted token ID ${expectedTokenId}`);
+                mintedTokenId = expectedTokenId;
             }
 
             return {

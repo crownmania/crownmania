@@ -64,7 +64,16 @@ export const verificationService = {
 
       // Check if the code has already been claimed
       if (claimCodeData.claimed || claimCodeData.claimedBy) {
+        // Look up the collectible record for full token details
+        const collectibleSnapshot = await db.collection('collectibles')
+          .where('serialNumber', '==', serialNumber.toLowerCase())
+          .limit(1)
+          .get();
+
+        const collectibleData = collectibleSnapshot.empty ? null : collectibleSnapshot.docs[0].data();
+
         return {
+          valid: true,
           verified: true,
           claimed: true,
           product: {
@@ -74,13 +83,22 @@ export const verificationService = {
             type: productData.type,
             imageUrl: productData.imageUrl || productData.images?.[0],
             claimedBy: claimCodeData.claimedBy,
-            claimedAt: claimCodeData.claimedAt
+            claimedAt: claimCodeData.claimedAt,
+            edition: claimCodeData.edition,
+            totalEditions: 500
           },
-          message: 'Product is authentic but digital token has already been claimed.'
+          tokenId: collectibleData?.blockchainTokenId || collectibleData?.tokenId || claimCodeData.blockchainTokenId || claimCodeData.tokenId || null,
+          transactionHash: collectibleData?.transactionHash || claimCodeData.transactionHash || null,
+          contractAddress: collectibleData?.contractAddress || process.env.NFT_CONTRACT_ADDRESS || process.env.THIRDWEB_NFT_CONTRACT || null,
+          status: collectibleData?.status || 'claimed',
+          nftTransferred: collectibleData?.nftTransferred === true || claimCodeData.tokenId ? true : false,
+          claimDate: collectibleData?.createdAt?.toDate ? collectibleData.createdAt.toDate().toISOString() : new Date().toISOString(),
+          message: 'Product is authentic and digital token has been claimed.'
         };
       }
 
       return {
+        valid: true,
         verified: true,
         claimed: false,
         product: {
@@ -156,7 +174,16 @@ export const verificationService = {
         const productDoc = await productRef.get();
         const productData = productDoc.exists ? productDoc.data() : {};
 
+        // Look up the collectible record for full token details
+        const collectibleSnapshot = await db.collection('collectibles')
+          .where('serialNumber', '==', sanitizedCodeId.toLowerCase())
+          .limit(1)
+          .get();
+
+        const collectibleData = collectibleSnapshot.empty ? null : collectibleSnapshot.docs[0].data();
+
         return {
+          valid: true,
           verified: true,
           claimed: true,
           product: {
@@ -172,7 +199,14 @@ export const verificationService = {
             claimedAt: claimCodeData.claimedAt,
             claimDate: claimCodeData.claimedAt?.toDate ? claimCodeData.claimedAt.toDate().toISOString() : new Date().toISOString()
           },
-          message: 'This product is authentic but has already been claimed.'
+          tokenId: collectibleData?.blockchainTokenId || collectibleData?.tokenId || claimCodeData.blockchainTokenId || claimCodeData.tokenId || null,
+          transactionHash: collectibleData?.transactionHash || claimCodeData.transactionHash || null,
+          contractAddress: collectibleData?.contractAddress || process.env.NFT_CONTRACT_ADDRESS || process.env.THIRDWEB_NFT_CONTRACT || null,
+          status: collectibleData?.status || 'claimed',
+          nftTransferred: collectibleData?.nftTransferred === true || claimCodeData.tokenId ? true : false,
+          claimDate: collectibleData?.createdAt?.toDate ? collectibleData.createdAt.toDate().toISOString() :
+            (claimCodeData.claimedAt?.toDate ? claimCodeData.claimedAt.toDate().toISOString() : new Date().toISOString()),
+          message: 'This product is authentic and its digital token has been claimed.'
         };
       }
 
@@ -200,6 +234,7 @@ export const verificationService = {
       }
 
       return {
+        valid: true,
         verified: true,
         claimed: false,
         product: {

@@ -220,7 +220,7 @@ export const transferWorker = new Worker(
             await db.collection('auditLogs').add({
                 event: 'nft_transfer_failed',
                 collectibleId,
-                tokenId,
+                tokenId: editionRef,
                 toAddress,
                 error: error.message,
                 attemptsMade: job.attemptsMade + 1,

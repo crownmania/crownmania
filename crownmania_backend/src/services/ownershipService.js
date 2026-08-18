@@ -39,7 +39,7 @@ export const ownershipService = {
      * @param {string} chain - Chain identifier (default: base)
      * @returns {Promise<string>} Owner wallet address (lowercase)
      */
-    checkNFTOwnership: async (contractAddress, tokenId, chain = 'base') => {
+    checkNFTOwnership: async (contractAddress, tokenId, chain = 'polygon') => {
         try {
             await initMoralis();
 
