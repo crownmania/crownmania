@@ -13,6 +13,8 @@ export const uploadModel = async (file, modelName) => {
   }
 };
 
+const PUBLIC_BUCKET = 'sonorous-crane-440603-s6.firebasestorage.app';
+
 export const getModelURL = async (modelName) => {
   try {
     const modelRef = ref(storage, `models/${modelName}`);
@@ -20,6 +22,6 @@ export const getModelURL = async (modelName) => {
     return downloadURL;
   } catch (error) {
     if (import.meta.env.DEV) console.warn('Error getting model URL:', error.message);
-    throw error;
+    return `https://firebasestorage.googleapis.com/v0/b/${PUBLIC_BUCKET}/o/${encodeURIComponent(`models/${modelName}`)}?alt=media`;
   }
 };

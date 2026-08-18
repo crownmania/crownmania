@@ -20,7 +20,7 @@ const Model3D = () => {
 
     const loadUrl = async () => {
       try {
-        const url = await getModelURL('durk-model.glb');
+        const url = await getModelURL('durk-model2.glb');
         if (cancelled) return;
         setModelUrl(url);
       } catch (error) {
