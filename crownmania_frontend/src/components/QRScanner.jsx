@@ -257,6 +257,7 @@ export default function QRScanner({ isOpen, onClose, onScan, themeColor }) {
     const scannerRef = useRef(null);
     const scannerIdRef = useRef('qr-reader-' + Date.now());
     const hasStartedRef = useRef(false);
+    const scannerOverlayTapRef = useRef(null);
 
     const stopScanner = useCallback(async () => {
         if (scannerRef.current) {
@@ -316,10 +317,21 @@ export default function QRScanner({ isOpen, onClose, onScan, themeColor }) {
                     setScannerState('success');
 
                     // Auto-close and send result after brief success display
-                    setTimeout(() => {
-                        stopScanner();
+                    const proceed = async () => {
+                        await stopScanner();
                         onScan(decodedText);
-                    }, 1200);
+                    };
+
+                    // Allow the user to tap the success overlay to proceed immediately
+                    scannerOverlayTapRef.current = proceed;
+
+                    // Auto-proceed after a short delay if the user doesn't tap
+                    setTimeout(() => {
+                        if (scannerOverlayTapRef.current) {
+                            scannerOverlayTapRef.current = null;
+                            proceed();
+                        }
+                    }, 400);
                 },
                 () => { } // Ignore scan failures (normal during continuous scanning)
             );
@@ -405,7 +417,15 @@ export default function QRScanner({ isOpen, onClose, onScan, themeColor }) {
                                         <motion.div
                                             initial={{ opacity: 0, scale: 0.8 }}
                                             animate={{ opacity: 1, scale: 1 }}
+                                            onClick={() => {
+                                                if (scannerOverlayTapRef.current) {
+                                                    const cb = scannerOverlayTapRef.current;
+                                                    scannerOverlayTapRef.current = null;
+                                                    cb();
+                                                }
+                                            }}
                                             style={{
+                                                cursor: 'pointer',
                                                 position: 'absolute',
                                                 inset: 0,
                                                 background: 'rgba(0, 0, 0, 0.7)',
@@ -435,7 +455,7 @@ export default function QRScanner({ isOpen, onClose, onScan, themeColor }) {
                                                 color: 'white', fontFamily: 'var(--font-secondary)',
                                                 fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.1em'
                                             }}>
-                                                CODE DETECTED
+                                                CODE DETECTED — TAP TO CONTINUE
                                             </div>
                                             <div style={{
                                                 color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace',

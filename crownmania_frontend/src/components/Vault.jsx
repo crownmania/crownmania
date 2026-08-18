@@ -2050,6 +2050,39 @@ export default function Vault() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
+  // Parse a serial number from a product QR code value, which may be a plain serial or a URL
+  const extractSerialFromText = useCallback((text) => {
+    if (!text) return '';
+    const trimmed = text.trim();
+    if (!trimmed.includes('?')) return trimmed;
+    try {
+      const url = new URL(trimmed);
+      const code = url.searchParams.get('code') || url.searchParams.get('serial');
+      if (code) return code;
+    } catch (e) {
+      // If not a valid URL, try hash-based routing (e.g. example.com/#/vault?code=ABC)
+      const match = trimmed.match(/[?&](code|serial)=([^&]+)/);
+      if (match) return decodeURIComponent(match[2]);
+    }
+    return trimmed;
+  }, []);
+
+  // If the user opened the site from a product QR code, pre-fill the serial from the URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlCode = params.get('code') || params.get('serial');
+    const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const hashCode = hashParams.get('code') || hashParams.get('serial');
+    const code = urlCode || hashCode;
+    if (code) {
+      const clean = extractSerialFromText(code);
+      if (clean) {
+        setSerialNumber(clean);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ID Card image carousel state
   const [idCardImageIndex, setIdCardImageIndex] = useState(0);
 
@@ -2839,7 +2872,13 @@ export default function Vault() {
                     <SocialIcon as="span" className="youtube"><FaYoutube /></SocialIcon>
                     <SocialIcon as="span" className="tiktok"><FaTiktok /></SocialIcon>
                   </SocialMediaLinks>
-                  <div className="status" style={{ color: themes[currentTheme].color, borderColor: themes[currentTheme].color }}>
+                  <div
+                    className="status"
+                    style={{ color: themes[currentTheme].color, borderColor: themes[currentTheme].color, cursor: 'pointer' }}
+                    onClick={serialNumber ? () => handleVerify() : openVerifyModal}
+                    role="button"
+                    aria-label="Verify asset"
+                  >
                     <FaLock /> ASSET LOCKED
                   </div>
                 </div>
@@ -4048,13 +4087,18 @@ export default function Vault() {
       <QRScanner
         isOpen={showQRScanner}
         onClose={() => setShowQRScanner(false)}
-        onScan={(code) => {
+        onScan={(rawCode) => {
+          const code = extractSerialFromText(rawCode);
+          if (!code) {
+            showToastMessage('Could not read a valid code from QR.');
+            return;
+          }
           setSerialNumber(code);
           setShowQRScanner(false);
           showToastMessage('QR code scanned! Verifying...');
           // Pass code directly to avoid React state race condition
           setTimeout(() => {
-            if (code) handleVerify(code);
+            handleVerify(code);
           }, 300);
         }}
         themeColor={themes[currentTheme].color}
