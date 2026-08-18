@@ -1,101 +1,109 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useFrame, useLoader } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { getModelURL } from '../../utils/modelStorage';
 import { useScroll } from 'framer-motion';
 import * as THREE from 'three';
+
+const gltfLoader = new GLTFLoader();
 
 const Model3D = () => {
   const groupRef = useRef();
   const glowRef = useRef();
   const { scrollYProgress } = useScroll();
   const [modelUrl, setModelUrl] = useState(null);
+  const [scene, setScene] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadModel = async () => {
+    let cancelled = false;
+
+    const loadUrl = async () => {
       try {
         const url = await getModelURL('durk-model.glb');
+        if (cancelled) return;
         setModelUrl(url);
-        setIsLoading(false);
       } catch (error) {
-        console.error('Error loading model:', error);
+        if (cancelled) return;
+        if (import.meta.env.DEV) console.warn('Model3D: could not resolve model URL:', error.message);
         setIsLoading(false);
       }
     };
 
-    loadModel();
+    loadUrl();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const gltf = useLoader(GLTFLoader, modelUrl || '');
+  useEffect(() => {
+    if (!modelUrl) return;
 
-  useFrame((state, delta) => {
+    let cancelled = false;
+
+    gltfLoader.load(
+      modelUrl,
+      (gltf) => {
+        if (cancelled) return;
+        gltf.scene.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            if (child.material) {
+              child.material.emissive = new THREE.Color(0x00a3ff);
+              child.material.emissiveIntensity = 0.5;
+            }
+          }
+        });
+        setScene(gltf.scene);
+        setIsLoading(false);
+      },
+      undefined,
+      (error) => {
+        if (cancelled) return;
+        if (import.meta.env.DEV) console.warn('Model3D: could not load model:', error.message);
+        setIsLoading(false);
+      }
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [modelUrl]);
+
+  useFrame((state) => {
     if (groupRef.current) {
-      // Rotate based on scroll position with smooth damping
       const targetRotation = scrollYProgress.get() * Math.PI * 4;
       groupRef.current.rotation.y += (targetRotation - groupRef.current.rotation.y) * 0.1;
-
-      // Add gentle floating motion
       groupRef.current.position.y = Math.sin(state.clock.elapsedTime) * 0.1;
     }
 
-    // Animate materials
-    Object.values(gltf.scene.children).forEach(child => {
-      if (child.isMesh) {
-        if (child.material) {
-          if (child.material.emissive) {
-            child.material.emissiveIntensity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.2;
-          }
+    if (scene) {
+      scene.traverse((child) => {
+        if (child.isMesh && child.material && child.material.emissive) {
+          child.material.emissiveIntensity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.2;
         }
-      }
-    });
+      });
+    }
 
-    // Pulsating glow effect
     if (glowRef.current) {
-      const intensity = 0.8 + Math.sin(state.clock.elapsedTime * 2) * 0.3;
-      glowRef.current.intensity = intensity;
+      glowRef.current.intensity = 0.8 + Math.sin(state.clock.elapsedTime * 2) * 0.3;
     }
   });
 
-  // Initial model setup
-  useEffect(() => {
-    if (gltf.scene) {
-      gltf.scene.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-          if (child.material) {
-            child.material.emissive = new THREE.Color(0x00a3ff);
-            child.material.emissiveIntensity = 0.5;
-          }
-        }
-      });
-    }
-  }, [gltf]);
-
-  // Clean up GLTF resources
-  useEffect(() => {
-    return () => {
-      Object.values(gltf.scene.children).forEach(node => {
-        if (node.geometry) node.geometry.dispose();
-      });
-    };
-  }, [gltf]);
-
-  if (isLoading || !modelUrl) {
+  if (isLoading || !scene) {
     return null;
   }
 
   return (
     <group ref={groupRef}>
-      {/* Main model */}
       <primitive
-        object={gltf.scene}
+        object={scene}
         scale={0.005}
         position={[0, 0, 0]}
       />
 
-      {/* Holographic grid effect */}
       <mesh position={[0, -1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[4, 4, 30, 30]} />
         <meshStandardMaterial
@@ -106,7 +114,6 @@ const Model3D = () => {
         />
       </mesh>
 
-      {/* Point light for glow effect */}
       <pointLight
         ref={glowRef}
         color="#00a3ff"

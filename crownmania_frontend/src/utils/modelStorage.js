@@ -19,7 +19,7 @@ export const getModelURL = async (modelName) => {
     const downloadURL = await getDownloadURL(modelRef);
     return downloadURL;
   } catch (error) {
-    console.error('Error getting model URL:', error);
+    if (import.meta.env.DEV) console.warn('Error getting model URL:', error.message);
     throw error;
   }
 };

@@ -173,7 +173,7 @@ const initMoralis = async () => {
       moralisInstance = Moralis;
       if (isDev) console.log('Moralis initialized successfully');
     } catch (err) {
-      console.error('Failed to initialize Moralis:', err);
+      if (isDev) console.warn('Failed to initialize Moralis:', err.message);
       return null;
     }
   }
