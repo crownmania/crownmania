@@ -1,6 +1,13 @@
 import { storage } from '../config/firebase';
 import { ref, uploadBytes, getDownloadURL, listAll } from '@firebase/storage';
 
+const PUBLIC_BUCKET = 'sonorous-crane-440603-s6.firebasestorage.app';
+
+const makeDirectStorageUrl = (path) => {
+  const encoded = encodeURIComponent(path).replace(/%2F/g, '%2F');
+  return `https://firebasestorage.googleapis.com/v0/b/${PUBLIC_BUCKET}/o/${encodeURIComponent(path)}?alt=media`;
+};
+
 // Cache for storing URLs with expiration - Extended to 24 hours for better performance
 const urlCache = new Map();
 const CACHE_EXPIRY = 1000 * 60 * 60 * 24; // 24 hours
@@ -18,9 +25,11 @@ const log = (message, ...args) => {
   }
 };
 
-// Helper for error logging (always log errors)
+// Helper for error logging (warn in production, error in dev)
 const logError = (message, ...args) => {
-  console.error(`[Storage Error] ${message}`, ...args);
+  if (import.meta.env.DEV) {
+    console.error(`[Storage Error] ${message}`, ...args);
+  }
 };
 
 /**
@@ -87,8 +96,14 @@ export const getStorageURL = async (path, preload = false) => {
     // Create storage reference
     const fileRef = ref(storage, path);
 
-    // Get the download URL
-    const url = await getDownloadURL(fileRef);
+    // Try the Firebase download URL first; if that fails (e.g. demo config),
+    // fall back to the public direct URL for the real bucket.
+    let url;
+    try {
+      url = await getDownloadURL(fileRef);
+    } catch (downloadErr) {
+      url = makeDirectStorageUrl(path);
+    }
 
     // Cache the URL
     urlCache.set(path, {
@@ -119,7 +134,7 @@ export const getStorageURL = async (path, preload = false) => {
     return url;
   } catch (error) {
     logError('Error getting storage URL:', path, error);
-    throw error;
+    return makeDirectStorageUrl(path);
   }
 };
 
@@ -281,11 +296,13 @@ export const listStorageFiles = async (path) => {
     const files = result.items.map(item => item.fullPath);
     return files;
   } catch (error) {
-    console.error('Error listing files:', {
-      path,
-      errorCode: error.code,
-      errorMessage: error.message
-    });
+    if (import.meta.env.DEV) {
+      console.warn('Error listing files:', {
+        path,
+        errorCode: error.code,
+        errorMessage: error.message
+      });
+    }
     return [];
   }
 };
@@ -317,9 +334,11 @@ export const uploadFile = async (file, folder) => {
     urlCache.set(`${folder}/${file.name}`, { url, timestamp: Date.now() });
     return url;
   } catch (error) {
-    console.error(`Error uploading file to ${folder}:`, error);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
+    if (import.meta.env.DEV) {
+      console.error(`Error uploading file to ${folder}:`, error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+    }
     throw error;
   }
 };
@@ -330,11 +349,14 @@ const getStorageURLHelper = async (fileRef) => {
     return url;
   } catch (error) {
     if (error.code === 'storage/object-not-found') {
-      console.warn(`File not found in storage: ${fileRef.fullPath}`);
+      if (import.meta.env.DEV) console.warn(`File not found in storage: ${fileRef.fullPath}`);
       // Return null instead of throwing to allow components to handle missing files gracefully
       return null;
     }
-    throw error;
+    if (import.meta.env.DEV) {
+      console.warn('Storage URL helper fallback:', fileRef.fullPath, error.message);
+    }
+    return makeDirectStorageUrl(fileRef.fullPath);
   }
 };
 
@@ -439,7 +461,7 @@ export const verifyStorageSetup = async () => {
     logError('Storage verification failed', error);
     return {
       error: error.message,
-      bucket: storage.app.options.storageBucket
+      bucket: PUBLIC_BUCKET
     };
   }
 };

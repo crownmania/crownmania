@@ -3365,7 +3365,7 @@ export default function Vault() {
                       <pointLight position={[0, 5, 5]} intensity={0.3} />
                       <Suspense fallback={null}>
                         <group position={[0, -1.8, 0]}>
-                          <DurkModel usePlaceholder isUnlocked={!isVaultLocked || isAssetVerified} />
+                          <DurkModel isUnlocked={!isVaultLocked || isAssetVerified} />
                         </group>
                         <Environment preset="city" />
                       </Suspense>
