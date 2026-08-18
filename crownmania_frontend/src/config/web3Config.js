@@ -109,6 +109,7 @@ const getWeb3Auth = async () => {
     if (isDev) console.log('Web3Auth: Using network:', web3AuthNetwork);
 
     await web3authInstance.init();
+    await web3authInstance.initModal();
     isInitialized = true;
 
     if (isDev) console.log('Web3Auth: Initialized successfully!');
@@ -170,6 +171,9 @@ const initializeModal = async () => {
   if (isInitialized) return true;
 
   const instance = await getWeb3Auth();
+  if (instance && !instance.isMock && instance.initModal) {
+    await instance.initModal();
+  }
   return isInitialized;
 };
 
