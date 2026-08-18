@@ -101,6 +101,23 @@ try {
   // Configure Firestore settings
   db.settings({ ignoreUndefinedProperties: true });
 
+  // Apply CORS configuration to the storage bucket so images load from the website origin
+  try {
+    const bucket = admin.storage().bucket();
+    const corsConfig = [
+      {
+        origin: ['*'],
+        method: ['GET', 'HEAD', 'OPTIONS'],
+        responseHeader: ['Content-Type', 'Access-Control-Allow-Origin', 'Content-Length', 'Accept-Ranges', 'Content-Range', 'Content-Encoding', 'Content-Disposition'],
+        maxAgeSeconds: 3600
+      }
+    ];
+    await bucket.setCorsConfiguration(corsConfig);
+    console.log('✅ Storage CORS configuration applied');
+  } catch (corsErr) {
+    console.warn('⚠️ Could not apply storage CORS:', corsErr.message);
+  }
+
   firebaseReady = true;
 } catch (error) {
   console.error('⚠️ Firebase admin initialization failed:', error.message);

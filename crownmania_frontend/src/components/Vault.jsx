@@ -3140,7 +3140,9 @@ export default function Vault() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1rem' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}><AssetTitle style={{ margin: 0 }}>Digital Collectible</AssetTitle></div>
-                    <AssetSubtitle style={{ fontFamily: 'var(--font-primary)', fontWeight: 400, textAlign: 'left', marginBottom: 0 }}>Collectible details</AssetSubtitle>
+                    <AssetSubtitle style={{ fontFamily: 'var(--font-primary)', fontWeight: 400, textAlign: 'left', marginBottom: 0 }}>
+                      {userTokens.length > 0 ? `${userTokens.length} token${userTokens.length !== 1 ? 's' : ''} in this vault` : 'Collectible details'}
+                    </AssetSubtitle>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                     <img src={crownLogo} alt="Crownmania" style={{ height: '48px', width: 'auto', opacity: 0.9 }} />
