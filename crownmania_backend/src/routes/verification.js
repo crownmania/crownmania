@@ -228,6 +228,10 @@ router.get('/wallet-tokens/:walletAddress', async (req, res) => {
       return res.status(400).json({ error: 'Wallet address is required' });
     }
 
+    if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+      return res.status(400).json({ error: 'Invalid wallet address format' });
+    }
+
     const result = await verificationService.getWalletTokens(walletAddress);
     res.json(result);
   } catch (error) {
@@ -247,6 +251,10 @@ router.get('/transfer-status/:serialNumber', async (req, res) => {
 
     if (!serialNumber) {
       return res.status(400).json({ error: 'Serial number is required' });
+    }
+
+    if (!/^[a-fA-F0-9]{32}$|^[A-Z0-9]{6,20}$/.test(serialNumber)) {
+      return res.status(400).json({ error: 'Invalid serial number format' });
     }
 
     // Import db from firebase config
