@@ -2158,6 +2158,8 @@ export default function Vault() {
     setUserTokens([]);
     setCurrentEdition(null);
     setVerificationResult(null);
+    setIsPersistentlyVerified(false);
+    setVerifiedSerials([]);
   };
 
   const handleVerify = async (codeOverride) => {

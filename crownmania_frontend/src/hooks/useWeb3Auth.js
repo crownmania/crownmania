@@ -448,7 +448,7 @@ const useWeb3Auth = () => {
     if (web3auth) {
       try {
         setIsLoading(true);
-        await web3auth.logout();
+        await web3auth.logout({ cleanup: true });
       } catch (err) {
         console.error("Logout failed", err);
       }
