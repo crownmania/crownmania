@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { getStorageURL } from "../utils/storageUtils";
 import LoadingSpinner from "./common/LoadingSpinner";
 import { PRODUCTS } from '../data/productData';
+import { stripePromise } from '../config/paymentConfig';
 
 const ShopSection = styled.section`
   min-height: 100vh;
@@ -317,11 +318,14 @@ const ComingSoonBadge = styled.div`
 `;
 
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 export default function Shop() {
   const navigate = useNavigate();
   const [selectedWindow, setSelectedWindow] = useState(null);
   const [loadingImages, setLoadingImages] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   useEffect(() => {
     setLoadingImages(false);
@@ -332,10 +336,49 @@ export default function Shop() {
     setCurrentImageIndex(0);
   }, [selectedWindow]);
 
-  const handleBuyClick = (e, product) => {
+  const handleBuyClick = async (e, product) => {
     e.stopPropagation();
-    // Redirect to Lil Durk's official store
-    window.open('https://shop.lildurkofficial.com/products/lil-durk-resin-figure', '_blank', 'noopener,noreferrer');
+    if (product.comingSoon || !product.id) return;
+
+    if (!stripePromise) {
+      alert('Stripe is not configured. Payment features are disabled.');
+      return;
+    }
+
+    setIsCheckingOut(true);
+    try {
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error('Stripe not configured');
+
+      const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items: [{ productId: product.id, quantity: 1 }],
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Checkout session failed');
+      }
+
+      const session = await response.json();
+      const result = await stripe.redirectToCheckout({
+        sessionId: session.id,
+      });
+
+      if (result.error) {
+        throw result.error;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert(error.message || 'Checkout failed. Please try again.');
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   return (
@@ -384,12 +427,12 @@ export default function Shop() {
             <ActionBar>
               <ActionButton
                 $primary
-                disabled={product.comingSoon}
+                disabled={product.comingSoon || isCheckingOut}
                 onClick={(e) => handleBuyClick(e, product)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {product.comingSoon ? 'LOCKED' : 'ACQUIRE NOW'}
+                {product.comingSoon ? 'LOCKED' : isCheckingOut ? 'PROCESSING...' : 'ACQUIRE NOW'}
               </ActionButton>
               {!product.comingSoon && (
                 <ActionButton
@@ -497,11 +540,12 @@ export default function Shop() {
                   <ActionButton
                     $primary
                     style={{ padding: '1.2rem', fontSize: '0.9rem' }}
+                    disabled={isCheckingOut}
                     onClick={(e) => handleBuyClick(e, selectedWindow)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    ACQUIRE FRAGMENT
+                    {isCheckingOut ? 'PROCESSING...' : 'ACQUIRE FRAGMENT'}
                   </ActionButton>
                   <div style={{
                     display: 'flex',

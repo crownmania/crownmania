@@ -4,6 +4,8 @@ import { contentService } from '../services/contentService.js';
 import { contentSecurity } from '../utils/contentSecurity.js';
 import { serialNumberLimiter, claimLimiter } from '../middleware/rateLimiter.js';
 import requireAdmin from '../middleware/requireAdmin.js';
+import { authenticateWallet } from '../middleware/auth.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 
@@ -107,8 +109,83 @@ router.post('/upload', requireAdmin, extractClientIP, upload.single('file'), asy
 });
 
 /**
+ * POST /api/content/grant-access/:contentId
+ * Requires wallet signature. Verifies on-chain ownership, creates 24-hour access session,
+ * and returns a real Firebase signed URL for streaming.
+ * @access Private (authenticated wallet)
+ */
+router.post('/grant-access/:contentId', extractClientIP, serialNumberLimiter, authenticateWallet, async (req, res) => {
+  try {
+    const { contentId } = req.params;
+    const walletAddress = req.wallet; // Set by authenticateWallet middleware
+
+    // Verify token ownership (DB + on-chain)
+    const hasAccess = await contentService.verifyTokenAccess(contentId, walletAddress);
+    if (!hasAccess) {
+      contentSecurity.logSecurityEvent('content_access_denied', {
+        contentId,
+        walletAddress: walletAddress?.substring(0, 10) + '...',
+        reason: 'Token ownership verification failed'
+      }, req.clientIP, walletAddress);
+      return res.status(403).json({ error: 'Access denied: You must own a Crownmania token to access this content' });
+    }
+
+    // Create or refresh 24-hour access session
+    const session = await contentService.createAccessSession(walletAddress, contentId);
+
+    // Generate a real Firebase signed URL (1 hour validity — frontend refreshes as needed)
+    const signedUrlResult = await contentService.generateSignedUrl(contentId, walletAddress, 60);
+
+    contentSecurity.logSecurityEvent('content_access_granted', {
+      contentId,
+      walletAddress: walletAddress?.substring(0, 10) + '...',
+      sessionId: session.sessionId,
+      sessionExpiresAt: session.expiresAt
+    }, req.clientIP, walletAddress);
+
+    res.json({
+      success: true,
+      signedUrl: signedUrlResult.signedUrl,
+      signedUrlExpiresAt: signedUrlResult.expiresAt,
+      sessionExpiresAt: session.expiresAt,
+      message: 'Access granted for 24 hours'
+    });
+  } catch (error) {
+    console.error('Grant access error:', error);
+    res.status(403).json({ error: error.message || 'Failed to grant access' });
+  }
+});
+
+/**
+ * GET /api/content/exclusive/:walletAddress
+ * Get all exclusive content available to a wallet (metadata only, no URLs)
+ * @access Public (wallet address is public on-chain)
+ */
+router.get('/exclusive/:walletAddress', extractClientIP, serialNumberLimiter, async (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+
+    if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+      return res.status(400).json({ error: 'Valid wallet address is required' });
+    }
+
+    const content = await contentService.getExclusiveContent(walletAddress);
+
+    res.json({
+      success: true,
+      content,
+      count: content.length
+    });
+  } catch (error) {
+    console.error('Error getting exclusive content:', error);
+    res.status(500).json({ error: 'Failed to get exclusive content' });
+  }
+});
+
+/**
  * GET /api/content/signed-url/:contentId
- * Generate a signed URL for content access
+ * Generate a signed URL for content access (requires wallet auth via query params for video player compatibility)
+ * @access Semi-private (wallet address + active session required)
  */
 router.get('/signed-url/:contentId', extractClientIP, serialNumberLimiter, async (req, res) => {
   try {
@@ -122,6 +199,18 @@ router.get('/signed-url/:contentId', extractClientIP, serialNumberLimiter, async
     // Sanitize inputs
     const sanitizedContentId = contentSecurity.sanitizeInput(contentId);
     const sanitizedWallet = contentSecurity.sanitizeInput(walletAddress);
+
+    // Check for active 24-hour session first
+    const hasSession = await contentService.verifyAccessSession(sanitizedWallet, sanitizedContentId);
+    if (!hasSession) {
+      // No active session — require full ownership verification
+      const hasAccess = await contentService.verifyTokenAccess(sanitizedContentId, sanitizedWallet);
+      if (!hasAccess) {
+        return res.status(403).json({ error: 'Access denied: Token ownership required' });
+      }
+      // Create session if ownership verified
+      await contentService.createAccessSession(sanitizedWallet, sanitizedContentId);
+    }
 
     const expiry = Math.min(parseInt(expiryMinutes) || 60, 1440); // Max 24 hours
 

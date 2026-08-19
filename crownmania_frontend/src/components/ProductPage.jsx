@@ -4,12 +4,10 @@ import { motion } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import { DurkModel } from './3d/DurkModel';
-import { loadStripe } from '@stripe/stripe-js';
+import { stripePromise } from '../config/paymentConfig';
 import { getStorageURL } from '../utils/storageUtils';
 
-// Only load Stripe if the key is configured
-const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -190,25 +188,30 @@ export default function ProductPage() {
   };
 
   const handleCheckout = async () => {
+    if (!stripePromise) {
+      alert('Stripe is not configured. Payment features are disabled.');
+      return;
+    }
+
     setLoading(true);
     try {
       const stripe = await stripePromise;
-      const response = await fetch('/api/create-checkout-session', {
+      if (!stripe) throw new Error('Stripe not configured');
+
+      const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          items: [
-            {
-              name: 'Limited Edition: Lil Durk Collectible Figure',
-              price: 29999, // in cents
-              quantity: 1,
-              images: productImages,
-            },
-          ],
+          items: [{ productId: 'lil-durk-figure', quantity: 1 }],
         }),
       });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Checkout session failed');
+      }
 
       const session = await response.json();
       const result = await stripe.redirectToCheckout({
@@ -216,10 +219,11 @@ export default function ProductPage() {
       });
 
       if (result.error) {
-        console.error(result.error);
+        throw result.error;
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Checkout error:', error);
+      alert(error.message || 'Checkout failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -252,7 +256,7 @@ export default function ProductPage() {
         </div>
         <ProductInfo>
           <ProductTitle>Limited Edition: Lil Durk Collectible Figure</ProductTitle>
-          <ProductPrice>$299.99</ProductPrice>
+          <ProductPrice>$150.00</ProductPrice>
           <ProductDescription>
             Exclusive, limited-edition collectible figure featuring Lil Durk. Each piece is meticulously crafted with attention to detail, capturing the essence of the artist. This collector's item comes with a certificate of authenticity and is part of a limited production run.
           </ProductDescription>

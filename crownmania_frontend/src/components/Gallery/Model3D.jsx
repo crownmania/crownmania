@@ -8,7 +8,8 @@ import * as THREE from 'three';
 
 const gltfLoader = new GLTFLoader();
 const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('/draco/');
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+dracoLoader.setDecoderConfig({ type: 'js' });
 gltfLoader.setDRACOLoader(dracoLoader);
 
 const Model3D = () => {
@@ -24,7 +25,7 @@ const Model3D = () => {
 
     const loadUrl = async () => {
       try {
-        const url = await getModelURL('durk-model2.glb');
+        const url = await getModelURL('DURK_Model_compressed.glb');
         if (cancelled) return;
         setModelUrl(url);
       } catch (error) {

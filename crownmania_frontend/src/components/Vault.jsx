@@ -975,7 +975,7 @@ overflow: visible;
 const IDCard = styled(Panel)`
 padding: 0;
 height: 100%;
-min-height: 500px;
+min-height: 320px;
 display: flex;
 flex-direction: column;
 border: var(--glass-border);
@@ -989,11 +989,11 @@ position: relative;
   `}
 
 @media (max-width: 900px) {
-  min-height: 500px;
+  min-height: 300px;
 }
 
 @media (min-width: 901px) and (max-width: 1200px) {
-  min-height: 600px;
+  min-height: 360px;
 }
 `;
 
@@ -1165,10 +1165,10 @@ const DetailsPanel = styled(Panel)`
 display: flex;
 flex-direction: column;
 gap: 1.75rem;
-min-height: 500px;
+min-height: 340px;
 
 @media (max-width: 900px) {
-  min-height: 450px;
+  min-height: 320px;
 }
 `;
 
@@ -1357,7 +1357,7 @@ transition: all 0.3s ease;
 const ModelViewerPanel = styled(Panel)`
 padding: 0;
 height: 100%;
-min-height: 480px;
+min-height: 320px;
 display: flex;
 flex-direction: column;
 `;
@@ -1784,7 +1784,7 @@ z-index: 10;
 // ============================================
 export default function Vault() {
   const navigate = useNavigate();
-  const { isInitialized, isWeb3Available, user, isLoading, login, logout, getAddress, signMessageWithNonce, walletAddress: hookWalletAddress } = useWeb3Auth();
+  const { isInitialized, isWeb3Available, user, isLoading, login, logout, getAddress, signMessageWithNonce, walletAddress: hookWalletAddress, error: web3Error, clearError: clearWeb3Error } = useWeb3Auth();
   const isVaultLocked = !isInitialized || !user;
 
   const [walletAddress, setWalletAddress] = useState('');
@@ -2677,16 +2677,20 @@ export default function Vault() {
                 {INFO_TEXT.vault}
               </motion.div>
             )}
-            <IdentityInfo>
-              <div style={{ width: '100%', textAlign: 'center', marginBottom: '1.5rem' }}>
+            <IdentityInfo style={{ minHeight: '100%' }}>
+              <div style={{ width: '100%', textAlign: 'center', marginBottom: '1rem' }}>
                 {!isVaultLocked ? (
-                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Connected: {(walletAddress || hookWalletAddress || '').slice(0, 6)}...{(walletAddress || hookWalletAddress || '').slice(-4)}</p>
+                  <p style={{ color: '#ffffff', fontSize: '1.4rem', fontWeight: 700, letterSpacing: '0.05em', textShadow: '0 0 20px rgba(255,255,255,0.15)' }}>
+                    Connected: {(walletAddress || hookWalletAddress || '').slice(0, 6)}...{(walletAddress || hookWalletAddress || '').slice(-4)}
+                  </p>
+                ) : isPersistentlyVerified ? (
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Product verified. Connect wallet to manage and unlock perks.</p>
                 ) : (
                   <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1.1rem' }}>Create or connect your Crown to unlock the Vault.</p>
                 )}
               </div>
               <div style={{ flex: 1 }}></div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', justifyContent: 'center', marginTop: 'auto', width: '100%' }}>
                 {isVaultLocked ? (
                   <ActionButton
                     $primary
@@ -2716,7 +2720,7 @@ export default function Vault() {
                   <>
                     <ActionButton
                       onClick={() => setShowAddressModal(true)}
-                      style={{ padding: '0.5rem 1rem', width: 'auto', fontSize: '0.75rem' }}
+                      style={{ width: '100%', padding: '1rem', fontSize: '0.95rem' }}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -2724,15 +2728,35 @@ export default function Vault() {
                     </ActionButton>
                     <ActionButton
                       onClick={handleDisconnect}
-                      style={{ padding: '0.5rem 1rem', width: 'auto', fontSize: '0.75rem', borderColor: 'var(--vault-error)', color: 'var(--vault-error)' }}
+                      style={{ width: '100%', padding: '1rem', fontSize: '0.95rem', borderColor: 'var(--vault-error)', color: 'var(--vault-error)' }}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <FaSignOutAlt /> Disconnect
+                      <FaSignOutAlt /> DISCONNECT
                     </ActionButton>
                   </>
                 )}
               </div>
+              {web3Error && isVaultLocked && (
+                <div style={{
+                  marginTop: '0.75rem',
+                  padding: '0.6rem 1rem',
+                  background: 'rgba(255, 59, 48, 0.1)',
+                  border: '1px solid rgba(255, 59, 48, 0.3)',
+                  borderRadius: '8px',
+                  color: '#ff6b6b',
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                }}
+                onClick={() => clearWeb3Error()}
+                >
+                  <FaExclamationTriangle size={14} />
+                  <span>{web3Error}</span>
+                </div>
+              )}
 
               {/* Push Notifications + Sound Toggle */}
               {!isVaultLocked && (
@@ -3102,7 +3126,7 @@ export default function Vault() {
                 <ModelHeader>
                   <h3 style={{ color: 'white' }}><FaCube size={14} /> 3D VIEWER</h3>
                 </ModelHeader>
-                <ModelCanvas $locked={true} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px', background: `radial-gradient(circle at center, ${themes[currentTheme].color}10 0%, transparent 60%)` }}>
+                <ModelCanvas $locked={true} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '260px', background: `radial-gradient(circle at center, ${themes[currentTheme].color}10 0%, transparent 60%)` }}>
                   <motion.div
                     animate={{ scale: [0.9, 1.1, 0.9], opacity: [0.3, 0.6, 0.3] }}
                     transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -3358,7 +3382,7 @@ export default function Vault() {
                       <span>LOADING 3D MODEL...</span>
                     </LoadingSpinner>
                   }>
-                    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0.5, 8], fov: 50 }}>
+                    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0.5, 12], fov: 50 }}>
                       <ambientLight intensity={0.7} />
                       <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1.2} castShadow />
                       <pointLight position={[-10, -10, -10]} intensity={0.5} />
@@ -3374,8 +3398,8 @@ export default function Vault() {
                         autoRotateSpeed={28.0}
                         enableZoom={true}
                         enablePan={false}
-                        minDistance={4}
-                        maxDistance={15}
+                        minDistance={6}
+                        maxDistance={22}
                         minPolarAngle={Math.PI / 6}
                         maxPolarAngle={Math.PI / 1.8}
                       />
@@ -3419,13 +3443,22 @@ export default function Vault() {
               {!isDurkOwned && <FaLock size={12} />}
             </ActionButton>
             <ActionButton
-              style={{ justifyContent: 'space-between', flex: 1, minWidth: '200px', opacity: 0.6, cursor: 'default' }}
-              onClick={() => showToastMessage('Collector perks coming soon — stay tuned!')}
+              style={{
+                justifyContent: 'space-between',
+                flex: 1,
+                minWidth: '200px',
+                opacity: isAssetVerified ? 1 : 0.5,
+                cursor: isAssetVerified ? 'pointer' : 'not-allowed',
+                borderColor: isAssetVerified ? '#00ff88' : 'rgba(255,255,255,0.1)',
+                color: isAssetVerified ? '#00ff88' : 'rgba(255,255,255,0.5)',
+              }}
+              onClick={() => isAssetVerified ? navigate('/exclusive-perks') : showToastMessage('Verify a Lil Durk figure to access exclusive perks.')}
+              disabled={!isAssetVerified}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <FaGem /> EXCLUSIVE PERKS
               </span>
-              <span style={{ fontSize: '0.6rem', letterSpacing: '0.12em', opacity: 0.6, border: '1px solid rgba(255,255,255,0.2)', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>SOON</span>
+              {!isAssetVerified ? <FaLock size={12} /> : <FaArrowRight size={12} />}
             </ActionButton>
             <ActionButton
               style={{ justifyContent: 'space-between', flex: 1, minWidth: '200px' }}

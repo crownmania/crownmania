@@ -536,6 +536,51 @@ export const contentAPI = {
   },
 
   /**
+   * Grant 24-hour access to content (requires wallet signature)
+   * @param {string} contentId - The content identifier
+   * @param {string} walletAddress - Wallet address
+   * @param {string} signature - Wallet signature
+   * @param {string} message - Signed message
+   * @returns {Promise<{success: boolean, signedUrl: string, sessionExpiresAt: number}>}
+   */
+  grantAccess: async (contentId, walletAddress, signature, message) => {
+    try {
+      const response = await api.post(`/api/content/grant-access/${contentId}`, {
+        walletAddress,
+        signature,
+        message,
+      }, {
+        sensitive: true,
+        walletAddress,
+        requiresAuth: true,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error granting access:', error);
+      throw error.response?.data || { error: 'Failed to grant access' };
+    }
+  },
+
+  /**
+   * Get all exclusive content for a wallet (metadata only, no URLs)
+   * @param {string} walletAddress - Wallet address
+   * @returns {Promise<{success: boolean, content: Array, count: number}>}
+   */
+  getExclusiveContent: async (walletAddress) => {
+    try {
+      const response = await api.get(`/api/content/exclusive/${walletAddress}`, {
+        sensitive: true,
+        walletAddress,
+        requiresAuth: true,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error getting exclusive content:', error);
+      throw error.response?.data || { error: 'Failed to get exclusive content' };
+    }
+  },
+
+  /**
    * Generate a signed URL for content access
    * @param {string} contentId - The content identifier
    * @param {string} walletAddress - Wallet address requesting access

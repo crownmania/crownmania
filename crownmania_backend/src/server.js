@@ -17,6 +17,7 @@ import { walletRouter } from './routes/wallet.js';
 import { webhooksRouter } from './routes/webhooks.js';
 import { notificationPreferencesRouter } from './routes/notificationPreferences.js';
 import { contactRouter } from './routes/contact.js';
+import { forumRouter } from './routes/forum.js';
 import { getNonceHandler } from './middleware/auth.js';
 import logger from './config/logger.js';
 
@@ -231,6 +232,7 @@ app.use('/api/wallet', walletRouter);
 app.use('/api/webhooks', webhooksRouter);
 app.use('/api/notifications', notificationPreferencesRouter);
 app.use('/api/contact', contactRouter);
+app.use('/api/forum', forumRouter);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
