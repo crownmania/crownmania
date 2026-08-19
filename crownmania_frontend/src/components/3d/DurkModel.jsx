@@ -4,19 +4,24 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 import * as THREE from 'three';
 
-// Shared loader instance to avoid re-creation on re-renders
+// Shared loader instance with Draco decoder from gstatic CDN (same as original code)
 const gltfLoader = new GLTFLoader();
 const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('/draco/');
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+dracoLoader.setDecoderConfig({ type: 'js' }); // Use JS decoder, not WASM, to avoid worker/blob issues
 gltfLoader.setDRACOLoader(dracoLoader);
 
 const STORAGE_BASE =
   'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o';
 
+// The original scan was 3.5M triangles (~293 MB GPU memory) which crashed
+// mobile browsers even when Draco-compressed to 10 MB, because Draco only
+// shrinks the download — the decoded mesh is identical. DURK_Model_mobile.glb
+// is decimated to ~210k triangles (334 KB file, a few MB GPU memory) and is
+// safe on all devices. The old model is kept only as a desktop fallback.
 const MODEL_URLS = [
-  `${STORAGE_BASE}/models%2Fdurk-model2.glb?alt=media`,
-  `${STORAGE_BASE}/models%2FDURK%20Action%20Figure%20Low%20Poly%20FINAL%20.glb?alt=media`,
-  `${STORAGE_BASE}/models%2FLIL%20DURK%20HEAD%20and%20HAIR4%20.glb?alt=media`,
+  `${STORAGE_BASE}/models%2FDURK_Model_mobile.glb?alt=media`,
+  `${STORAGE_BASE}/models%2FDURK_Model_compressed.glb?alt=media`,
 ];
 
 function Loader() {
@@ -37,53 +42,62 @@ function Loader() {
 
 function RealModel({ scene, isUnlocked }) {
   const groupRef = useRef();
-  const clonedRef = useRef(null);
   const unlockProgress = useRef(isUnlocked ? 1 : 0);
 
+  // Auto-center and auto-scale the scene
   useEffect(() => {
     if (!scene || !groupRef.current) return;
-    const cloned = scene.clone(true);
-    cloned.traverse((child) => {
+
+    // The scan is Z-up (lying flat on its back). If the longest axis is Z
+    // instead of Y, rotate the model upright before measuring/centering.
+    const preBox = new THREE.Box3().setFromObject(scene);
+    const preSize = new THREE.Vector3();
+    preBox.getSize(preSize);
+    if (preSize.z > preSize.y && preSize.z >= preSize.x) {
+      scene.rotation.x = Math.PI / 2;
+      scene.updateMatrixWorld(true);
+    }
+
+    const box = new THREE.Box3().setFromObject(scene);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const targetSize = 6.5;
+    const autoScale = targetSize / maxDim;
+
+    // Apply centering offset and scale to the group
+    groupRef.current.scale.setScalar(autoScale);
+    scene.position.x = -center.x;
+    scene.position.y = -center.y;
+    scene.position.z = -center.z;
+
+    let meshCount = 0;
+    scene.traverse((child) => {
       if (child.isMesh) {
+        meshCount++;
         child.castShadow = true;
         child.receiveShadow = true;
         if (child.material) {
           const mats = Array.isArray(child.material) ? child.material : [child.material];
-          child.material = mats.map((m) => {
-            const mat = m.clone();
-            if (mat.color) {
-              mat.userData.baseColor = mat.color.clone();
+          mats.forEach((m) => {
+            if (m.color) m.userData.baseColor = m.color.clone();
+            if (m.emissive) {
+              m.userData.baseEmissive = m.emissive.clone();
+              m.userData.baseEmissiveIntensity = m.emissiveIntensity || 0;
             }
-            if (mat.emissive) {
-              mat.userData.baseEmissive = mat.emissive.clone();
-              mat.userData.baseEmissiveIntensity = mat.emissiveIntensity || 0;
-            }
-            return mat;
           });
-          if (!Array.isArray(child.material)) {
-            child.material = child.material[0];
-          }
         }
       }
     });
-    clonedRef.current = cloned;
-    groupRef.current.add(cloned);
-    return () => {
-      if (groupRef.current && cloned) {
-        groupRef.current.remove(cloned);
-      }
-      cloned.traverse((child) => {
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) {
-          const mats = Array.isArray(child.material) ? child.material : [child.material];
-          mats.forEach((m) => m.dispose());
-        }
-      });
-    };
+
+    console.log(`DurkModel: ${meshCount} meshes, size=(${size.x.toFixed(2)}, ${size.y.toFixed(2)}, ${size.z.toFixed(2)}), scale=${autoScale.toFixed(6)}`);
   }, [scene]);
 
   useFrame((state) => {
-    if (!groupRef.current || !clonedRef.current) return;
+    if (!groupRef.current) return;
 
     const target = isUnlocked ? 1 : 0;
     const rate = isUnlocked ? 0.03 : 0.08;
@@ -92,26 +106,23 @@ function RealModel({ scene, isUnlocked }) {
     const speed = isUnlocked ? 1.0 : 0.5;
     groupRef.current.rotation.y += 0.01 * speed;
     groupRef.current.position.y = isUnlocked
-      ? -0.3 + Math.sin(state.clock.elapsedTime * 2) * 0.05
-      : -0.3;
+      ? 2.0 + Math.sin(state.clock.elapsedTime * 2) * 0.05
+      : 2.0;
 
-    clonedRef.current.traverse((child) => {
+    scene.traverse((child) => {
       if (child.isMesh && child.material) {
         const mats = Array.isArray(child.material) ? child.material : [child.material];
         mats.forEach((mat) => {
           const progress = Math.max(0, Math.min(1, unlockProgress.current));
-
           if (mat.userData.baseColor) {
             const hsl = { h: 0, s: 0, l: 0 };
             mat.userData.baseColor.getHSL(hsl);
             mat.color.setHSL(hsl.h, hsl.s * progress, hsl.l);
           }
-
           if (mat.userData.baseEmissive) {
             const e = mat.userData.baseEmissive;
-            const intensity = mat.userData.baseEmissiveIntensity * progress;
             mat.emissive.setRGB(e.r * progress, e.g * progress, e.b * progress);
-            mat.emissiveIntensity = intensity;
+            mat.emissiveIntensity = mat.userData.baseEmissiveIntensity * progress;
           }
         });
       }
@@ -119,7 +130,9 @@ function RealModel({ scene, isUnlocked }) {
   });
 
   return (
-    <group ref={groupRef} scale={[0.018, 0.018, 0.018]} position={[0, 0, 0]} />
+    <group ref={groupRef} position={[0, 0, 0]}>
+      <primitive object={scene} />
+    </group>
   );
 }
 
@@ -300,26 +313,49 @@ export function DurkModel({ usePlaceholder = false, isUnlocked = false }) {
 
     function tryLoad(index) {
       if (index >= MODEL_URLS.length) {
-        if (import.meta.env.DEV) console.warn('All model URLs failed to load');
+        console.warn('DurkModel: All model URLs failed to load, showing placeholder');
         setHasError(true);
         setIsLoading(false);
         return;
       }
 
       if (cancelled || !mounted.current) return;
-      setModelUrl(MODEL_URLS[index]);
+      const url = MODEL_URLS[index];
+      setModelUrl(url);
+      console.log(`DurkModel: Attempting to load model ${index}: ${url}`);
+
+      const timeout = setTimeout(() => {
+        if (cancelled || !mounted.current) return;
+        console.warn(`DurkModel: Model ${index} timed out after 60s`);
+        tryLoad(index + 1);
+      }, 60000);
 
       gltfLoader.load(
-        MODEL_URLS[index],
+        url,
         (gltf) => {
+          clearTimeout(timeout);
           if (cancelled || !mounted.current) return;
+          console.log(`DurkModel: Model ${index} loaded successfully`);
+          // The optimized model ships without normals to keep it small —
+          // compute smooth vertex normals here for correct lighting.
+          gltf.scene.traverse((child) => {
+            if (child.isMesh && child.geometry && !child.geometry.attributes.normal) {
+              child.geometry.computeVertexNormals();
+            }
+          });
           setScene(gltf.scene);
           setIsLoading(false);
         },
-        undefined,
+        (xhr) => {
+          if (xhr.total > 0 && !cancelled) {
+            const pct = Math.round((xhr.loaded / xhr.total) * 100);
+            if (pct % 25 === 0) console.log(`DurkModel: Model ${index} loading: ${pct}%`);
+          }
+        },
         (err) => {
+          clearTimeout(timeout);
           if (cancelled || !mounted.current) return;
-          if (import.meta.env.DEV) console.warn(`GLTF load ${index} failed:`, err?.message);
+          console.warn(`DurkModel: GLTF load ${index} failed:`, err?.message || err);
           tryLoad(index + 1);
         }
       );

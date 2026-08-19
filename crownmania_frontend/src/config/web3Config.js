@@ -20,10 +20,12 @@ const HAS_WEB3_KEYS = Boolean(
 
 const WEB3_ENABLED = HAS_WEB3_KEYS;
 
-// iOS and many mobile browsers block popups, so we use redirect mode there.
-// Desktop can use the cleaner popup mode.
-const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-const WEB3AUTH_UX_MODE = isMobile ? 'redirect' : 'popup';
+// Popup mode is used because redirect mode requires Web3Auth "Wallet Services"
+// which is a Scale-tier feature ($399/mo). On the Growth plan the redirect
+// flow fails with error 1003 before it can navigate. Popup mode works on
+// Growth — the 1003 is logged internally by the SDK but does not block auth.
+const WEB3AUTH_UX_MODE = 'popup';
+const redirectUrl = (typeof window !== 'undefined' ? window.location.origin : '');
 
 // Lazy-initialized instance
 let web3authInstance = null;
@@ -103,12 +105,13 @@ const getWeb3Auth = async () => {
 
     const web3AuthNetwork = import.meta.env.VITE_WEB3AUTH_NETWORK || "sapphire_mainnet";
     const chainId = import.meta.env.VITE_WEB3_CHAIN_ID || "0x89";
-    const rpcTarget = import.meta.env.VITE_WEB3_RPC_TARGET || "https://polygon-rpc.com";
+    const rpcTarget = import.meta.env.VITE_WEB3_RPC_TARGET || "https://polygon-bor-rpc.publicnode.com";
 
     web3authInstance = new Web3Auth({
       clientId,
       web3AuthNetwork,
       defaultChainId: chainId,
+      redirectUrl,
       chains: [{
         chainNamespace: 'eip155',
         chainId,
@@ -121,12 +124,21 @@ const getWeb3Auth = async () => {
       }],
       uiConfig: {
         uxMode: WEB3AUTH_UX_MODE,
+        widgetType: 'modal',
       },
     });
 
     if (isDev) console.log('Web3Auth: Using network:', web3AuthNetwork, 'chain:', chainId);
 
     await web3authInstance.init();
+
+    // The modal UI and all internal wallet connectors must also be
+    // initialized before connect() can be called safely. Otherwise the SDK
+    // throws "Wallet connector is not ready yet" on mobile/desktop.
+    if (typeof web3authInstance.initModal === 'function') {
+      await web3authInstance.initModal();
+    }
+
     isInitialized = true;
 
     if (isDev) console.log('Web3Auth: Initialized successfully!');

@@ -81,13 +81,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
+      - name: Write production env file
+        run: |
+          cat > .env.production <<'EOF'
+          VITE_API_URL=https://crownmania-backend-production.up.railway.app
+          VITE_FIREBASE_API_KEY=AIzaSyCWUFvCqGeCTYPZ5RNTE5JRdg8044lay94
+          VITE_FIREBASE_AUTH_DOMAIN=sonorous-crane-440603-s6.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID=sonorous-crane-440603-s6
+          VITE_FIREBASE_STORAGE_BUCKET=sonorous-crane-440603-s6.firebasestorage.app
+          VITE_FIREBASE_MESSAGING_SENDER_ID=515434599532
+          VITE_FIREBASE_APP_ID=1:515434599532:web:c803494515474ffa053449
+          VITE_WEB3AUTH_CLIENT_ID=BAUmbZP04KfsjmqfinxmW1xx0GwYmetkTwMqSRA3UcIDBzWG5f_TZ4ozEdP5zrKucSUxuU4tY8YPnpFgNzMmdMw
+          VITE_WEB3AUTH_NETWORK=sapphire_mainnet
+          VITE_WEB3_CHAIN_ID=0x89
+          VITE_WEB3_RPC_TARGET=https://polygon-bor-rpc.publicnode.com
+          VITE_NFT_CONTRACT_ADDRESS=0x4785DBa85de01B0DB84269F3fd471dDd8461623C
+          VITE_SITE_PASSWORD=cm1997
+          VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          EOF
+      
       - name: Build
         run: npm run build
-        env:
-          # Placeholder values for build (real values in Vercel)
-          VITE_WEB3AUTH_CLIENT_ID: placeholder
-          VITE_WEB3_RPC_TARGET: https://polygon-rpc.com
-          VITE_API_URL: https://crownmania-backend-production.up.railway.app
       
       - name: Run linting
         run: npm run lint --if-present

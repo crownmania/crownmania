@@ -93,7 +93,14 @@ try {
   messaging = getMessaging();
   storage = getStorage();
   adminStorage = {
-    bucket: (name) => name ? storage.bucket(name) : (process.env.FIREBASE_STORAGE_BUCKET ? storage.bucket() : null)
+    bucket: (name) => name ? storage.bucket(name) : (process.env.FIREBASE_STORAGE_BUCKET ? storage.bucket() : null),
+    file: (path) => {
+      const bucket = process.env.FIREBASE_STORAGE_BUCKET ? storage.bucket() : null;
+      return bucket ? bucket.file(path) : null;
+    },
+    get name() {
+      return process.env.FIREBASE_STORAGE_BUCKET || '';
+    }
   };
 
   console.log('📊 Using Firestore database: crownmania');

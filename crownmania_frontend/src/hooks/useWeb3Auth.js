@@ -10,6 +10,24 @@ const SECURITY_CONFIG = {
   NONCE_EXPIRY: 5 * 60 * 1000, // 5 minutes
 };
 
+// Detect whether the URL carries a Web3Auth redirect callback. If so, and the
+// session is not connected after init(), calling connect() again will only
+// trigger the same redirect and create an infinite loop.
+const hasRedirectParams = () => {
+  if (typeof window === 'undefined') return false;
+  const search = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  return Boolean(
+    window.location.hash.includes('b64Params') ||
+    search.get('state') ||
+    search.get('code') ||
+    search.get('sessionId') ||
+    hash.get('state') ||
+    hash.get('code') ||
+    hash.get('sessionId')
+  );
+};
+
 const useWeb3Auth = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [user, setUser] = useState(null);
@@ -31,6 +49,7 @@ const useWeb3Auth = () => {
   const nonceTimestampRef = useRef(null);
   const addressChecksumRef = useRef(null);
   const lastValidatedRef = useRef(null);
+  const loginInProgressRef = useRef(false);
 
   /**
    * Calculate address checksum for anti-tampering verification
@@ -281,8 +300,10 @@ const useWeb3Auth = () => {
     };
   }, [provider, web3, validateSession, fetchAddress, verifyAddressIntegrity, validateNonce, generateNonce]);
 
-  // Initialize Web3Auth
+  // Initialize Web3Auth — runs once on mount
   useEffect(() => {
+    let cancelled = false;
+
     const init = async () => {
       if (initializingRef.current || isInitialized) return;
       initializingRef.current = true;
@@ -341,16 +362,28 @@ const useWeb3Auth = () => {
           } else {
             console.warn('[useWeb3Auth] Address fetch failed after retries — Vault will retry via getAddress()');
           }
+        } else if (hasRedirectParams() && !cancelled) {
+          // Redirect came back but the session could not be restored. Clear the
+          // stale callback from the URL so the user can try again without looping.
+          console.warn('[useWeb3Auth] Redirect params present but session not restored');
+          if (typeof window !== 'undefined' && window.location.hash) {
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+          }
+          setError('Login session could not be restored. Please try again.');
         }
 
-        setIsInitialized(true);
+        if (!cancelled) setIsInitialized(true);
       } catch (err) {
-        if (WEB3_ENABLED) {
-          setError(err.message || "Failed to initialize authentication");
+        if (!cancelled) {
+          if (WEB3_ENABLED) {
+            setError(err.message || "Failed to initialize authentication");
+          }
+          setIsInitialized(true);
         }
-        setIsInitialized(true);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
         initializingRef.current = false;
       }
     };
@@ -359,9 +392,11 @@ const useWeb3Auth = () => {
 
     // Cleanup on unmount
     return () => {
+      cancelled = true;
       stopHeartbeat();
     };
-  }, [isInitialized, fetchAddress, calculateAddressChecksum, generateNonce, startHeartbeat, stopHeartbeat]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Login
   const login = useCallback(async () => {
@@ -370,7 +405,13 @@ const useWeb3Auth = () => {
       return null;
     }
 
+    if (loginInProgressRef.current) {
+      console.warn('[useWeb3Auth] Login already in progress, ignoring duplicate call');
+      return null;
+    }
+
     try {
+      loginInProgressRef.current = true;
       setIsLoading(true);
       setError(null);
 
@@ -385,13 +426,83 @@ const useWeb3Auth = () => {
         return null;
       }
 
+      // If the user just returned from a redirect and the session is already active,
+      // do not call connect() again — recover the existing user info and provider if present.
+      if (web3auth.connected) {
+        console.log('[useWeb3Auth] Session already active after redirect — recovering');
+
+        let userInfo;
+        try {
+          userInfo = await web3auth.getUserInfo();
+          setUser(userInfo);
+        } catch (userErr) {
+          userInfo = { connected: true };
+          setUser(userInfo);
+        }
+
+        const existingProvider = web3auth.provider;
+        if (existingProvider) {
+          if (existingProvider?.setMaxListeners) existingProvider.setMaxListeners(50);
+          setProvider(existingProvider);
+          setIsConnected(true);
+
+          try {
+            const Web3 = (await import('web3')).default;
+            const web3Instance = new Web3(existingProvider);
+            setWeb3(web3Instance);
+            const address = await fetchAddress(existingProvider, web3Instance);
+            if (address) {
+              setWalletAddress(address);
+              addressChecksumRef.current = calculateAddressChecksum(address);
+              generateNonce();
+              setSessionExpiry(Date.now() + SECURITY_CONFIG.SESSION_TIMEOUT);
+              startHeartbeat();
+            }
+          } catch (err) {
+            console.warn('[useWeb3Auth] Recovering Web3 after redirect failed:', err.message);
+          }
+        } else {
+          setIsConnected(true);
+        }
+
+        return userInfo;
+      }
+
+      // Clean up any stale redirect params from previous redirect-mode attempts
+      // so they don't interfere with popup mode.
+      if (hasRedirectParams()) {
+        if (typeof window !== 'undefined' && window.location.hash) {
+          window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        }
+      }
+
       if (!isWeb3AuthReady()) {
         await initializeModal();
       }
 
-      const web3authProvider = await web3auth.connect();
+      let web3authProvider;
+      try {
+        web3authProvider = await web3auth.connect();
+      } catch (connectErr) {
+        // Popup may throw even when auth succeeded — check if session is actually live
+        console.warn('[useWeb3Auth] connect() threw:', connectErr?.message);
+        // On iOS, popup blocking throws a TypeError or "blocked" error. Surface
+        // it so the user sees something actionable instead of a silent revert.
+        if (connectErr?.message && !connectErr.message.toLowerCase().includes('closed')) {
+          setError(`Login error: ${connectErr.message}`);
+        }
+      }
+
+      // Fallback: if connect() returned null or threw, but Web3Auth reports connected, use the cached provider
+      if (!web3authProvider && web3auth.connected && web3auth.provider) {
+        web3authProvider = web3auth.provider;
+        console.log('[useWeb3Auth] connect() failed but session is active — using cached provider');
+      }
+
       if (!web3authProvider) {
-        setError("Failed to connect.");
+        // Show error if we have one, otherwise generic message
+        const msg = error || 'Failed to connect. Please try again.';
+        setError(msg);
         return null;
       }
 
@@ -433,11 +544,36 @@ const useWeb3Auth = () => {
 
       return userInfo;
     } catch (err) {
+      // Last-resort fallback: check if Web3Auth session is active despite the error
+      const w3a = web3authRef.current;
+      if (w3a && w3a.connected && w3a.provider) {
+        console.log('[useWeb3Auth] Login threw but session is active — recovering');
+        const p = w3a.provider;
+        if (p?.setMaxListeners) p.setMaxListeners(50);
+        setProvider(p);
+        setIsConnected(true);
+        try { setUser(await w3a.getUserInfo()); } catch { setUser({ connected: true }); }
+        try {
+          const Web3 = (await import('web3')).default;
+          const w3 = new Web3(p);
+          setWeb3(w3);
+          const addr = await fetchAddress(p, w3);
+          if (addr) {
+            setWalletAddress(addr);
+            addressChecksumRef.current = calculateAddressChecksum(addr);
+            generateNonce();
+            setSessionExpiry(Date.now() + SECURITY_CONFIG.SESSION_TIMEOUT);
+            startHeartbeat();
+          }
+        } catch (e) { console.warn('[useWeb3Auth] Fallback Web3 init failed:', e.message); }
+        return { connected: true };
+      }
       if (err.message && !err.message.toLowerCase().includes('closed')) {
         setError(err.message || "Login failed.");
       }
       return null;
     } finally {
+      loginInProgressRef.current = false;
       setIsLoading(false);
     }
   }, [fetchAddress, calculateAddressChecksum, generateNonce, startHeartbeat]);

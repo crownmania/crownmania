@@ -152,5 +152,20 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if false;
     }
+
+    // Forum — written exclusively via backend (Admin SDK) with wallet-signature
+    // auth + rate limiting. Client SDK access is denied; reads happen through
+    // the public backend REST API.
+    match /forum_posts/{postId} {
+      allow read, write: if false;
+
+      match /forum_replies/{replyId} {
+        allow read, write: if false;
+      }
+
+      match /forum_votes/{voteId} {
+        allow read, write: if false;
+      }
+    }
   }
 }

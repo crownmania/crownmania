@@ -338,6 +338,7 @@ export default function Header() {
     { text: 'The Shop', link: '/#shop' },
     { text: 'The Vision', link: '/#about' },
     { text: 'Access Vault', link: '/#vault' },
+    { text: 'Forum', link: '/forum' },
     { text: 'Contact', link: '/contact' }
   ];
 

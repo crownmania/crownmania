@@ -10,20 +10,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // Server-side product catalog with verified prices (in cents)
 // IMPORTANT: Always use server-side prices, never trust client-provided prices
 const PRODUCT_CATALOG = {
-  'durk-pendant': {
-    name: 'Durk Pendant',
-    price: 29900, // $299.00 in cents
-    images: []
-  },
-  'crown-ring': {
-    name: 'Crown Ring',
-    price: 19900, // $199.00 in cents
-    images: []
-  },
-  'chain-necklace': {
-    name: 'Chain Necklace',
-    price: 14900, // $149.00 in cents
-    images: []
+  'lil-durk-figure': {
+    name: 'Lil Durk Collectible Figure',
+    price: 15000, // $150.00 in cents
+    images: [
+      'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy1.webp?alt=media'
+    ]
   }
 };
 
