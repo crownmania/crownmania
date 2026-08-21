@@ -2,6 +2,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import { authenticateUser } from '../middleware/auth.js';
 import { orderFulfillmentService } from '../services/orderFulfillmentService.js';
+import { sendAdminAlertEmail } from '../config/email.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -12,7 +13,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const PRODUCT_CATALOG = {
   'lil-durk-figure': {
     name: 'Lil Durk Collectible Figure',
-    price: 15000, // $150.00 in cents
+    price: 100, // $1.00 in cents (live test pricing)
     images: [
       'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy1.webp?alt=media'
     ]
@@ -107,8 +108,26 @@ router.post('/create-checkout-session', async (req, res) => {
       cancel_url: `${process.env.FRONTEND_URL}/cancel`,
       // Prevent session from being used after 30 minutes
       expires_at: Math.floor(Date.now() / 1000) + (30 * 60),
-      // Collect shipping address if needed
-      // shipping_address_collection: { allowed_countries: ['US', 'CA'] },
+      // Collect shipping address for physical figure delivery
+      shipping_address_collection: {
+        allowed_countries: ['US', 'CA']
+      },
+      // Flat shipping rate: $15 domestic, $25 international (Stripe handles country logic)
+      shipping_options: [
+        {
+          shipping_rate_data: {
+            type: 'fixed_amount',
+            fixed_amount: { amount: 1500, currency: 'usd' },
+            display_name: 'Standard Shipping',
+            delivery_estimate: {
+              minimum: { unit: 'business_day', value: 5 },
+              maximum: { unit: 'business_day', value: 10 }
+            }
+          }
+        }
+      ],
+      // Allow promo codes
+      allow_promotion_codes: true,
     };
 
     // Add customer email if provided
@@ -174,6 +193,33 @@ router.post('/webhook', async (req, res) => {
       logger.warn(`Payment failed: ${paymentIntent.id}`);
       break;
 
+    case 'charge.refunded':
+      const charge = event.data.object;
+      logger.info(`Charge refunded: ${charge.id} for payment intent ${charge.payment_intent}`);
+      try {
+        await orderFulfillmentService.handleRefund(charge.payment_intent);
+      } catch (refundError) {
+        logger.error('Refund handling failed:', refundError);
+      }
+      break;
+
+    case 'charge.dispute.created':
+      const dispute = event.data.object;
+      logger.warn(`Dispute created: ${dispute.id} for charge ${dispute.charge}`);
+      try {
+        await sendAdminAlertEmail('Stripe dispute created — needs response', {
+          disputeId: dispute.id,
+          chargeId: dispute.charge,
+          amount: dispute.amount ? `$${(dispute.amount / 100).toFixed(2)}` : 'unknown',
+          reason: dispute.reason,
+          status: dispute.status,
+          action: 'Respond in Stripe Dashboard within 7 days'
+        });
+      } catch (alertError) {
+        logger.error('Failed to send dispute alert:', alertError);
+      }
+      break;
+
     default:
       logger.debug(`Unhandled event type: ${event.type}`);
   }
@@ -196,18 +242,67 @@ router.get('/session/:sessionId', async (req, res) => {
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    // Only return safe information
+    // Return safe information + fulfillment status + shipping for the success page
+    const fulfillmentStatus = await orderFulfillmentService.getFulfillmentStatus(sessionId);
+
     res.json({
       id: session.id,
       status: session.status,
       payment_status: session.payment_status,
       customer_email: session.customer_email,
       amount_total: session.amount_total,
-      currency: session.currency
+      currency: session.currency,
+      shipping_address: session.shipping_details?.address || null,
+      fulfillment: fulfillmentStatus
     });
   } catch (error) {
     logger.error('Error retrieving session:', error);
     res.status(404).json({ error: 'Session not found' });
+  }
+});
+
+/**
+ * @route GET /api/stripe/orders/:email
+ * @desc Get customer order history by email (for order tracking page)
+ * @access Public (limited info, keyed by email)
+ */
+router.get('/orders/:email', async (req, res) => {
+  try {
+    const email = decodeURIComponent(req.params.email).toLowerCase().trim();
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Valid email is required' });
+    }
+
+    const { db } = await import('../config/firebase.js');
+    const snapshot = await db.collection('orders')
+      .where('customerEmail', '==', email)
+      .orderBy('createdAt', 'desc')
+      .limit(20)
+      .get();
+
+    if (snapshot.empty) {
+      return res.json({ orders: [] });
+    }
+
+    const orders = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        status: data.status,
+        total: data.total,
+        trackingNumber: data.trackingNumber || null,
+        carrier: data.carrier || null,
+        itemCount: data.allocatedSerials?.length || 0,
+        createdAt: data.createdAt,
+        shippedAt: data.shippedAt || null
+      };
+    });
+
+    res.json({ orders });
+  } catch (error) {
+    logger.error('Error looking up orders by email:', error);
+    res.status(500).json({ error: 'Failed to look up orders' });
   }
 });
 

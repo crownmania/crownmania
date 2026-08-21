@@ -103,7 +103,7 @@ async function seedInventory() {
             const docRef = db.collection('inventory').doc();
             batch.set(docRef, {
                 serialNumber: item.serialNumber,
-                productId: null, // Will be assigned when linked to product
+                productId: 'lil-durk-figure', // Assign to Lil Durk figure product
                 status: item.tokenClaimed ? 'claimed' : 'available',
                 orderId: null,
                 allocatedAt: null,

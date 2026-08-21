@@ -1,4 +1,8 @@
 {
+  "firestore": {
+    "rules": "crownmania_backend/firestore.rules",
+    "indexes": "crownmania_backend/firestore.indexes.json"
+  },
   "hosting": {
     "public": "crownmania_frontend/dist",
     "ignore": [

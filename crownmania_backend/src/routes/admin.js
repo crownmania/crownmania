@@ -640,5 +640,155 @@ router.get('/export/claim-codes', requireAdmin, async (req, res) => {
   }
 });
 
+// ============================================
+// ORDER MANAGEMENT
+// ============================================
+
+import Order from '../models/Order.js';
+import { orderFulfillmentService } from '../services/orderFulfillmentService.js';
+import Inventory from '../models/Inventory.js';
+
+/**
+ * GET /api/admin/orders
+ * List all orders with optional status filter and pagination
+ */
+router.get('/orders', requireAdmin, async (req, res) => {
+  try {
+    const { status, limit = 50, offset = 0 } = req.query;
+    let query = db.collection('orders').orderBy('createdAt', 'desc');
+
+    if (status) {
+      query = query.where('status', '==', status);
+    }
+
+    const snapshot = await query.limit(parseInt(limit)).offset(parseInt(offset)).get();
+    const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    res.json({ orders, count: orders.length });
+  } catch (error) {
+    logger.error('Error listing orders:', error);
+    res.status(500).json({ error: 'Failed to list orders' });
+  }
+});
+
+/**
+ * GET /api/admin/orders/:orderId
+ * Get full order detail including allocated serials and collectible entitlements
+ */
+router.get('/orders/:orderId', requireAdmin, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.orderId);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Get inventory items for this order
+    const inventoryItems = await Inventory.findByOrderId(req.params.orderId);
+
+    res.json({
+      order: {
+        id: order.id,
+        status: order.status,
+        total: order.total,
+        items: order.items,
+        customerEmail: order.customerEmail,
+        shippingAddress: order.shippingAddress,
+        trackingNumber: order.trackingNumber,
+        allocatedSerials: order.allocatedSerials,
+        collectibleEntitlements: order.collectibleEntitlements,
+        entitlementStatus: order.entitlementStatus,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt
+      },
+      inventoryItems: inventoryItems.map(inv => ({
+        serialNumber: inv.serialNumber,
+        productId: inv.productId,
+        status: inv.status,
+        claimedAt: inv.claimedAt
+      }))
+    });
+  } catch (error) {
+    logger.error('Error getting order detail:', error);
+    res.status(500).json({ error: 'Failed to get order' });
+  }
+});
+
+/**
+ * POST /api/admin/orders/:orderId/ship
+ * Mark an order as shipped with tracking number and carrier
+ * Sends shipping confirmation email to customer
+ */
+router.post('/orders/:orderId/ship', requireAdmin, async (req, res) => {
+  try {
+    const { trackingNumber, carrier } = req.body;
+
+    if (!trackingNumber || typeof trackingNumber !== 'string') {
+      return res.status(400).json({ error: 'Tracking number is required' });
+    }
+
+    const result = await orderFulfillmentService.markShipped(
+      req.params.orderId,
+      trackingNumber.trim(),
+      carrier || null
+    );
+
+    logger.info(`Order ${req.params.orderId} marked shipped by admin ${req.adminEmail}`);
+    res.json(result);
+  } catch (error) {
+    logger.error('Error marking order shipped:', error);
+    res.status(500).json({ error: error.message || 'Failed to mark order shipped' });
+  }
+});
+
+/**
+ * GET /api/admin/fulfillment-failures
+ * List all pending fulfillment failures (dead-letter queue)
+ */
+router.get('/fulfillment-failures', requireAdmin, async (req, res) => {
+  try {
+    const { status: filterStatus = 'pending' } = req.query;
+    const snapshot = await db.collection('fulfillment_failures')
+      .where('status', '==', filterStatus)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const failures = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json({ failures, count: failures.length });
+  } catch (error) {
+    logger.error('Error listing fulfillment failures:', error);
+    res.status(500).json({ error: 'Failed to list fulfillment failures' });
+  }
+});
+
+/**
+ * POST /api/admin/fulfillment-failures/:sessionId/retry
+ * Retry a failed fulfillment
+ */
+router.post('/fulfillment-failures/:sessionId/retry', requireAdmin, async (req, res) => {
+  try {
+    const result = await orderFulfillmentService.retryFailedFulfillment(req.params.sessionId);
+    logger.info(`Fulfillment retry succeeded for session ${req.params.sessionId} by admin ${req.adminEmail}`);
+    res.json(result);
+  } catch (error) {
+    logger.error('Error retrying fulfillment:', error);
+    res.status(500).json({ error: error.message || 'Failed to retry fulfillment' });
+  }
+});
+
+/**
+ * GET /api/admin/inventory/count
+ * Get available inventory count by product
+ */
+router.get('/inventory/count', requireAdmin, async (req, res) => {
+  try {
+    const { productId } = req.query;
+    const count = await Inventory.getAvailableCount(productId || null);
+    res.json({ available: count, productId: productId || 'all' });
+  } catch (error) {
+    logger.error('Error getting inventory count:', error);
+    res.status(500).json({ error: 'Failed to get inventory count' });
+  }
+});
+
 export { router as adminRouter };
 export default router;

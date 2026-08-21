@@ -918,7 +918,7 @@ transition: all 0.5s ease;
 const IdentityPanel = styled(Panel)`
 display: flex;
 flex-direction: column;
-justify-content: center;
+justify-content: flex-start;
 padding: 2rem 2.5rem;
 z-index: 1;
 height: 100%;
@@ -927,6 +927,9 @@ height: 100%;
 const IdentityInfo = styled.div`
 display: flex;
 flex-direction: column;
+justify-content: flex-start;
+gap: 1.25rem;
+flex: 1;
 `;
 
 const IdentityName = styled.h2`
@@ -2677,10 +2680,10 @@ export default function Vault() {
                 {INFO_TEXT.vault}
               </motion.div>
             )}
-            <IdentityInfo style={{ minHeight: '100%' }}>
-              <div style={{ width: '100%', textAlign: 'center', marginBottom: '1rem' }}>
+            <IdentityInfo>
+              <div style={{ width: '100%', textAlign: 'center' }}>
                 {!isVaultLocked ? (
-                  <p style={{ color: '#ffffff', fontSize: '1.4rem', fontWeight: 700, letterSpacing: '0.05em', textShadow: '0 0 20px rgba(255,255,255,0.15)' }}>
+                  <p style={{ color: 'var(--vault-success)', fontSize: '1.4rem', fontWeight: 700, letterSpacing: '0.05em', textShadow: '0 0 20px rgba(52,199,89,0.25)' }}>
                     Connected: {(walletAddress || hookWalletAddress || '').slice(0, 6)}...{(walletAddress || hookWalletAddress || '').slice(-4)}
                   </p>
                 ) : isPersistentlyVerified ? (
@@ -2689,8 +2692,7 @@ export default function Vault() {
                   <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1.1rem' }}>Create or connect your Crown to unlock the Vault.</p>
                 )}
               </div>
-              <div style={{ flex: 1 }}></div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', justifyContent: 'center', marginTop: 'auto', width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
                 {isVaultLocked ? (
                   <ActionButton
                     $primary
@@ -2739,7 +2741,6 @@ export default function Vault() {
               </div>
               {web3Error && isVaultLocked && (
                 <div style={{
-                  marginTop: '0.75rem',
                   padding: '0.6rem 1rem',
                   background: 'rgba(255, 59, 48, 0.1)',
                   border: '1px solid rgba(255, 59, 48, 0.3)',
@@ -2760,7 +2761,7 @@ export default function Vault() {
 
               {/* Push Notifications + Sound Toggle */}
               {!isVaultLocked && (
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
                   {isPushSupported() && pushPermission !== 'granted' && (
                     <motion.button
                       onClick={handleEnablePush}

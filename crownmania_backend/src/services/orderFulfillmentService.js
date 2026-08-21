@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import Order from '../models/Order.js';
 import Inventory from '../models/Inventory.js';
 import Collectible from '../models/Collectible.js';
-import { sgMail, EMAIL_TEMPLATES, EMAIL_CONFIG } from '../config/email.js';
+import { sendOrderConfirmationEmail, sendShippingConfirmationEmail, sendAdminAlertEmail } from '../config/email.js';
 import { db } from '../config/firebase.js';
 import logger from '../config/logger.js';
 import crypto from 'crypto';
@@ -62,8 +62,160 @@ class OrderFulfillmentService {
 
         } catch (error) {
             logger.error(`Order fulfillment failed for session ${sessionId}:`, error);
+            // Record failure in dead-letter queue and alert admin for manual recovery
+            await this.recordFailedFulfillment(session, error);
             throw error;
         }
+    }
+
+    /**
+     * Record a failed fulfillment in the dead-letter queue and alert admin.
+     * The customer has PAID but did not receive their order — requires attention.
+     */
+    async recordFailedFulfillment(session, error) {
+        try {
+            await db.collection('fulfillment_failures').doc(session.id).set({
+                sessionId: session.id,
+                paymentIntent: session.payment_intent || null,
+                customerEmail: session.customer_email || session.customer_details?.email || null,
+                amountTotal: session.amount_total || null,
+                error: error.message,
+                status: 'pending', // pending, retried, resolved
+                createdAt: new Date(),
+                updatedAt: new Date()
+            }, { merge: true });
+
+            await sendAdminAlertEmail('Order fulfillment FAILED — customer paid', {
+                sessionId: session.id,
+                customerEmail: session.customer_email || session.customer_details?.email,
+                amount: session.amount_total ? `$${(session.amount_total / 100).toFixed(2)}` : 'unknown',
+                error: error.message,
+                action: 'Retry via admin panel: POST /api/admin/fulfillment-failures/' + session.id + '/retry'
+            });
+        } catch (dlqError) {
+            logger.error('Failed to record fulfillment failure (CRITICAL):', dlqError);
+        }
+    }
+
+    /**
+     * Retry a failed fulfillment (admin-triggered)
+     */
+    async retryFailedFulfillment(sessionId) {
+        const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
+
+        if (stripeSession.payment_status !== 'paid') {
+            throw new Error(`Session ${sessionId} is not paid (status: ${stripeSession.payment_status})`);
+        }
+
+        const result = await this.fulfillOrder(stripeSession);
+
+        // Mark failure record as resolved
+        await db.collection('fulfillment_failures').doc(sessionId).set({
+            status: 'resolved',
+            resolvedAt: new Date(),
+            orderId: result.orderId,
+            updatedAt: new Date()
+        }, { merge: true });
+
+        return result;
+    }
+
+    /**
+     * Handle a refund — mark order refunded and release unclaimed serials back to inventory.
+     * Claimed collectibles are NOT revoked automatically (manual admin decision).
+     */
+    async handleRefund(paymentIntentId) {
+        try {
+            const snapshot = await db.collection('orders')
+                .where('stripePaymentId', '==', paymentIntentId)
+                .limit(1)
+                .get();
+
+            if (snapshot.empty) {
+                logger.warn(`Refund received for unknown payment intent: ${paymentIntentId}`);
+                await sendAdminAlertEmail('Refund for unknown order', { paymentIntentId });
+                return { handled: false };
+            }
+
+            const orderDoc = snapshot.docs[0];
+            const order = orderDoc.data();
+            const releasedSerials = [];
+            const retainedSerials = [];
+
+            // Release unclaimed serials back to inventory; keep claimed ones for manual review
+            for (const serialNumber of (order.allocatedSerials || [])) {
+                const inv = await Inventory.findBySerialNumber(serialNumber);
+                if (inv && inv.status === 'allocated') {
+                    await db.collection('inventory').doc(inv.id).update({
+                        status: 'available',
+                        orderId: null,
+                        allocatedAt: null,
+                        updatedAt: new Date()
+                    });
+                    releasedSerials.push(serialNumber);
+                } else {
+                    retainedSerials.push(serialNumber);
+                }
+            }
+
+            // Void unclaimed collectible entitlements
+            for (const collectibleId of (order.collectibleEntitlements || [])) {
+                const colDoc = await db.collection('collectibles').doc(collectibleId).get();
+                if (colDoc.exists && colDoc.data().status === 'unclaimed') {
+                    await colDoc.ref.update({ status: 'voided', voidedAt: new Date(), voidReason: 'refund' });
+                }
+            }
+
+            await orderDoc.ref.update({
+                status: 'refunded',
+                refundedAt: new Date(),
+                updatedAt: new Date()
+            });
+
+            await sendAdminAlertEmail('Order refunded', {
+                orderId: orderDoc.id,
+                customerEmail: order.customerEmail,
+                releasedSerials,
+                retainedSerials: retainedSerials.length > 0
+                    ? { serials: retainedSerials, note: 'Already claimed — review manually' }
+                    : 'none'
+            });
+
+            logger.info(`Refund processed for order ${orderDoc.id}`, { releasedSerials, retainedSerials });
+            return { handled: true, orderId: orderDoc.id, releasedSerials, retainedSerials };
+        } catch (error) {
+            logger.error('Error handling refund:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Mark an order as shipped with tracking and email the customer
+     */
+    async markShipped(orderId, trackingNumber, carrier = null) {
+        const order = await Order.findById(orderId);
+        if (!order) {
+            throw new Error(`Order not found: ${orderId}`);
+        }
+
+        await db.collection('orders').doc(orderId).update({
+            status: 'shipped',
+            trackingNumber,
+            carrier: carrier || null,
+            shippedAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        if (order.customerEmail) {
+            try {
+                await sendShippingConfirmationEmail(order.customerEmail, { orderId, trackingNumber, carrier });
+            } catch (emailError) {
+                logger.error('Failed to send shipping confirmation email:', emailError);
+            }
+        }
+
+        logger.info(`Order ${orderId} marked shipped`, { trackingNumber, carrier });
+        return { orderId, status: 'shipped', trackingNumber };
     }
 
     /**
@@ -132,6 +284,12 @@ class OrderFulfillmentService {
                 }
             }
 
+            // Extract full shipping details (name + address) from the session.
+            // Stripe surfaces this as shipping_details (or collected_information.shipping_details in newer API versions)
+            const shippingDetails = session.shipping_details
+                || session.collected_information?.shipping_details
+                || null;
+
             // Create the order record
             const order = await Order.create({
                 id: orderId,
@@ -144,8 +302,11 @@ class OrderFulfillmentService {
                 allocatedSerials: allocatedSerials.map(s => s.serialNumber),
                 collectibleEntitlements: collectibleEntitlements,
                 entitlementStatus: 'allocated',
-                customerEmail: session.customer_email,
-                shippingAddress: session.shipping_details?.address || null,
+                customerEmail: session.customer_email || session.customer_details?.email || null,
+                shippingAddress: shippingDetails ? {
+                    name: shippingDetails.name || null,
+                    ...shippingDetails.address
+                } : null,
                 createdAt: new Date()
             });
 
@@ -170,7 +331,7 @@ class OrderFulfillmentService {
      * Send order confirmation email with claim codes
      */
     async sendConfirmationEmail(session, fulfillmentResult) {
-        const customerEmail = session.customer_email;
+        const customerEmail = session.customer_email || session.customer_details?.email;
 
         if (!customerEmail) {
             logger.warn('No customer email for order confirmation');
@@ -178,26 +339,14 @@ class OrderFulfillmentService {
         }
 
         try {
-            // Check if SendGrid is configured
-            if (!sgMail || !EMAIL_CONFIG?.from) {
-                logger.warn('SendGrid not configured, skipping confirmation email');
-                return;
-            }
-
-            await sgMail.send({
-                to: customerEmail,
-                from: EMAIL_CONFIG.from,
-                templateId: EMAIL_TEMPLATES.ORDER_CONFIRMATION,
-                dynamicTemplateData: {
-                    orderId: fulfillmentResult.orderId,
-                    orderDate: new Date().toLocaleDateString(),
-                    items: fulfillmentResult.allocatedSerials.map(s => ({
-                        name: s.productName,
-                        serialNumber: s.serialNumber,
-                        claimLink: `${process.env.FRONTEND_URL}/verify?code=${s.serialNumber}`
-                    })),
-                    totalItems: fulfillmentResult.allocatedSerials.length
-                }
+            await sendOrderConfirmationEmail(customerEmail, {
+                orderId: fulfillmentResult.orderId,
+                total: session.amount_total ? session.amount_total / 100 : null,
+                items: fulfillmentResult.allocatedSerials.map(s => ({
+                    name: s.productName,
+                    serialNumber: s.serialNumber,
+                    claimLink: `${process.env.FRONTEND_URL}/verify?code=${s.serialNumber}`
+                }))
             });
 
             logger.info(`Confirmation email sent to ${customerEmail}`);

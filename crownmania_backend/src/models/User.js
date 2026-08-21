@@ -6,6 +6,7 @@ class User {
     this.id = data.id;
     this.email = data.email;
     this.walletAddress = data.walletAddress;
+    this.username = data.username || null;
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = new Date();
   }
@@ -16,6 +17,7 @@ class User {
       await db.collection('users').doc(user.id).set({
         email: user.email,
         walletAddress: user.walletAddress,
+        username: user.username,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       });
@@ -48,6 +50,22 @@ class User {
       return new User({ id: doc.id, ...doc.data() });
     } catch (error) {
       logger.error('Error finding user by wallet:', error);
+      throw error;
+    }
+  }
+
+  static async findByUsername(username) {
+    try {
+      if (!username) return null;
+      const snapshot = await db.collection('users')
+        .where('username', '==', username)
+        .limit(1)
+        .get();
+      if (snapshot.empty) return null;
+      const doc = snapshot.docs[0];
+      return new User({ id: doc.id, ...doc.data() });
+    } catch (error) {
+      logger.error('Error finding user by username:', error);
       throw error;
     }
   }

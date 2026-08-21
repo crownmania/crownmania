@@ -2,6 +2,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { FieldValue } from 'firebase-admin/firestore';
 import { db, firebaseReady } from '../config/firebase.js';
+import { logUserAction } from '../services/userActivityService.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -147,6 +148,17 @@ router.post('/posts', requireDb, postLimiter, async (req, res) => {
     const ref = await db.collection(POSTS_COLLECTION).add(payload);
     logger.info(`Forum post created: ${ref.id}`);
 
+    // Record in user activity database (anonymous actor identified by IP/voterId)
+    logUserAction({
+      walletAddress: getVoterId(req),
+      username: cleanName,
+      action: 'forum_post',
+      category: 'forum',
+      description: 'Created a forum post',
+      metadata: { postId: ref.id, authorName: cleanName, contentLength: cleanContent.length },
+      req,
+    });
+
     res.status(201).json({
       id: ref.id,
       ...payload,
@@ -231,6 +243,16 @@ router.post('/posts/:postId/vote', requireDb, voteLimiter, async (req, res) => {
         dislikes: Math.max(0, dislikes + dislikeDelta),
         userVote: newVote,
       };
+    });
+
+    logUserAction({
+      walletAddress: vid,
+      username: null,
+      action: 'forum_vote',
+      category: 'forum',
+      description: `Voted ${voteType} on post ${postId}`,
+      metadata: { postId, voteType, voterId: vid, result },
+      req,
     });
 
     res.json(result);
@@ -336,6 +358,16 @@ router.post('/posts/:postId/replies', requireDb, replyLimiter, async (req, res) 
     }
 
     logger.info(`Forum reply on ${postId}: ${ref.id}`);
+
+    logUserAction({
+      walletAddress: getVoterId(req),
+      username: cleanName,
+      action: 'forum_reply',
+      category: 'forum',
+      description: `Replied to post ${postId}`,
+      metadata: { postId, replyId: ref.id, authorName: cleanName, contentLength: cleanContent.length },
+      req,
+    });
 
     res.status(201).json({
       id: ref.id,
