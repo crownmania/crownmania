@@ -46,7 +46,6 @@ export const GlobalStyles = createGlobalStyle`
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     background-color: var(--bg-deep);
-    zoom: 0.8;
   }
 
   body {

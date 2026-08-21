@@ -2,6 +2,8 @@ import express from 'express';
 import { db } from '../config/firebase.js';
 import encryptionService from '../services/encryptionService.js';
 import signatureService from '../services/signatureService.js';
+import { assignUsername } from '../services/usernameService.js';
+import { logUserAction } from '../services/userActivityService.js';
 import logger from '../config/logger.js';
 import { contentSecurity } from '../utils/contentSecurity.js';
 
@@ -99,20 +101,36 @@ router.post('/', async (req, res) => {
             .get();
 
         let userId;
+        let isNewUser = false;
+        let username = null;
 
         if (userSnapshot.empty) {
             // Create new user
             userData.createdAt = new Date();
             userData.lastLogin = new Date();
 
+            // Assign an internal username before persisting
+            const assigned = await assignUsername(sanitizedWallet.toLowerCase());
+            username = assigned.username;
+            userData.username = username;
+
             const userRef = await db.collection('users').add(userData);
             userId = userRef.id;
+            isNewUser = true;
 
-            logger.info(`Created profile for wallet ${sanitizedWallet.substring(0, 10)}...`);
+            logger.info(`Created profile for wallet ${sanitizedWallet.substring(0, 10)}... (username: ${username})`);
         } else {
             // Update existing user
             const userDoc = userSnapshot.docs[0];
             userId = userDoc.id;
+            username = userDoc.data().username || null;
+
+            // Ensure every existing user has an internal username
+            if (!username) {
+                const assigned = await assignUsername(sanitizedWallet.toLowerCase());
+                username = assigned.username;
+                userData.username = username;
+            }
 
             await db.collection('users').doc(userId).update(userData);
 
@@ -126,9 +144,28 @@ router.post('/', async (req, res) => {
             profileComplete: userData.profileComplete
         }, req.ip, sanitizedWallet);
 
+        // Record the action in the user activity database
+        logUserAction({
+            walletAddress: sanitizedWallet.toLowerCase(),
+            userId,
+            username,
+            action: isNewUser ? 'profile_created' : 'profile_updated',
+            category: 'profile',
+            description: isNewUser ? 'User profile created' : 'User profile updated',
+            metadata: {
+                profileComplete: userData.profileComplete,
+                ageVerified: userData.ageVerified,
+                marketingOptIn: userData.marketingOptIn,
+                nameSet: !!sanitizedName,
+                emailSet: !!email,
+            },
+            req,
+        });
+
         res.json({
             success: true,
             userId,
+            username,
             profileComplete: userData.profileComplete
         });
     } catch (error) {
