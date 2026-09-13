@@ -339,13 +339,20 @@ class OrderFulfillmentService {
         }
 
         try {
+            // Note: serial numbers are NOT included in the email — physical
+            // serial stickers are randomized per box, so the customer claims
+            // using the serial found on their delivered box.
+            const emailItems = {};
+            for (const s of fulfillmentResult.allocatedSerials) {
+                emailItems[s.productName] = (emailItems[s.productName] || 0) + 1;
+            }
+
             await sendOrderConfirmationEmail(customerEmail, {
                 orderId: fulfillmentResult.orderId,
                 total: session.amount_total ? session.amount_total / 100 : null,
-                items: fulfillmentResult.allocatedSerials.map(s => ({
-                    name: s.productName,
-                    serialNumber: s.serialNumber,
-                    claimLink: `${process.env.FRONTEND_URL}/verify?code=${s.serialNumber}`
+                items: Object.entries(emailItems).map(([name, quantity]) => ({
+                    name,
+                    quantity
                 }))
             });
 

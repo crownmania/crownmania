@@ -13,7 +13,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const PRODUCT_CATALOG = {
   'lil-durk-figure': {
     name: 'Lil Durk Collectible Figure',
-    price: 100, // $1.00 in cents (live test pricing)
+    price: 20000, // $200.00 in cents
     images: [
       'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy1.webp?alt=media'
     ]

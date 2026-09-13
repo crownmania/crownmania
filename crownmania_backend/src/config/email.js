@@ -1,7 +1,7 @@
-import sgMail from '@sendgrid/mail';
+import { Resend } from 'resend';
 
-// Initialize SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Email templates
 const EMAIL_TEMPLATES = {
@@ -17,6 +17,36 @@ const EMAIL_CONFIG = {
     email: process.env.SENDGRID_FROM_EMAIL || 'noreply@crownmania.com',
     name: 'Crownmania'
   }
+};
+
+/**
+ * SendGrid-compatible shim backed by Resend.
+ * Keeps the sgMail.send({ to, from, subject, text, html }) interface
+ * so all existing callers work without changes.
+ */
+const sgMail = {
+  async send(msg) {
+    const from = typeof msg.from === 'object'
+      ? `${msg.from.name} <${msg.from.email}>`
+      : msg.from;
+
+    const { data, error } = await resend.emails.send({
+      from,
+      to: Array.isArray(msg.to) ? msg.to : [msg.to],
+      subject: msg.subject,
+      text: msg.text || undefined,
+      html: msg.html || undefined
+    });
+
+    if (error) {
+      const err = new Error(error.message || 'Resend email failed');
+      err.code = error.name;
+      throw err;
+    }
+    return data;
+  },
+  // No-op for backwards compatibility with SendGrid initialization calls
+  setApiKey() {}
 };
 
 export { sgMail, EMAIL_TEMPLATES, EMAIL_CONFIG };
@@ -147,7 +177,7 @@ export const sendOrderConfirmationEmail = async (toEmail, orderData) => {
   const frontendUrl = process.env.FRONTEND_URL || 'https://crownmania.com';
 
   const subject = `Order Confirmed — ${orderId}`;
-  const itemRowsText = items.map(i => `- ${i.name}\n  Serial: ${i.serialNumber}\n  Claim: ${i.claimLink}`).join('\n');
+  const itemRowsText = items.map(i => `- ${i.name}${i.quantity > 1 ? ` x${i.quantity}` : ''}`).join('\n');
   const plainText = `Thank you for your Crownmania order!
 
 Order: ${orderId}
@@ -156,7 +186,7 @@ ${total ? `Total: $${total.toFixed(2)}` : ''}
 Your collectibles:
 ${itemRowsText}
 
-Each figure comes with a unique serial number. Once your figure arrives, verify it in The Vault to claim your digital collectible and unlock exclusive perks.
+Each figure comes with a unique serial number sticker on its box. Once your figure arrives, enter that serial in The Vault to verify authenticity and claim your digital collectible.
 
 ${frontendUrl}/vault
 
@@ -164,9 +194,7 @@ Thank you for being part of the Crownmania community!`;
 
   const itemRowsHtml = items.map(i => `
     <div style="background: rgba(0, 255, 136, 0.06); border: 1px solid rgba(0, 255, 136, 0.25); border-radius: 12px; padding: 18px; margin-bottom: 12px;">
-      <p style="color: #00c8ff; font-size: 15px; font-weight: 600; margin: 0 0 8px 0;">${i.name}</p>
-      <p style="color: rgba(255,255,255,0.7); font-size: 13px; margin: 0 0 4px 0;">Serial: <span style="font-family: monospace; color: white;">${i.serialNumber}</span></p>
-      <a href="${i.claimLink}" style="color: #00ff88; font-size: 13px;">Verify &amp; claim your digital twin →</a>
+      <p style="color: #00c8ff; font-size: 15px; font-weight: 600; margin: 0;">${i.name}${i.quantity > 1 ? ` ×${i.quantity}` : ''}</p>
     </div>`).join('');
 
   const html = `
@@ -179,7 +207,7 @@ Thank you for being part of the Crownmania community!`;
       ${total ? `<p style="color: white; font-size: 15px; text-align: right; margin: 16px 0;">Total: <strong>$${total.toFixed(2)}</strong></p>` : ''}
       <p style="color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.6;">
         Your figure is being prepared for shipment. You'll receive a shipping confirmation with tracking as soon as it's on its way.
-        When it arrives, verify the serial code in The Vault to claim your digital collectible and unlock exclusive perks.
+        When it arrives, find the <strong style="color: #00ff88;">unique serial number sticker on the box</strong> and enter it in The Vault to verify authenticity and claim your digital collectible.
       </p>
       <div style="text-align: center; margin-top: 28px;">
         <a href="${frontendUrl}/vault" style="display: inline-block; background: linear-gradient(135deg, #00ff88, #00c8ff); color: #000; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">Open The Vault →</a>
@@ -193,18 +221,39 @@ Thank you for being part of the Crownmania community!`;
 };
 
 /**
+ * Build a carrier tracking URL so customers can click through instead of
+ * copying the number into the carrier's site manually.
+ * @param {string} carrier - Carrier name (usps, ups, fedex, dhl)
+ * @param {string} trackingNumber - The tracking number
+ * @returns {string|null} Tracking URL, or null if the carrier is unknown
+ */
+export const getTrackingUrl = (carrier, trackingNumber) => {
+  if (!carrier || !trackingNumber) return null;
+  const n = encodeURIComponent(trackingNumber.trim());
+  switch (carrier.trim().toLowerCase()) {
+    case 'usps': return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${n}`;
+    case 'ups': return `https://www.ups.com/track?tracknum=${n}`;
+    case 'fedex': return `https://www.fedex.com/fedextrack/?trknbr=${n}`;
+    case 'dhl': return `https://www.dhl.com/en/express/tracking.html?AWB=${n}`;
+    default: return null;
+  }
+};
+
+/**
  * Send shipping confirmation email with tracking number
  * @param {string} toEmail - Recipient email address
  * @param {object} shipData - { orderId, trackingNumber, carrier }
  */
 export const sendShippingConfirmationEmail = async (toEmail, shipData) => {
   const { orderId, trackingNumber, carrier } = shipData;
+  const trackingUrl = getTrackingUrl(carrier, trackingNumber);
 
   const subject = `Your Crownmania order has shipped — ${orderId}`;
   const plainText = `Great news! Your Crownmania order ${orderId} is on its way.
 
 ${carrier ? `Carrier: ${carrier}` : ''}
 Tracking Number: ${trackingNumber}
+${trackingUrl ? `Track it here: ${trackingUrl}` : ''}
 
 When your figure arrives, verify its serial code in The Vault to claim your digital collectible.
 
@@ -220,6 +269,10 @@ Thank you for being part of the Crownmania community!`;
         ${carrier ? `<p style="color: rgba(255,255,255,0.6); font-size: 13px; margin: 0 0 6px 0;">${carrier}</p>` : ''}
         <p style="color: white; font-size: 18px; font-family: monospace; margin: 0;">${trackingNumber}</p>
       </div>
+      ${trackingUrl ? `
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="${trackingUrl}" style="display: inline-block; background: linear-gradient(135deg, #00ff88, #00c8ff); color: #000; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">Track Your Package →</a>
+      </div>` : ''}
       <p style="color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.6; margin-top: 20px;">
         When your figure arrives, verify its serial code in The Vault to claim your digital collectible and unlock exclusive perks.
       </p>
