@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import Order from '../models/Order.js';
 import Inventory from '../models/Inventory.js';
 import Collectible from '../models/Collectible.js';
-import { sendOrderConfirmationEmail, sendShippingConfirmationEmail, sendAdminAlertEmail } from '../config/email.js';
+import { sendOrderConfirmationEmail, sendShippingConfirmationEmail, sendAdminAlertEmail, sendNewSaleEmail } from '../config/email.js';
 import { db } from '../config/firebase.js';
 import logger from '../config/logger.js';
 import crypto from 'crypto';
@@ -47,6 +47,21 @@ class OrderFulfillmentService {
 
             // Send confirmation email
             await this.sendConfirmationEmail(session, result);
+
+            // Notify ops that a sale landed, with everything needed to ship it.
+            // Never let a notification failure affect the customer's order.
+            try {
+                await sendNewSaleEmail({
+                    orderId: result.orderId,
+                    customerEmail: session.customer_email || session.customer_details?.email,
+                    total: result.total,
+                    items: result.items,
+                    shippingAddress: result.shippingAddress || {},
+                    serials: result.allocatedSerials.map(s => s.serialNumber)
+                });
+            } catch (notifyError) {
+                logger.error('Failed to send new sale notification:', notifyError);
+            }
 
             logger.info(`Order fulfilled successfully: ${result.orderId}`, {
                 sessionId,
@@ -313,7 +328,13 @@ class OrderFulfillmentService {
             return {
                 orderId: order.id,
                 allocatedSerials,
-                collectibleEntitlements
+                collectibleEntitlements,
+                total,
+                items: lineItems,
+                shippingAddress: shippingDetails ? {
+                    name: shippingDetails.name || null,
+                    ...shippingDetails.address
+                } : null
             };
 
         } catch (error) {
@@ -357,9 +378,31 @@ class OrderFulfillmentService {
             });
 
             logger.info(`Confirmation email sent to ${customerEmail}`);
+            await this.recordConfirmationEmailStatus(fulfillmentResult.orderId, { sent: true });
         } catch (error) {
             // Don't fail the order if email fails
             logger.error('Failed to send confirmation email:', error);
+            await this.recordConfirmationEmailStatus(fulfillmentResult.orderId, {
+                sent: false,
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Persist whether the confirmation email went out, so delivery can be
+     * audited later instead of relying on log retention.
+     */
+    async recordConfirmationEmailStatus(orderId, { sent, error = null }) {
+        try {
+            await db.collection('orders').doc(orderId).update({
+                confirmationEmailSent: sent,
+                confirmationEmailAt: new Date(),
+                confirmationEmailError: error,
+                updatedAt: new Date()
+            });
+        } catch (updateError) {
+            logger.error('Failed to record confirmation email status:', updateError);
         }
     }
 

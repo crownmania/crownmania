@@ -285,6 +285,93 @@ Thank you for being part of the Crownmania community!`;
 };
 
 /**
+ * Escape values that originate from customer input (names, addresses) before
+ * interpolating them into HTML email bodies.
+ */
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+/**
+ * Notify the admin/ops email that a sale completed, with everything needed to
+ * fulfil it. Sent on every successful order — failures are covered separately
+ * by sendAdminAlertEmail.
+ * @param {object} saleData - { orderId, customerEmail, total, items, shippingAddress, serials }
+ */
+export const sendNewSaleEmail = async (saleData) => {
+  const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.ADMIN_EMAIL;
+  if (!adminEmail) {
+    console.warn('ADMIN_ALERT_EMAIL not configured — cannot send new sale notification');
+    return;
+  }
+
+  const { orderId, customerEmail, total, items = [], shippingAddress = {}, serials = [] } = saleData;
+  const amount = typeof total === 'number' ? `$${total.toFixed(2)}` : 'unknown';
+
+  const addressLines = [
+    shippingAddress.name,
+    shippingAddress.line1,
+    shippingAddress.line2,
+    [shippingAddress.city, shippingAddress.state, shippingAddress.postal_code].filter(Boolean).join(', '),
+    shippingAddress.country
+  ].filter(Boolean);
+
+  const itemLines = items.map(i => `${i.name}${i.quantity > 1 ? ` x${i.quantity}` : ''}`);
+
+  const subject = `New sale — ${amount} — ${orderId}`;
+  const plainText = `You made a sale.
+
+Order:    ${orderId}
+Amount:   ${amount}
+Customer: ${customerEmail || 'unknown'}
+
+Items:
+${itemLines.map(l => `- ${l}`).join('\n')}
+
+Ship to:
+${addressLines.join('\n')}
+
+Internal serial(s) allocated: ${serials.join(', ') || 'none'}
+(The customer claims using the sticker on their box, not this serial.)
+
+When shipped, run:
+node scripts/markShipped.js ${orderId} <trackingNumber> <carrier>
+
+Time: ${new Date().toISOString()}`;
+
+  const html = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0a1628 0%, #1a2f4a 100%); padding: 40px; border-radius: 16px;">
+      <div style="text-align: center; margin-bottom: 26px;">
+        <h1 style="color: #00ff88; font-size: 26px; margin: 0;">💰 New Sale — ${escapeHtml(amount)}</h1>
+        <p style="color: rgba(255,255,255,0.6); font-size: 13px; margin: 8px 0 0 0;">${escapeHtml(orderId)}</p>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; color: white; font-size: 14px;">
+        <tr><td style="padding: 8px 0; color: rgba(255,255,255,0.6);">Customer</td><td style="padding: 8px 0; text-align: right;">${escapeHtml(customerEmail || 'unknown')}</td></tr>
+        <tr><td style="padding: 8px 0; color: rgba(255,255,255,0.6);">Items</td><td style="padding: 8px 0; text-align: right;">${itemLines.map(escapeHtml).join('<br>')}</td></tr>
+      </table>
+      <div style="background: rgba(0, 200, 255, 0.08); border: 1px solid rgba(0, 200, 255, 0.3); border-radius: 12px; padding: 18px; margin-top: 20px;">
+        <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0 0 8px 0;">SHIP TO</p>
+        <p style="color: white; font-size: 14px; margin: 0; line-height: 1.6;">${addressLines.map(escapeHtml).join('<br>')}</p>
+      </div>
+      <p style="color: rgba(255,255,255,0.5); font-size: 12px; line-height: 1.6; margin-top: 20px;">
+        Internal serial(s): <span style="font-family: monospace;">${escapeHtml(serials.join(', ') || 'none')}</span><br>
+        The customer claims using the sticker on their box, not this serial.
+      </p>
+      <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin-top: 18px;">When shipped, run:</p>
+      <pre style="background: rgba(0,0,0,0.35); color: #00ff88; font-size: 12px; padding: 12px; border-radius: 8px; white-space: pre-wrap; word-break: break-all;">node scripts/markShipped.js ${escapeHtml(orderId)} &lt;trackingNumber&gt; &lt;carrier&gt;</pre>
+    </div>`;
+
+  try {
+    await sgMail.send({ to: adminEmail, from: EMAIL_CONFIG.from, subject, text: plainText, html });
+  } catch (error) {
+    console.error('Failed to send new sale notification:', error);
+  }
+};
+
+/**
  * Send an operational alert to the admin/ops email.
  * Used for fulfillment failures, disputes, and other events needing human attention.
  * @param {string} subject - Alert subject line
