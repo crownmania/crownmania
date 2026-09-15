@@ -52,6 +52,130 @@ const sgMail = {
 export { sgMail, EMAIL_TEMPLATES, EMAIL_CONFIG };
 
 /**
+ * Brand tokens mirroring the site's Royal Blue Vault palette
+ * (see crownmania_frontend/src/styles/GlobalStyles.jsx).
+ *
+ * All colours are hex on purpose. Gmail's mobile clients discard `rgba()`
+ * values in `color:`, which silently rendered muted text as near-black on the
+ * dark background — legible nowhere.
+ */
+const BRAND = {
+  logoUrl: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fcrownmania_logo_white.png?alt=media',
+  bgOuter: '#000000',
+  bgPanel: '#00050f',
+  bgCard: '#081023',
+  accent: '#4169E1',
+  accentBright: '#6B8DD6',
+  success: '#34C759',
+  text: '#FFFFFF',
+  textMuted: '#AEB9CC',
+  textFaint: '#78849B',
+  border: '#1E2F56'
+};
+
+const siteUrl = () => process.env.FRONTEND_URL || 'https://crownmania.com';
+
+/**
+ * Escape values that originate from customer input (names, addresses) before
+ * interpolating them into HTML email bodies.
+ */
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+/**
+ * Wrap body content in the shared Crownmania email shell: logo, wordmark,
+ * title and footer. Table-based so Outlook renders it, and the wordmark is
+ * live text so the header still reads when images are blocked (which is the
+ * default in many clients).
+ *
+ * @param {object} opts - { preheader, title, subtitle, bodyHtml }
+ */
+const renderEmailShell = ({ preheader = '', title, subtitle = '', bodyHtml }) => `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>${escapeHtml(title)}</title>
+</head>
+<body style="margin:0; padding:0; background-color:${BRAND.bgOuter};">
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0;">${escapeHtml(preheader)}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${BRAND.bgOuter}; padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px; background-color:${BRAND.bgPanel}; border:1px solid ${BRAND.border}; border-radius:16px; overflow:hidden;">
+          <tr>
+            <td align="center" style="padding:32px 32px 8px 32px;">
+              <img src="${BRAND.logoUrl}" width="62" height="80" alt="Crownmania"
+                   style="display:block; width:62px; height:auto; border:0; outline:none; text-decoration:none;">
+              <div style="margin-top:14px; font-family:'Arial Black',Arial,Helvetica,sans-serif; font-size:22px; font-weight:900; letter-spacing:0.26em; color:${BRAND.text}; text-transform:uppercase;">
+                Crownmania
+              </div>
+              <div style="margin-top:6px; height:2px; width:64px; background-color:${BRAND.accent};"></div>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:22px 32px 0 32px;">
+              <h1 style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:21px; font-weight:700; color:${BRAND.text};">${escapeHtml(title)}</h1>
+              ${subtitle ? `<p style="margin:8px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:13px; color:${BRAND.textMuted};">${escapeHtml(subtitle)}</p>` : ''}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px 32px 32px; font-family:Arial,Helvetica,sans-serif;">
+              ${bodyHtml}
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:0 32px 30px 32px;">
+              <div style="height:1px; background-color:${BRAND.border}; margin-bottom:18px;"></div>
+              <p style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:11px; line-height:1.7; color:${BRAND.textFaint};">
+                <a href="${siteUrl()}" style="color:${BRAND.accentBright}; text-decoration:none;">crownmania.com</a><br>
+                &copy; ${new Date().getFullYear()} Crownmania. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+/**
+ * Primary call-to-action button, built with a table so Outlook honours it.
+ */
+const ctaButton = (href, label) => `
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:26px auto 0 auto;">
+    <tr>
+      <td align="center" bgcolor="${BRAND.accent}" style="border-radius:8px;">
+        <a href="${href}" style="display:inline-block; padding:14px 34px; font-family:Arial,Helvetica,sans-serif; font-size:14px; font-weight:700; color:#FFFFFF; text-decoration:none; border-radius:8px;">${escapeHtml(label)}</a>
+      </td>
+    </tr>
+  </table>`;
+
+/**
+ * Card used to highlight a block of content (items, addresses, tracking).
+ */
+const infoCard = (innerHtml) => `
+  <div style="background-color:${BRAND.bgCard}; border:1px solid ${BRAND.border}; border-radius:12px; padding:18px;">
+    ${innerHtml}
+  </div>`;
+
+/**
+ * Label/value row for detail tables.
+ */
+const detailRow = (label, value, opts = {}) => `
+  <tr>
+    <td style="padding:10px 0; border-bottom:1px solid ${BRAND.border}; font-family:Arial,Helvetica,sans-serif; font-size:12px; color:${BRAND.textMuted}; text-transform:uppercase; letter-spacing:0.06em;">${escapeHtml(label)}</td>
+    <td style="padding:10px 0; border-bottom:1px solid ${BRAND.border}; font-family:${opts.mono ? "'Courier New',monospace" : 'Arial,Helvetica,sans-serif'}; font-size:13px; color:${opts.accent ? BRAND.accentBright : BRAND.text}; text-align:right;">${escapeHtml(value)}</td>
+  </tr>`;
+
+/**
  * Send the verification email containing a one-time token
  * @param {string} toEmail - Recipient email address
  * @param {string} token - One-time verification token
@@ -60,16 +184,25 @@ export { sgMail, EMAIL_TEMPLATES, EMAIL_CONFIG };
 export const sendVerificationEmail = async (toEmail, token, serialNumber) => {
   const subject = 'Your Crownmania verification code';
   const plainText = `Your Crownmania verification code is:\n\n${token}\n\nSerial: ${serialNumber}\n\nThis code expires in 15 minutes. If you did not request this, you can ignore this email.`;
-  const html = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-      <h2>Crownmania Verification</h2>
-      <p>Your verification code is:</p>
-      <p style="font-size: 18px; font-weight: bold; letter-spacing: 0.08em;">${token}</p>
-      <p>Serial: <strong>${serialNumber}</strong></p>
-      <p>This code expires in <strong>15 minutes</strong>.</p>
-      <p>If you did not request this code, please ignore this email.</p>
-    </div>
-  `;
+  const bodyHtml = `
+    <p style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.7; color:${BRAND.textMuted};">
+      Enter this code to verify your collectible:
+    </p>
+    ${infoCard(`
+      <p style="margin:0; text-align:center; font-family:'Courier New',monospace; font-size:30px; font-weight:700; letter-spacing:0.22em; color:${BRAND.text};">${escapeHtml(token)}</p>`)}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;">
+      ${detailRow('Serial', serialNumber, { mono: true })}
+      ${detailRow('Expires in', '15 minutes')}
+    </table>
+    <p style="margin:22px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:12px; line-height:1.7; color:${BRAND.textFaint};">
+      If you did not request this code, you can safely ignore this email.
+    </p>`;
+
+  const html = renderEmailShell({
+    preheader: `Your Crownmania verification code is ${token}.`,
+    title: 'Verification Code',
+    bodyHtml
+  });
 
   const msg = {
     to: toEmail,
@@ -105,50 +238,31 @@ View your collectible in The Vault at https://crownmania.com
 Thank you for being part of the Crownmania community!
 `;
 
-  const html = `
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0a1628 0%, #1a2f4a 100%); padding: 40px; border-radius: 16px;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #00ff88; font-size: 28px; margin: 0;">🎉 NFT Claimed Successfully!</h1>
-      </div>
-      
-      <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-        <h2 style="color: #00c8ff; margin: 0 0 16px 0; font-size: 20px;">${productName}</h2>
-        <p style="color: #00ff88; font-size: 14px; margin: 0;">Lil Durk: Free The Voice Series</p>
-      </div>
-      
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-        <tr>
-          <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 13px;">EDITION</td>
-          <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color: #00c8ff; font-size: 14px; text-align: right; font-family: monospace;">#${editionNumber || '1'} of 500</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 13px;">SERIAL NUMBER</td>
-          <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color: white; font-size: 14px; text-align: right; font-family: monospace;">${serialNumber.slice(0, 8)}...${serialNumber.slice(-8)}</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 13px;">TOKEN ID</td>
-          <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color: white; font-size: 14px; text-align: right; font-family: monospace;">${tokenId || 'NFT-' + (editionNumber || '001')}</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 13px;">WALLET</td>
-          <td style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); color: white; font-size: 14px; text-align: right; font-family: monospace;">${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}</td>
-        </tr>
-        <tr>
-          <td style="padding: 12px 0; color: rgba(255,255,255,0.6); font-size: 13px;">CLAIMED</td>
-          <td style="padding: 12px 0; color: white; font-size: 14px; text-align: right;">${claimDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
-        </tr>
-      </table>
-      
-      <div style="text-align: center; margin-top: 32px;">
-        <a href="https://crownmania.com" style="display: inline-block; background: linear-gradient(135deg, #00ff88, #00c8ff); color: #000; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View in The Vault →</a>
-      </div>
-      
-      <p style="color: rgba(255,255,255,0.5); font-size: 12px; text-align: center; margin-top: 32px;">
-        This is a confirmation of your NFT claim on the Polygon blockchain.<br>
-        © 2025 Crownmania. All rights reserved.
-      </p>
-    </div>
-  `;
+  const bodyHtml = `
+    ${infoCard(`
+      <p style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:18px; font-weight:700; color:${BRAND.text};">${escapeHtml(productName)}</p>
+      <p style="margin:6px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:13px; color:${BRAND.accentBright};">Lil Durk: Free The Voice Series</p>`)}
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;">
+      ${detailRow('Edition', `#${editionNumber || '1'} of 500`, { mono: true, accent: true })}
+      ${detailRow('Serial number', `${serialNumber.slice(0, 8)}...${serialNumber.slice(-8)}`, { mono: true })}
+      ${detailRow('Token ID', tokenId || `NFT-${editionNumber || '001'}`, { mono: true })}
+      ${detailRow('Wallet', `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`, { mono: true })}
+      ${detailRow('Claimed', claimDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }))}
+    </table>
+
+    ${ctaButton(`${siteUrl()}/vault`, 'View in The Vault')}
+
+    <p style="margin:26px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:11px; line-height:1.7; text-align:center; color:${BRAND.textFaint};">
+      This confirms your NFT claim on the Polygon blockchain.
+    </p>`;
+
+  const html = renderEmailShell({
+    preheader: `${productName} claimed — edition #${editionNumber || '1'}.`,
+    title: 'NFT Claimed Successfully',
+    subtitle: productName,
+    bodyHtml
+  });
 
   const msg = {
     to: toEmail,
@@ -193,29 +307,36 @@ ${frontendUrl}/vault
 Thank you for being part of the Crownmania community!`;
 
   const itemRowsHtml = items.map(i => `
-    <div style="background: rgba(0, 255, 136, 0.06); border: 1px solid rgba(0, 255, 136, 0.25); border-radius: 12px; padding: 18px; margin-bottom: 12px;">
-      <p style="color: #00c8ff; font-size: 15px; font-weight: 600; margin: 0;">${i.name}${i.quantity > 1 ? ` ×${i.quantity}` : ''}</p>
-    </div>`).join('');
+    <tr>
+      <td style="padding:10px 0; border-bottom:1px solid ${BRAND.border}; font-family:Arial,Helvetica,sans-serif; font-size:14px; color:${BRAND.text};">${escapeHtml(i.name)}</td>
+      <td style="padding:10px 0; border-bottom:1px solid ${BRAND.border}; font-family:Arial,Helvetica,sans-serif; font-size:14px; color:${BRAND.textMuted}; text-align:right;">${i.quantity > 1 ? `&times;${escapeHtml(i.quantity)}` : '&times;1'}</td>
+    </tr>`).join('');
 
-  const html = `
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0a1628 0%, #1a2f4a 100%); padding: 40px; border-radius: 16px;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #00ff88; font-size: 26px; margin: 0;">👑 Order Confirmed!</h1>
-        <p style="color: rgba(255,255,255,0.6); font-size: 13px; margin: 8px 0 0 0;">Order ${orderId}</p>
-      </div>
-      ${itemRowsHtml}
-      ${total ? `<p style="color: white; font-size: 15px; text-align: right; margin: 16px 0;">Total: <strong>$${total.toFixed(2)}</strong></p>` : ''}
-      <p style="color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.6;">
-        Your figure is being prepared for shipment. You'll receive a shipping confirmation with tracking as soon as it's on its way.
-        When it arrives, find the <strong style="color: #00ff88;">unique serial number sticker on the box</strong> and enter it in The Vault to verify authenticity and claim your digital collectible.
-      </p>
-      <div style="text-align: center; margin-top: 28px;">
-        <a href="${frontendUrl}/vault" style="display: inline-block; background: linear-gradient(135deg, #00ff88, #00c8ff); color: #000; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">Open The Vault →</a>
-      </div>
-      <p style="color: rgba(255,255,255,0.5); font-size: 12px; text-align: center; margin-top: 32px;">
-        © ${new Date().getFullYear()} Crownmania. All rights reserved.
-      </p>
-    </div>`;
+  const bodyHtml = `
+    ${infoCard(`
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        ${itemRowsHtml}
+        ${total ? `
+        <tr>
+          <td style="padding:14px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:14px; font-weight:700; color:${BRAND.text};">Total</td>
+          <td style="padding:14px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:16px; font-weight:700; color:${BRAND.accentBright}; text-align:right;">$${total.toFixed(2)}</td>
+        </tr>` : ''}
+      </table>`)}
+
+    <p style="margin:22px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.7; color:${BRAND.textMuted};">
+      Your figure is being prepared for shipment. You'll receive a shipping confirmation with tracking as soon as it's on its way.
+    </p>
+    <p style="margin:14px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.7; color:${BRAND.textMuted};">
+      When it arrives, find the <strong style="color:${BRAND.text};">unique serial number sticker on the box</strong> and enter it in The Vault to verify authenticity and claim your digital collectible.
+    </p>
+    ${ctaButton(`${frontendUrl}/vault`, 'Open The Vault')}`;
+
+  const html = renderEmailShell({
+    preheader: `Order ${orderId} confirmed — your figure is being prepared for shipment.`,
+    title: 'Order Confirmed',
+    subtitle: `Order ${orderId}`,
+    bodyHtml
+  });
 
   await sgMail.send({ to: toEmail, from: EMAIL_CONFIG.from, subject, text: plainText, html });
 };
@@ -259,41 +380,27 @@ When your figure arrives, verify its serial code in The Vault to claim your digi
 
 Thank you for being part of the Crownmania community!`;
 
-  const html = `
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0a1628 0%, #1a2f4a 100%); padding: 40px; border-radius: 16px;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #00ff88; font-size: 26px; margin: 0;">📦 Your Order Has Shipped!</h1>
-        <p style="color: rgba(255,255,255,0.6); font-size: 13px; margin: 8px 0 0 0;">Order ${orderId}</p>
-      </div>
-      <div style="background: rgba(0, 200, 255, 0.08); border: 1px solid rgba(0, 200, 255, 0.3); border-radius: 12px; padding: 20px; text-align: center;">
-        ${carrier ? `<p style="color: rgba(255,255,255,0.6); font-size: 13px; margin: 0 0 6px 0;">${carrier}</p>` : ''}
-        <p style="color: white; font-size: 18px; font-family: monospace; margin: 0;">${trackingNumber}</p>
-      </div>
-      ${trackingUrl ? `
-      <div style="text-align: center; margin-top: 24px;">
-        <a href="${trackingUrl}" style="display: inline-block; background: linear-gradient(135deg, #00ff88, #00c8ff); color: #000; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">Track Your Package →</a>
-      </div>` : ''}
-      <p style="color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.6; margin-top: 20px;">
-        When your figure arrives, verify its serial code in The Vault to claim your digital collectible and unlock exclusive perks.
-      </p>
-      <p style="color: rgba(255,255,255,0.5); font-size: 12px; text-align: center; margin-top: 32px;">
-        © ${new Date().getFullYear()} Crownmania. All rights reserved.
-      </p>
-    </div>`;
+  const bodyHtml = `
+    ${infoCard(`
+      <div style="text-align:center;">
+        ${carrier ? `<p style="margin:0 0 8px 0; font-family:Arial,Helvetica,sans-serif; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:${BRAND.textMuted};">${escapeHtml(carrier)}</p>` : ''}
+        <p style="margin:0; font-family:'Courier New',monospace; font-size:19px; color:${BRAND.text}; word-break:break-all;">${escapeHtml(trackingNumber)}</p>
+      </div>`)}
+    ${trackingUrl ? ctaButton(trackingUrl, 'Track Your Package') : ''}
+    <p style="margin:24px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.7; color:${BRAND.textMuted};">
+      When your figure arrives, find the <strong style="color:${BRAND.text};">serial number sticker on the box</strong> and enter it in The Vault to claim your digital collectible and unlock exclusive perks.
+    </p>
+    ${ctaButton(`${siteUrl()}/vault`, 'Open The Vault')}`;
+
+  const html = renderEmailShell({
+    preheader: `Order ${orderId} has shipped — tracking ${trackingNumber}.`,
+    title: 'Your Order Has Shipped',
+    subtitle: `Order ${orderId}`,
+    bodyHtml
+  });
 
   await sgMail.send({ to: toEmail, from: EMAIL_CONFIG.from, subject, text: plainText, html });
 };
-
-/**
- * Escape values that originate from customer input (names, addresses) before
- * interpolating them into HTML email bodies.
- */
-const escapeHtml = (value) => String(value ?? '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#39;');
 
 /**
  * Notify the admin/ops email that a sale completed, with everything needed to
@@ -342,27 +449,38 @@ node scripts/markShipped.js ${orderId} <trackingNumber> <carrier>
 
 Time: ${new Date().toISOString()}`;
 
-  const html = `
-    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0a1628 0%, #1a2f4a 100%); padding: 40px; border-radius: 16px;">
-      <div style="text-align: center; margin-bottom: 26px;">
-        <h1 style="color: #00ff88; font-size: 26px; margin: 0;">💰 New Sale — ${escapeHtml(amount)}</h1>
-        <p style="color: rgba(255,255,255,0.6); font-size: 13px; margin: 8px 0 0 0;">${escapeHtml(orderId)}</p>
-      </div>
-      <table style="width: 100%; border-collapse: collapse; color: white; font-size: 14px;">
-        <tr><td style="padding: 8px 0; color: rgba(255,255,255,0.6);">Customer</td><td style="padding: 8px 0; text-align: right;">${escapeHtml(customerEmail || 'unknown')}</td></tr>
-        <tr><td style="padding: 8px 0; color: rgba(255,255,255,0.6);">Items</td><td style="padding: 8px 0; text-align: right;">${itemLines.map(escapeHtml).join('<br>')}</td></tr>
-      </table>
-      <div style="background: rgba(0, 200, 255, 0.08); border: 1px solid rgba(0, 200, 255, 0.3); border-radius: 12px; padding: 18px; margin-top: 20px;">
-        <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0 0 8px 0;">SHIP TO</p>
-        <p style="color: white; font-size: 14px; margin: 0; line-height: 1.6;">${addressLines.map(escapeHtml).join('<br>')}</p>
-      </div>
-      <p style="color: rgba(255,255,255,0.5); font-size: 12px; line-height: 1.6; margin-top: 20px;">
-        Internal serial(s): <span style="font-family: monospace;">${escapeHtml(serials.join(', ') || 'none')}</span><br>
-        The customer claims using the sticker on their box, not this serial.
-      </p>
-      <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin-top: 18px;">When shipped, run:</p>
-      <pre style="background: rgba(0,0,0,0.35); color: #00ff88; font-size: 12px; padding: 12px; border-radius: 8px; white-space: pre-wrap; word-break: break-all;">node scripts/markShipped.js ${escapeHtml(orderId)} &lt;trackingNumber&gt; &lt;carrier&gt;</pre>
+  const bodyHtml = `
+    <div style="text-align:center; margin:0 0 22px 0;">
+      <span style="display:inline-block; padding:8px 18px; background-color:${BRAND.bgCard}; border:1px solid ${BRAND.accent}; border-radius:999px; font-family:Arial,Helvetica,sans-serif; font-size:22px; font-weight:700; color:${BRAND.success};">${escapeHtml(amount)}</span>
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      ${detailRow('Customer', customerEmail || 'unknown')}
+      ${detailRow('Items', itemLines.join(', ') || 'none')}
+    </table>
+
+    <div style="margin-top:22px;">
+      ${infoCard(`
+        <p style="margin:0 0 10px 0; font-family:Arial,Helvetica,sans-serif; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:${BRAND.accentBright};">Ship to</p>
+        <p style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.7; color:${BRAND.text};">${addressLines.map(escapeHtml).join('<br>')}</p>`)}
+    </div>
+
+    <p style="margin:22px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:12px; line-height:1.7; color:${BRAND.textFaint};">
+      Internal serial(s): <span style="font-family:'Courier New',monospace; color:${BRAND.textMuted};">${escapeHtml(serials.join(', ') || 'none')}</span><br>
+      The customer claims using the sticker on their box, not this serial.
+    </p>
+
+    <p style="margin:20px 0 8px 0; font-family:Arial,Helvetica,sans-serif; font-size:12px; color:${BRAND.textMuted};">When shipped, run:</p>
+    <div style="background-color:#000000; border:1px solid ${BRAND.border}; border-radius:8px; padding:12px;">
+      <code style="font-family:'Courier New',monospace; font-size:12px; color:${BRAND.accentBright}; word-break:break-all;">node scripts/markShipped.js ${escapeHtml(orderId)} &lt;trackingNumber&gt; &lt;carrier&gt;</code>
     </div>`;
+
+  const html = renderEmailShell({
+    preheader: `New sale ${amount} — ${orderId}`,
+    title: 'New Sale',
+    subtitle: `${orderId}`,
+    bodyHtml
+  });
 
   try {
     await sgMail.send({ to: adminEmail, from: EMAIL_CONFIG.from, subject, text: plainText, html });
