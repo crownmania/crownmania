@@ -62,15 +62,15 @@ export { sgMail, EMAIL_TEMPLATES, EMAIL_CONFIG };
 const BRAND = {
   logoUrl: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fcrownmania_logo_white.png?alt=media',
   bgOuter: '#000000',
-  bgPanel: '#00050f',
-  bgCard: '#081023',
+  bgPanel: '#000000',
+  bgCard: '#0B0F16',
   accent: '#4169E1',
   accentBright: '#6B8DD6',
   success: '#34C759',
   text: '#FFFFFF',
-  textMuted: '#AEB9CC',
-  textFaint: '#78849B',
-  border: '#1E2F56'
+  textMuted: '#C7CEDA',
+  textFaint: '#8A94A6',
+  border: '#1B2740'
 };
 
 const siteUrl = () => process.env.FRONTEND_URL || 'https://crownmania.com';
