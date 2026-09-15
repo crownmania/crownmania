@@ -65,9 +65,19 @@ variable names still look SendGrid-flavoured.
 - [x] `RESEND_API_KEY` — set, and confirmed sending
 - [x] `SENDGRID_FROM_EMAIL` — `noreply@crownmania.com` (legacy name; used as the Resend "from")
 - [x] `ADMIN_ALERT_EMAIL` — `crown@crownmania.com`
-- [ ] **Resend domain verification for `crownmania.com`** — until this is done,
-      confirmation and shipping emails risk going to spam. `SENDGRID_API_KEY`
-      is still set but unused; it can be removed.
+- [x] Resend domain DNS for `crownmania.com` is published:
+      - `resend._domainkey.crownmania.com` — DKIM public key present
+      - `send.crownmania.com` — Resend SPF (`v=spf1 ip4:52.3.252.119 ...`) and
+        MX `feedback.forge.rmta.net`
+      Resend signs as the `send.` subdomain, so the root SPF correctly stays
+      Google Workspace only (`include:_spf.google.com ~all`) — no Resend
+      include is needed at the apex.
+- [ ] Confirm the domain reads **Verified** in the Resend dashboard. The
+      production `RESEND_API_KEY` is send-only (`restricted_api_key`), so this
+      cannot be checked via the API.
+- [ ] DMARC is `p=none` (monitor only, reports to crown@crownmania.com).
+      Consider moving to `p=quarantine` once Resend traffic looks clean.
+- [ ] `SENDGRID_API_KEY` is set but unused and can be removed.
 
 ### Security
 - [x] `SERIAL_HASH_SALT` — real random value, not the dev fallback
