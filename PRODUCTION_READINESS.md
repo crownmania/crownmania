@@ -141,9 +141,37 @@ through scripts in `crownmania_backend/scripts/`:
 | Mark an order shipped and email tracking | `node scripts/markShipped.js <orderId> <tracking#> [carrier]` |
 | Resend an order confirmation | `node scripts/resendOrderEmail.js <orderId>` |
 | Audit claim codes | `node scripts/checkClaimCodes.js` |
+| Preview every email template without sending | `node scripts/previewEmails.js` |
 
 `markShipped.js` refuses to double-ship or ship a refunded order. Carriers with
 clickable tracking links: `usps`, `ups`, `fedex`, `dhl`.
+
+## ShipStation integration (bulk shipping)
+
+Orders push into ShipStation automatically at purchase time (awaiting_shipment).
+Buy labels in bulk in the ShipStation dashboard; each label fires a SHIP_NOTIFY
+webhook to `POST /api/shipstation/webhook`, which fetches the tracking number
+and marks the order shipped + emails the customer — no manual entry.
+
+Setup (one-time, requires `SHIPSTATION_API_KEY`/`SHIPSTATION_API_SECRET` set on
+Railway from ShipStation → Account → API Settings):
+
+```bash
+node scripts/setupShipstation.js   # verifies creds, subscribes webhook, backfills paid orders
+```
+
+Optional env vars `SHIPSTATION_PACKAGE_WEIGHT_OZ` / `_LENGTH` / `_WIDTH` /
+`_HEIGHT` pre-fill package details so labels can be bought without configuring
+the package each time. If ShipStation is unconfigured the push is a logged no-op;
+customer purchases are never blocked by it.
+
+`previewEmails.js` intercepts the Resend transport at the fetch layer and writes
+the real HTML to `crownmania_backend/email-previews/` — the exact bytes that
+would have been delivered. Review templates there; **do not send to customers to
+preview.** It covers every template, including `sendVerificationEmail`, which is
+currently **dead code** — the endpoint exists (`POST /api/verification/
+request-email-verification`) but no frontend code calls it, so no customer ever
+receives that code.
 
 ### Serial numbers — important
 Physical serial stickers are applied to boxes **at random**, so the serial

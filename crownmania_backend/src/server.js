@@ -15,6 +15,7 @@ import { authRouter } from './routes/auth.js';
 import { profileRouter } from './routes/profile.js';
 import { walletRouter } from './routes/wallet.js';
 import { webhooksRouter } from './routes/webhooks.js';
+import shipstationRouter from './routes/shipstation.js';
 import { notificationPreferencesRouter } from './routes/notificationPreferences.js';
 import { contactRouter } from './routes/contact.js';
 import { forumRouter } from './routes/forum.js';
@@ -170,8 +171,10 @@ const limiter = rateLimit({
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
-  // Skip rate limiting for health checks
-  skip: (req) => req.path === '/health',
+  // Skip rate limiting for health checks and inbound webhooks.
+  // ShipStation fires one SHIP_NOTIFY per label created; batch label printing
+  // would otherwise hit the per-IP cap from a single ShipStation source.
+  skip: (req) => req.path === '/health' || req.path === '/api/shipstation/webhook',
 });
 app.use(limiter);
 
@@ -231,6 +234,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/wallet', walletRouter);
 app.use('/api/webhooks', webhooksRouter);
+app.use('/api/shipstation', shipstationRouter);
 app.use('/api/notifications', notificationPreferencesRouter);
 app.use('/api/contact', contactRouter);
 app.use('/api/forum', forumRouter);

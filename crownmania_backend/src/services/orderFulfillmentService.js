@@ -3,6 +3,7 @@ import Order from '../models/Order.js';
 import Inventory from '../models/Inventory.js';
 import Collectible from '../models/Collectible.js';
 import { sendOrderConfirmationEmail, sendShippingConfirmationEmail, sendAdminAlertEmail, sendNewSaleEmail } from '../config/email.js';
+import shipstationService from './shipstationService.js';
 import { db } from '../config/firebase.js';
 import logger from '../config/logger.js';
 import crypto from 'crypto';
@@ -47,6 +48,22 @@ class OrderFulfillmentService {
 
             // Send confirmation email
             await this.sendConfirmationEmail(session, result);
+
+            // Push the order into ShipStation as awaiting_shipment so labels
+            // can be bought in bulk. Never fail the order over this.
+            const shipstationOrderId = await shipstationService.pushOrderToShipStation({
+                id: result.orderId,
+                customerEmail: session.customer_email || session.customer_details?.email,
+                items: result.items,
+                shippingAddress: result.shippingAddress,
+                stripeSessionId: session.id,
+                createdAt: new Date()
+            });
+            if (shipstationOrderId) {
+                db.collection('orders').doc(result.orderId)
+                    .update({ shipstationOrderId })
+                    .catch(err => logger.error('Failed to store ShipStation order ID:', err));
+            }
 
             // Notify ops that a sale landed, with everything needed to ship it.
             // Never let a notification failure affect the customer's order.
