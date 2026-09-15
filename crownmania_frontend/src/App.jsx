@@ -39,10 +39,10 @@ const MainContent = styled.main`
 const HomePage = () => (
   <>
     <Landing />
+    <Shop />
     <Vault />
     <TokenShowcase />
     <About />
-    <Shop />
     <Footer />
   </>
 );

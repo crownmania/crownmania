@@ -10,8 +10,7 @@ import { PRODUCTS } from '../data/productData';
 import { stripePromise } from '../config/paymentConfig';
 
 const ShopSection = styled.section`
-  min-height: 100vh;
-  padding: 8rem 2rem;
+  padding: 4rem 2rem 5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -31,11 +30,11 @@ const ShopSection = styled.section`
 
 const MainTitle = styled.div`
   text-align: center;
-  margin-bottom: 4rem;
+  margin-bottom: 2.5rem;
   z-index: 2;
 
   h1 {
-    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-size: clamp(2rem, 5vw, 2.75rem);
     font-family: var(--font-primary);
     margin-bottom: 0.5rem;
     font-weight: 800;
@@ -56,34 +55,43 @@ const MainTitle = styled.div`
 `;
 
 const WindowsContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2.5rem;
+  display: flex;
+  gap: 1.5rem;
   width: 100%;
   max-width: 1200px;
   z-index: 2;
 
-  @media (max-width: 1024px) {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2rem;
-  }
+  /* Horizontal scroll strip on narrower screens instead of stacking tall */
+  @media (max-width: 900px) {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 1rem 1rem;
+    scrollbar-width: thin;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    padding: 0 1rem;
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+    }
   }
 `;
 
 const ShopCard = styled(motion.div)`
+  flex: 1 1 0;
+  min-width: 0;
   background: var(--bg-vault);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: var(--glass-border);
   border-radius: 20px;
-  padding: 1.5rem;
+  padding: 1rem;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  gap: 1rem;
   cursor: pointer;
   position: relative;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -102,27 +110,33 @@ const ShopCard = styled(motion.div)`
   }
 
   &:hover {
-    transform: translateY(-10px);
+    transform: translateY(-6px);
     border-color: var(--vault-accent);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 
     img {
-      transform: scale(1.05) translateY(-5px);
+      transform: scale(1.05);
     }
+  }
+
+  @media (max-width: 900px) {
+    flex: 0 0 320px;
+    scroll-snap-align: center;
   }
 `;
 
 const ModelPreview = styled.div`
-  width: 100%;
+  flex: 0 0 auto;
+  width: 110px;
   aspect-ratio: 1/1;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  margin-bottom: 1.5rem;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
 
   img {
     width: 90%;
@@ -131,37 +145,41 @@ const ModelPreview = styled.div`
     transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
   }
+`;
 
-  &:first-of-type {
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
-  }
+const CardBody = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
 `;
 
 const ProductTitle = styled.h3`
   font-family: var(--font-secondary);
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: white;
-  margin: 0.5rem 0;
+  margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  text-align: center;
+  line-height: 1.3;
 `;
 
 const ProductPrice = styled.div`
   font-family: var(--font-secondary);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--vault-accent);
-  margin-bottom: 1.5rem;
   letter-spacing: 0.05em;
 `;
 
 const ActionBar = styled.div`
   width: 100%;
   display: flex;
-  gap: 1rem;
-  margin-top: auto;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 `;
 
 const ActionButton = styled(motion.button)`
@@ -169,10 +187,10 @@ const ActionButton = styled(motion.button)`
   background: ${props => props.$primary ? 'var(--vault-accent)' : 'rgba(255, 255, 255, 0.05)'};
   border: 1px solid ${props => props.$primary ? 'transparent' : 'rgba(255, 255, 255, 0.2)'};
   color: ${props => props.$primary ? '#000' : '#fff'};
-  padding: 0.8rem 1rem;
+  padding: 0.65rem 0.75rem;
   border-radius: 8px;
   font-family: var(--font-secondary);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   cursor: pointer;
   text-transform: uppercase;
@@ -415,34 +433,36 @@ export default function Shop() {
           >
             <ModelPreview>
               {product.comingSoon ? (
-                <ComingSoonBadge>AVAILABLE SOON</ComingSoonBadge>
+                <FaLock size={20} style={{ opacity: 0.3 }} />
               ) : (
                 <img src={product.mainImage} alt={product.name} />
               )}
             </ModelPreview>
 
-            <ProductTitle>{product.name}</ProductTitle>
-            <ProductPrice>{product.comingSoon ? '—' : product.price || '$200.00'}</ProductPrice>
+            <CardBody>
+              <ProductTitle>{product.name || 'Available Soon'}</ProductTitle>
+              <ProductPrice>{product.comingSoon ? '—' : product.price || '$200.00'}</ProductPrice>
 
-            <ActionBar>
-              <ActionButton
-                $primary
-                disabled={product.comingSoon || isCheckingOut}
-                onClick={(e) => handleBuyClick(e, product)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {product.comingSoon ? 'LOCKED' : isCheckingOut ? 'PROCESSING...' : 'SHOP NOW'}
-              </ActionButton>
-              {!product.comingSoon && (
+              <ActionBar>
                 <ActionButton
-                  style={{ width: '44px', flex: 'none' }}
-                  onClick={() => setSelectedWindow(product)}
+                  $primary
+                  disabled={product.comingSoon || isCheckingOut}
+                  onClick={(e) => handleBuyClick(e, product)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <FaChevronRight />
+                  {product.comingSoon ? 'LOCKED' : isCheckingOut ? 'PROCESSING...' : 'SHOP NOW'}
                 </ActionButton>
-              )}
-            </ActionBar>
+                {!product.comingSoon && (
+                  <ActionButton
+                    style={{ width: '40px', flex: 'none' }}
+                    onClick={() => setSelectedWindow(product)}
+                  >
+                    <FaChevronRight />
+                  </ActionButton>
+                )}
+              </ActionBar>
+            </CardBody>
           </ShopCard>
         ))}
       </WindowsContainer>
