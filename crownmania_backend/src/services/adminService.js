@@ -459,19 +459,35 @@ export const adminService = {
   },
 
   /**
-   * Get all claim codes with their status
-   * @returns {Promise<Array>}
+   * Get claim-code summary: aggregate counts plus the CLAIMED codes only.
+   * Unclaimed serial values are never returned — they are bearer
+   * credentials and must not be enumerable through the admin API.
+   * @returns {Promise<{total: number, claimed: number, unclaimed: number, claimCodes: Array}>}
    */
-  async getAllClaimCodes() {
+  async getClaimCodesSummary() {
     try {
-      const snapshot = await db.collection('claimCodes').get();
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        claimedAt: doc.data().claimedAt?.toDate?.()?.toISOString() || null
-      }));
+      const collection = db.collection('claimCodes');
+      const [claimedSnap, totalCountSnap, claimedCountSnap] = await Promise.all([
+        collection.where('claimed', '==', true).get(),
+        collection.count().get(),
+        collection.where('claimed', '==', true).count().get(),
+      ]);
+
+      const total = totalCountSnap.data().count;
+      const claimed = claimedCountSnap.data().count;
+
+      return {
+        total,
+        claimed,
+        unclaimed: total - claimed,
+        claimCodes: claimedSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          claimedAt: doc.data().claimedAt?.toDate?.()?.toISOString() || null
+        }))
+      };
     } catch (error) {
-      logger.error('Error getting claim codes:', error);
+      logger.error('Error getting claim code summary:', error);
       throw error;
     }
   },

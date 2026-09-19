@@ -85,9 +85,34 @@ const CollectiblesTable = ({ rows }) => (
   </TableWrap>
 );
 
+const CountChips = styled.div`
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+`;
+
+const CountChip = styled.div`
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-family: var(--font-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+
+  strong {
+    color: #fff;
+    margin-right: 0.35rem;
+  }
+`;
+
 const Claims = ({ notify, onAuthError }) => {
   const [view, setView] = useState('codes'); // 'codes' | 'collectibles'
   const [codes, setCodes] = useState(null);
+  const [summary, setSummary] = useState(null);
   const [collectibles, setCollectibles] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -97,11 +122,13 @@ const Claims = ({ notify, onAuthError }) => {
     setError('');
     try {
       const data = await adminRequest('/api/admin/claim-codes');
-      setCodes(Array.isArray(data) ? data : (data.claimCodes || data.items || []));
+      setCodes(data.claimCodes || []);
+      setSummary({ total: data.total, claimed: data.claimed, unclaimed: data.unclaimed });
     } catch (e) {
       if (e instanceof AdminAuthError) { onAuthError(e.message); return; }
       setError(e.message);
       setCodes([]);
+      setSummary(null);
     } finally {
       setLoading(false);
     }
@@ -138,11 +165,19 @@ const Claims = ({ notify, onAuthError }) => {
       </PanelTitle>
 
       <SubTabs>
-        <SubTab $active={view === 'codes'} onClick={() => setView('codes')}>Claim Codes</SubTab>
+        <SubTab $active={view === 'codes'} onClick={() => setView('codes')}>Claimed Codes</SubTab>
         <SubTab $active={view === 'collectibles'} onClick={() => setView('collectibles')}>Collectibles</SubTab>
         <span style={{ flex: 1 }} />
         <RefreshButton onClick={reload} loading={loading} />
       </SubTabs>
+
+      {view === 'codes' && summary && (
+        <CountChips>
+          <CountChip><strong>{summary.total}</strong> total codes</CountChip>
+          <CountChip><strong>{summary.claimed}</strong> claimed</CountChip>
+          <CountChip><strong>{summary.unclaimed}</strong> unclaimed</CountChip>
+        </CountChips>
+      )}
 
       {error && (
         <ErrorBanner><span>{error}</span><RefreshButton onClick={reload} loading={loading} /></ErrorBanner>

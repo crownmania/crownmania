@@ -12,6 +12,19 @@ import logger from '../config/logger.js';
 
 const router = express.Router();
 
+// Serials / claim codes are bearer credentials — never return full values.
+const maskSerial = (s) => (typeof s === 'string' && s.length > 8 ? `${s.slice(0, 8)}…` : s);
+const maskSerialFields = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const masked = { ...obj };
+  for (const key of Object.keys(masked)) {
+    if (/serial|claimcode/i.test(key) && typeof masked[key] === 'string') {
+      masked[key] = maskSerial(masked[key]);
+    }
+  }
+  return masked;
+};
+
 // ============================================
 // PUBLIC: Authentication Endpoints
 // ============================================
@@ -173,17 +186,13 @@ router.post('/collectibles/:id/revoke', requireAdmin, async (req, res) => {
 
 /**
  * GET /api/admin/claim-codes
- * Get all claim codes with their status
+ * Aggregate counts plus claimed codes only. Unclaimed serial values are
+ * bearer credentials and are never enumerable through this API.
  */
 router.get('/claim-codes', requireAdmin, async (req, res) => {
   try {
-    const claimCodes = await adminService.getAllClaimCodes();
-    res.json({
-      claimCodes,
-      total: claimCodes.length,
-      claimed: claimCodes.filter(c => c.claimed).length,
-      unclaimed: claimCodes.filter(c => !c.claimed).length
-    });
+    const summary = await adminService.getClaimCodesSummary();
+    res.json(summary);
   } catch (error) {
     logger.error('Error getting claim codes:', error);
     res.status(500).json({ error: 'Failed to get claim codes' });
@@ -318,7 +327,7 @@ router.get('/audit-logs', requireAdmin, async (req, res) => {
 
     const logs = snapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data(),
+      ...maskSerialFields(doc.data()),
       timestamp: doc.data().timestamp?.toDate().toISOString()
     }));
 
@@ -557,7 +566,14 @@ router.get('/orders', requireAdmin, async (req, res) => {
     }
 
     const snapshot = await query.limit(parseInt(limit)).offset(parseInt(offset)).get();
-    const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const orders = snapshot.docs.map(doc => {
+      const { allocatedSerials, ...rest } = doc.data();
+      return {
+        id: doc.id,
+        ...rest,
+        allocatedSerialCount: Array.isArray(allocatedSerials) ? allocatedSerials.length : 0
+      };
+    });
 
     res.json({ orders, count: orders.length });
   } catch (error) {
@@ -589,14 +605,15 @@ router.get('/orders/:orderId', requireAdmin, async (req, res) => {
         customerEmail: order.customerEmail,
         shippingAddress: order.shippingAddress,
         trackingNumber: order.trackingNumber,
-        allocatedSerials: order.allocatedSerials,
+        allocatedSerials: (order.allocatedSerials || []).map(s =>
+          maskSerial(typeof s === 'object' ? s.serialNumber : s)),
         collectibleEntitlements: order.collectibleEntitlements,
         entitlementStatus: order.entitlementStatus,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt
       },
       inventoryItems: inventoryItems.map(inv => ({
-        serialNumber: inv.serialNumber,
+        serialNumber: maskSerial(inv.serialNumber),
         productId: inv.productId,
         status: inv.status,
         claimedAt: inv.claimedAt
@@ -647,7 +664,7 @@ router.get('/fulfillment-failures', requireAdmin, async (req, res) => {
       .orderBy('createdAt', 'desc')
       .get();
 
-    const failures = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const failures = snapshot.docs.map(doc => ({ id: doc.id, ...maskSerialFields(doc.data()) }));
     res.json({ failures, count: failures.length });
   } catch (error) {
     logger.error('Error listing fulfillment failures:', error);

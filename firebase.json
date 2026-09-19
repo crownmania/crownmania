@@ -1,5 +1,6 @@
 {
   "firestore": {
+    "database": "crownmania",
     "rules": "crownmania_backend/firestore.rules",
     "indexes": "crownmania_backend/firestore.indexes.json"
   },
