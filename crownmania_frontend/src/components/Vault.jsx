@@ -1632,7 +1632,7 @@ margin-top: 1.25rem;
 font-family: var(--font-secondary);
 font-size: 0.9rem;
 font-weight: 500;
-color: ${props => props.$status === 'success' ? 'var(--vault-success)' : 'var(--vault-error)'};
+color: ${props => props.$status === 'error' ? 'var(--vault-error)' : 'var(--vault-success)'};
 display: flex;
 align-items: center;
 gap: 0.6rem;
@@ -1962,42 +1962,16 @@ export default function Vault() {
 
           setVerifiedSerials(validSerials);
 
-          // Check if we have any valid verified serials for the current product
-          const hasValidVerification = validSerials.some(item =>
-            item.productId === 'lil-durk-figure' || !item.productId
-          );
-
-          if (hasValidVerification && validSerials.length > 0) {
-            setIsPersistentlyVerified(true);
-            // Restore verification result from the most recent valid serial
-            const mostRecent = validSerials[validSerials.length - 1];
-            setVerificationResult({
-              status: 'success',
-              message: 'Product verified from previous session',
-              editionNumber: mostRecent.editionNumber,
-              productId: mostRecent.productId || 'lil-durk-figure',
-              tokenAddress: mostRecent.tokenAddress,
-              tokenId: mostRecent.tokenId,
-              transactionHash: mostRecent.transactionHash,
-              claimDate: mostRecent.claimDate
-            });
-            setSelectedToken({
-              productId: mostRecent.productId || 'lil-durk-figure',
-              tokenAddress: mostRecent.tokenAddress,
-              tokenId: mostRecent.tokenId,
-              transactionHash: mostRecent.transactionHash,
-              edition: mostRecent.editionNumber,
-              editionNumber: mostRecent.editionNumber,
-              claimDate: mostRecent.claimDate,
-              verifiedAt: mostRecent.verifiedAt,
-              nftTransferred: true
-            });
-            if (mostRecent.editionNumber) {
-              setCurrentEdition(mostRecent.editionNumber);
-            }
+          // Legacy entries no longer unlock the vault — only wallet-owned
+          // tokens count as a verified asset. Clear fabricated ownership
+          // saved by the old manual-verify path.
+          const realEntries = validSerials.filter(item => item.source === 'wallet');
+          if (realEntries.length !== validSerials.length) {
+            localStorage.setItem(VERIFIED_SERIALS_KEY, JSON.stringify(realEntries));
+            setVerifiedSerials(realEntries);
           }
 
-          return validSerials;
+          return realEntries;
         }
       }
     } catch (err) {
@@ -2184,26 +2158,13 @@ export default function Vault() {
     setCurrentEdition(token.edition || token.editionNumber);
   }, []);
 
-  // The active token can be the user's selected wallet token, or a manually verified token
-  const activeToken = selectedToken || (verificationResult ? {
-    productId: verificationResult.productId,
-    tokenAddress: verificationResult.tokenAddress,
-    tokenId: verificationResult.tokenId,
-    transactionHash: verificationResult.transactionHash,
-    edition: verificationResult.editionNumber,
-    editionNumber: verificationResult.editionNumber,
-    claimDate: verificationResult.claimDate,
-    verifiedAt: verificationResult.verifiedAt,
-    nftTransferred: !!verificationResult.tokenId
-  } : null);
+  // The active token is always a token the connected wallet actually owns —
+  // serial lookups are display-only and never fabricate ownership.
+  const activeToken = selectedToken;
 
-  // Derived state-asset is verified if:
-  // 1. First-time correct product code entry, OR
-  // 2. Recurring visitor with verified serial in localStorage, OR
-  // 3. Wallet connection with owned tokens, OR
-  // 4. Token record shows a successful transfer
-  const isAssetVerified = verificationResult?.status === 'success' ||
-    isPersistentlyVerified ||
+  // Derived state-asset is verified only through real ownership:
+  // wallet connection with owned tokens, or a token record showing a successful transfer
+  const isAssetVerified = isPersistentlyVerified ||
     (userTokens && userTokens.length > 0) ||
     !!activeToken?.nftTransferred;
 
@@ -2285,41 +2246,25 @@ export default function Vault() {
         const editionNum = apiResult.editionNumber || apiResult.edition;
         const productId = apiResult.productId || 'lil-durk-figure';
 
-        result = {
-          status: 'success',
-          message: 'Product verified successfully!',
-          editionNumber: editionNum,
-          productId: productId,
-          tokenAddress: apiResult.tokenAddress || apiResult.contractAddress,
-          tokenId: apiResult.tokenId,
-          transactionHash: apiResult.transactionHash,
-          claimDate: apiResult.claimDate || new Date().toISOString()
-        };
-
-        saveVerifiedSerialToStorage({
-          serialNumber: serialNumber.trim(),
-          tokenAddress: apiResult.tokenAddress || apiResult.contractAddress,
-          tokenId: apiResult.tokenId,
-          transactionHash: apiResult.transactionHash,
-          editionNumber: editionNum,
-          productId: productId,
-          claimDate: apiResult.claimDate || new Date().toISOString(),
-          source: 'manual_entry'
-        });
-
-        setSelectedToken({
-          productId,
-          tokenAddress: apiResult.tokenAddress || apiResult.contractAddress,
-          tokenId: apiResult.tokenId,
-          transactionHash: apiResult.transactionHash,
-          edition: editionNum,
-          editionNumber: editionNum,
-          claimDate: apiResult.claimDate || new Date().toISOString(),
-          verifiedAt: new Date().toISOString(),
-          nftTransferred: true
-        });
-
-        setIsPersistentlyVerified(true);
+        if (apiResult.claimed) {
+          result = {
+            status: 'claimed',
+            message: 'This collectible is authentic — its digital token has already been claimed.',
+            editionNumber: editionNum,
+            productId: productId,
+            tokenAddress: apiResult.tokenAddress || apiResult.contractAddress,
+            tokenId: apiResult.tokenId,
+            transactionHash: apiResult.transactionHash,
+            claimDate: apiResult.claimDate || new Date().toISOString()
+          };
+        } else {
+          result = {
+            status: 'unclaimed',
+            message: 'This collectible is authentic — its digital token has not been claimed yet.',
+            serialNumber: code,
+            productId: productId
+          };
+        }
       } else {
         result = {
           status: 'error',
@@ -2341,10 +2286,9 @@ export default function Vault() {
     setVerifyStep(4);
     setIsVerifying(false);
 
-    // Auto-close after success and show toast
-    if (result.status === 'success') {
+    if (result.status === 'claimed') {
       playVerificationSuccess(); // Sound: success chime
-      showToastMessage('✓ Product Verified Successfully!');
+      showToastMessage('✓ Authentic — Already Claimed');
 
       // Trigger rarity reveal animation + sound after a short delay
       const newRarity = getRarityTier(result.editionNumber);
@@ -2361,6 +2305,10 @@ export default function Vault() {
         setShowVerifyModal(false);
         setVerifyStep(1);
       }, 4000);
+    } else if (result.status === 'unclaimed') {
+      playVerificationSuccess(); // Sound: success chime
+      showToastMessage('✓ Authentic — Ready to Claim');
+      // Modal stays open so the user can tap CLAIM IT
     } else {
       playError(); // Sound: error buzz
     }
@@ -2647,12 +2595,12 @@ export default function Vault() {
                   $status={verificationResult.status}
                   style={{ marginTop: 0, flex: 1, padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '12px' }}
                 >
-                  {verificationResult.status === 'success' ? <FaCheck /> : <FaTimes />}
+                  {verificationResult.status !== 'error' ? <FaCheck /> : <FaTimes />}
                   {verificationResult.message}
                 </StatusMessage>
               )}
             </div>
-            {verificationResult?.status === 'success' && verificationResult?.tokenAddress && (
+            {verificationResult?.status === 'claimed' && verificationResult?.tokenAddress && (
               <TokenAddressContainer>
                 <TokenAddress>{formatAddress(verificationResult.tokenAddress)}</TokenAddress>
                 <CopyButton onClick={handleCopyTokenAddress} title="Copy token address">
@@ -3659,27 +3607,29 @@ export default function Vault() {
                   transition={{ type: 'spring', damping: 20 }}
                 >
                   <VerifyTitle>
-                    {verificationResult.status === 'success' ? 'VERIFIED' : 'SCAN COMPLETE'}
+                    {verificationResult.status === 'error' ? 'SCAN COMPLETE' : 'VERIFIED AUTHENTIC'}
                   </VerifyTitle>
 
                   <ResultIcon
-                    $success={verificationResult.status === 'success'}
+                    $success={verificationResult.status !== 'error'}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', delay: 0.2, damping: 15 }}
                   >
-                    {verificationResult.status === 'success' ? <FaCheck /> : <FaTimes />}
+                    {verificationResult.status !== 'error' ? <FaCheck /> : <FaTimes />}
                   </ResultIcon>
 
-                  <ResultMessage $success={verificationResult.status === 'success'}>
-                    {verificationResult.status === 'success' ? 'AUTHENTICATION SUCCESSFUL' : 'AUTHENTICATION FAILED'}
+                  <ResultMessage $success={verificationResult.status !== 'error'}>
+                    {verificationResult.status === 'claimed' && 'ALREADY CLAIMED'}
+                    {verificationResult.status === 'unclaimed' && 'READY TO CLAIM'}
+                    {verificationResult.status === 'error' && 'AUTHENTICATION FAILED'}
                   </ResultMessage>
 
                   <ResultDetail>
                     {verificationResult.message}
                   </ResultDetail>
 
-                  {verificationResult.status === 'success' && verificationResult.editionNumber && (
+                  {verificationResult.status === 'claimed' && verificationResult.editionNumber && (
                     <div style={{
                       textAlign: 'center',
                       padding: '1rem',
@@ -3699,19 +3649,41 @@ export default function Vault() {
                     </div>
                   )}
 
-                  <ActionButton
-                    onClick={closeVerifyModal}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    style={{ width: '100%' }}
-                    $primary={verificationResult.status === 'success'}
-                  >
-                    {verificationResult.status === 'success' ? (
-                      <><FaCheck /> CONTINUE TO VAULT</>
-                    ) : (
-                      <><FaArrowRight /> TRY AGAIN</>
-                    )}
-                  </ActionButton>
+                  {verificationResult.status === 'unclaimed' ? (
+                    <>
+                      <ActionButton
+                        $primary
+                        onClick={() => navigate(`/verify/${verificationResult.serialNumber}`)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{ width: '100%' }}
+                      >
+                        <FaArrowRight /> CLAIM IT
+                      </ActionButton>
+                      <div style={{ textAlign: 'center', marginTop: '0.75rem' }}>
+                        <span
+                          style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', cursor: 'pointer' }}
+                          onClick={closeVerifyModal}
+                        >
+                          Cancel
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <ActionButton
+                      onClick={closeVerifyModal}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      style={{ width: '100%' }}
+                      $primary={verificationResult.status === 'claimed'}
+                    >
+                      {verificationResult.status === 'claimed' ? (
+                        <><FaCheck /> CONTINUE TO VAULT</>
+                      ) : (
+                        <><FaArrowRight /> TRY AGAIN</>
+                      )}
+                    </ActionButton>
+                  )}
                 </motion.div>
               )}
             </VerifyModalContent>
