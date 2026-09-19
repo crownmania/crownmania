@@ -5,7 +5,6 @@ import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
 import { sendClaimConfirmationEmail } from '../config/email.js';
 import { db } from '../config/firebase.js';
 import { sendScanAttemptEmail, sendCodeEntryEmail, sendClaimAttemptEmail, sendAdminSMS } from '../services/notificationService.js';
-import { notifyNewClaim } from '../services/pushService.js';
 import { serialNumberLimiter, claimLimiter, emailVerificationLimiter } from '../middleware/rateLimiter.js';
 import { validateSerialNumber, validateWallet } from '../middleware/validation.js';
 const router = express.Router();
@@ -170,12 +169,6 @@ router.post('/claim', claimLimiter, validateWallet, authenticateWallet, async (r
         ? `🎉 CrownMania: NFT CLAIMED! Edition #${result.edition}/500 by ${walletAddress.substring(0, 8)}...`
         : `⚠️ CrownMania: NFT claim FAILED for ${productId.substring(0, 8)}... by ${walletAddress.substring(0, 8)}...`
     ).catch(err => console.error('SMS claim notification error:', err));
-
-    // Send push notification to all users on successful claim (test codes excluded)
-    if (result.success && result.edition && !result.isTestCode) {
-      notifyNewClaim(result.edition, result.productName || 'Lil Durk Figure')
-        .catch(err => console.error('Push notification error:', err));
-    }
 
     // Send confirmation email if email is provided
     if (email && result.success) {

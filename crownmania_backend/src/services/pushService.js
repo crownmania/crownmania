@@ -92,17 +92,6 @@ export async function sendPushToAll(title, body, data = {}) {
 }
 
 /**
- * Send push notification for a new claim event
- */
-export async function notifyNewClaim(edition, productName = 'Lil Durk Figure') {
-    await sendPushToAll(
-        '🎉 New Edition Claimed!',
-        `Edition #${edition}/500 of the ${productName} has been claimed!`,
-        { type: 'claim', edition: String(edition) }
-    );
-}
-
-/**
  * Send push notification for content drops
  */
 export async function notifyContentDrop(title, description) {
@@ -115,6 +104,5 @@ export async function notifyContentDrop(title, description) {
 
 export default {
     sendPushToAll,
-    notifyNewClaim,
     notifyContentDrop,
 };
