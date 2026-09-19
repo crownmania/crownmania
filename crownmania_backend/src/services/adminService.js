@@ -253,6 +253,33 @@ export const adminService = {
       const counterSnapshot = await db.collection('counters').doc('lil-durk-figure').get();
       const counterData = counterSnapshot.exists ? counterSnapshot.data() : { currentEdition: 0, totalEditions: 500 };
 
+      // Orders & revenue stats
+      const ordersSnapshot = await db.collection('orders')
+        .orderBy('createdAt', 'desc')
+        .get();
+      const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const paidOrders = orders.filter(o => o.status !== 'pending' && o.status !== 'refunded');
+      const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+      const ordersByStatus = orders.reduce((acc, o) => {
+        acc[o.status || 'unknown'] = (acc[o.status || 'unknown'] || 0) + 1;
+        return acc;
+      }, {});
+      const recentOrders = orders.slice(0, 10).map(o => ({
+        id: o.id,
+        status: o.status,
+        total: o.total,
+        customerEmail: o.customerEmail,
+        items: (o.items || []).map(i => `${i.quantity}x ${i.name}`).join(', '),
+        createdAt: o.createdAt?.toDate?.()?.toISOString() || o.createdAt || null
+      }));
+
+      // Inventory stats
+      const inventorySnapshot = await db.collection('inventory').get();
+      const inventory = inventorySnapshot.docs.map(doc => doc.data());
+      const inventoryAvailable = inventory.filter(i => i.status === 'available').length;
+      const inventoryAllocated = inventory.filter(i => i.status === 'allocated').length;
+      const inventoryClaimed = inventory.filter(i => i.status === 'claimed').length;
+
       // Recent activity (last 10 claims)
       const recentClaimsSnapshot = await db.collection('collectibles')
         .orderBy('createdAt', 'desc')
@@ -275,6 +302,19 @@ export const adminService = {
           claimedCodes,
           unclaimedCodes,
           claimRate: totalCodes > 0 ? ((claimedCodes / totalCodes) * 100).toFixed(1) + '%' : '0%'
+        },
+        sales: {
+          totalOrders: orders.length,
+          paidOrders: paidOrders.length,
+          totalRevenue,
+          byStatus: ordersByStatus,
+          recentOrders
+        },
+        inventory: {
+          available: inventoryAvailable,
+          allocated: inventoryAllocated,
+          claimed: inventoryClaimed,
+          total: inventory.length
         },
         collectibles: {
           total: totalCollectibles,
