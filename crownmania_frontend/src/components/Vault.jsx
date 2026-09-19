@@ -2243,7 +2243,8 @@ export default function Vault() {
   };
 
   const handleVerify = async (codeOverride) => {
-    const code = (codeOverride || serialNumber).trim();
+    // onClick passes a MouseEvent — only treat explicit string args as a code
+    const code = (typeof codeOverride === 'string' ? codeOverride : serialNumber).trim();
     if (!code) return;
 
     // Open verification modal and start flow
