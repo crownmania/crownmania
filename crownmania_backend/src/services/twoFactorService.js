@@ -6,7 +6,9 @@ import { sgMail, EMAIL_CONFIG, renderCodeEmail } from '../config/email.js';
 
 const CODE_LENGTH = 6;
 const CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CLAIM_CODE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const MAX_VERIFY_ATTEMPTS = 5;
+const MAX_CLAIM_CODES_PER_HOUR = 3;
 
 /**
  * Two-Factor Authentication Service
@@ -163,6 +165,125 @@ export const twoFactorService = {
         }
 
         logger.info(`[2FA] ${type} verified for user ${userId}`);
+        return true;
+    },
+
+    // ── claim verification ───────────────────────
+
+    /**
+     * Send an email verification code for a collectible claim.
+     * Uses a deterministic doc (claim_<serial>) so the latest request
+     * always wins and no composite index is needed.
+     * @param {string} serialNumber - The claim code / serial being claimed
+     * @param {string} email - Claimant's email address
+     */
+    async sendClaimEmailCode(serialNumber, email) {
+        const normalizedSerial = serialNumber.toLowerCase().trim();
+        const normalizedEmail = email.toLowerCase().trim();
+        const docRef = db.collection('verificationCodes').doc(`claim_${normalizedSerial}`);
+
+        const now = Date.now();
+        const existing = await docRef.get();
+        let requestCount = 0;
+        let windowStart = new Date(now);
+
+        if (existing.exists) {
+            const data = existing.data();
+            const windowStartMs = data.windowStart?.toDate ? data.windowStart.toDate().getTime() : 0;
+            if (now - windowStartMs < 60 * 60 * 1000) {
+                requestCount = data.requestCount || 0;
+                windowStart = data.windowStart;
+            }
+        }
+
+        if (requestCount >= MAX_CLAIM_CODES_PER_HOUR) {
+            throw new Error('Too many verification codes requested for this product. Please try again later.');
+        }
+
+        const code = this.generateCode();
+        const expiresAt = new Date(now + CLAIM_CODE_TTL_MS);
+
+        await docRef.set({
+            type: 'claim-email',
+            serialNumber: normalizedSerial,
+            email: normalizedEmail,
+            code,
+            expiresAt,
+            verified: false,
+            attempts: 0,
+            requestCount: requestCount + 1,
+            windowStart,
+            createdAt: new Date(now),
+        });
+
+        try {
+            const { html, text } = renderCodeEmail({
+                title: 'Verify Your Claim',
+                subtitle: 'Confirm your email to claim your collectible',
+                code,
+                expiryLabel: '10 minutes',
+                note: 'If you did not scan a Crownmania product code, you can safely ignore this email.'
+            });
+
+            await sgMail.send({
+                to: normalizedEmail,
+                from: EMAIL_CONFIG.from,
+                subject: 'Your Crownmania claim code',
+                text,
+                html,
+            });
+            logger.info(`[2FA] Claim code sent to ${normalizedEmail} for serial ${normalizedSerial.substring(0, 8)}...`);
+        } catch (err) {
+            logger.error(`[2FA] Failed to send claim code:`, err.message);
+            throw new Error('Failed to send verification code. Please try again.');
+        }
+
+        return { sent: true, expiresAt };
+    },
+
+    /**
+     * Verify a claim email code. Once verified, the code stays valid for the
+     * remainder of its TTL so a transient claim failure doesn't force a new code.
+     * @param {string} serialNumber
+     * @param {string} email
+     * @param {string} code
+     * @returns {Promise<boolean>}
+     */
+    async verifyClaimEmailCode(serialNumber, email, code) {
+        const normalizedSerial = serialNumber.toLowerCase().trim();
+        const normalizedEmail = email.toLowerCase().trim();
+        const docRef = db.collection('verificationCodes').doc(`claim_${normalizedSerial}`);
+        const doc = await docRef.get();
+
+        if (!doc.exists || doc.data().type !== 'claim-email') {
+            throw new Error('No verification code was requested for this product.');
+        }
+
+        const data = doc.data();
+
+        if (data.email !== normalizedEmail) {
+            throw new Error('The verification code was sent to a different email address.');
+        }
+
+        if (data.expiresAt.toDate() < new Date()) {
+            throw new Error('Verification code expired. Please request a new one.');
+        }
+
+        if (data.verified) {
+            return true;
+        }
+
+        if (data.attempts >= MAX_VERIFY_ATTEMPTS) {
+            throw new Error('Too many failed attempts. Please request a new code.');
+        }
+
+        if (data.code !== String(code).trim()) {
+            await docRef.update({ attempts: data.attempts + 1 });
+            throw new Error('Invalid verification code.');
+        }
+
+        await docRef.update({ verified: true, verifiedAt: new Date() });
+        logger.info(`[2FA] Claim email verified for serial ${normalizedSerial.substring(0, 8)}...`);
         return true;
     },
 

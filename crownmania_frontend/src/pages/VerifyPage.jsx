@@ -307,6 +307,38 @@ const ErrorMessage = styled.div`
   text-align: center;
 `;
 
+const ClaimInput = styled.input`
+  width: 100%;
+  max-width: 340px;
+  padding: 0.9rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.07);
+  color: white;
+  font-size: 1rem;
+  text-align: center;
+  letter-spacing: ${props => props.$code ? '0.3em' : 'normal'};
+  font-family: ${props => props.$code ? "'Courier New', monospace" : 'inherit'};
+  margin-top: 0.75rem;
+  outline: none;
+  transition: border-color 0.2s;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+    letter-spacing: normal;
+  }
+
+  &:focus {
+    border-color: #4f46e5;
+  }
+`;
+
+const SentNote = styled.p`
+  font-size: 0.85rem;
+  color: #4ade80;
+  margin-top: 0.75rem;
+`;
+
 // Ownership details component
 const OwnershipDetails = ({ edition, totalEditions, claimedAt, walletAddress, tokenId }) => {
     const formatAddress = (addr) => {
@@ -412,6 +444,10 @@ export default function VerifyPage() {
     const [claimResult, setClaimResult] = useState(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [isCurrentOwner, setIsCurrentOwner] = useState(false);
+    const [claimEmail, setClaimEmail] = useState('');
+    const [claimCode, setClaimCode] = useState('');
+    const [codeSent, setCodeSent] = useState(false);
+    const [sendingCode, setSendingCode] = useState(false);
 
     // Sync wallet address
     useEffect(() => {
@@ -474,9 +510,34 @@ export default function VerifyPage() {
         }
     };
 
+    const handleSendCode = async () => {
+        const email = claimEmail.trim();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setErrorMessage('Please enter a valid email address.');
+            return;
+        }
+
+        setSendingCode(true);
+        setErrorMessage('');
+
+        try {
+            await verificationAPI.requestClaimCode(serial, email);
+            setCodeSent(true);
+        } catch (err) {
+            setErrorMessage(err.error || err.message || 'Failed to send verification code.');
+        } finally {
+            setSendingCode(false);
+        }
+    };
+
     const handleClaim = async () => {
         if (!walletAddress) {
             setErrorMessage('Wallet not connected. Please sign in again.');
+            return;
+        }
+
+        if (!claimEmail.trim() || !claimCode.trim()) {
+            setErrorMessage('Please enter your email and the verification code.');
             return;
         }
 
@@ -513,7 +574,10 @@ export default function VerifyPage() {
             }
 
             // 4. Submit claim to backend
-            const result = await verificationAPI.claimProduct(serial, walletAddress, signature, message);
+            const result = await verificationAPI.claimProduct(
+                serial, walletAddress, signature, message,
+                claimEmail.trim(), claimCode.trim()
+            );
 
             if (result.success) {
                 // Success!
@@ -638,16 +702,54 @@ export default function VerifyPage() {
                             </StatusIcon>
                             <Title>Ready to Claim</Title>
                             <ProductDetails product={product} serial={serial} showBadge />
-                            <Message>
-                                Confirm your ownership on the blockchain to unlock exclusive benefits.
-                            </Message>
-                            <ActionButton
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleClaim}
-                            >
-                                CLAIM NOW <FaArrowRight />
-                            </ActionButton>
+                            {!codeSent ? (
+                                <>
+                                    <Message>
+                                        Enter your email to receive a verification code and confirm your ownership.
+                                    </Message>
+                                    <ClaimInput
+                                        type="email"
+                                        placeholder="your@email.com"
+                                        value={claimEmail}
+                                        onChange={(e) => setClaimEmail(e.target.value)}
+                                        autoComplete="email"
+                                    />
+                                    <ActionButton
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleSendCode}
+                                        disabled={sendingCode || !claimEmail.trim()}
+                                    >
+                                        {sendingCode ? 'SENDING CODE...' : 'SEND VERIFICATION CODE'} <FaArrowRight />
+                                    </ActionButton>
+                                </>
+                            ) : (
+                                <>
+                                    <SentNote>Verification code sent to {claimEmail}</SentNote>
+                                    <ClaimInput
+                                        $code
+                                        type="text"
+                                        inputMode="numeric"
+                                        maxLength={6}
+                                        placeholder="000000"
+                                        value={claimCode}
+                                        onChange={(e) => setClaimCode(e.target.value.replace(/\D/g, ''))}
+                                    />
+                                    <ActionButton
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleClaim}
+                                        disabled={claimCode.length !== 6}
+                                    >
+                                        CLAIM NOW <FaArrowRight />
+                                    </ActionButton>
+                                    <SecondaryButton
+                                        onClick={() => { setCodeSent(false); setClaimCode(''); }}
+                                    >
+                                        Use a different email
+                                    </SecondaryButton>
+                                </>
+                            )}
                             {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
                         </StateContainer>
                     )}

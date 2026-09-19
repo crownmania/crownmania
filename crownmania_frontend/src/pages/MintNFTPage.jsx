@@ -143,6 +143,38 @@ const ErrorMessage = styled.div`
   border-radius: 8px;
 `;
 
+const ClaimInput = styled.input`
+  width: 100%;
+  max-width: 340px;
+  padding: 0.9rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.07);
+  color: white;
+  font-size: 1rem;
+  text-align: center;
+  letter-spacing: ${props => props.$code ? '0.3em' : 'normal'};
+  font-family: ${props => props.$code ? "'Courier New', monospace" : 'inherit'};
+  margin-top: 0.75rem;
+  outline: none;
+  transition: border-color 0.2s;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+    letter-spacing: normal;
+  }
+
+  &:focus {
+    border-color: #4f46e5;
+  }
+`;
+
+const SentNote = styled.p`
+  font-size: 0.85rem;
+  color: #4ade80;
+  margin-top: 0.75rem;
+`;
+
 const BlockchainLink = styled.a`
   display: inline-flex;
   align-items: center;
@@ -201,6 +233,10 @@ export default function MintNFTPage() {
     const [product, setProduct] = useState(null);
     const [walletAddress, setWalletAddress] = useState(null);
     const [error, setError] = useState(null);
+    const [claimEmail, setClaimEmail] = useState('');
+    const [claimCode, setClaimCode] = useState('');
+    const [codeSent, setCodeSent] = useState(false);
+    const [sendingCode, setSendingCode] = useState(false);
 
     // Check if product is already claimed
     const [alreadyClaimed, setAlreadyClaimed] = useState(false);
@@ -327,9 +363,34 @@ export default function MintNFTPage() {
         }
     };
 
+    const handleSendCode = async () => {
+        const email = claimEmail.trim();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setError('Please enter a valid email address.');
+            return;
+        }
+
+        setSendingCode(true);
+        setError(null);
+
+        try {
+            await verificationAPI.requestClaimCode(id, email);
+            setCodeSent(true);
+        } catch (err) {
+            setError(err.error || err.message || 'Failed to send verification code.');
+        } finally {
+            setSendingCode(false);
+        }
+    };
+
     const handleMint = async () => {
         if (!walletAddress) {
             setError('Wallet not connected. Please sign in again.');
+            return;
+        }
+
+        if (!claimEmail.trim() || !claimCode.trim()) {
+            setError('Please enter your email and the verification code.');
             return;
         }
 
@@ -365,7 +426,10 @@ export default function MintNFTPage() {
             }
 
             // 4. Submit claim to backend
-            const result = await verificationAPI.claimProduct(id, walletAddress, signature, message);
+            const result = await verificationAPI.claimProduct(
+                id, walletAddress, signature, message,
+                claimEmail.trim(), claimCode.trim()
+            );
 
             if (result.success) {
                 setStatus('claimed');
@@ -482,16 +546,54 @@ export default function MintNFTPage() {
                             </StatusIcon>
                             <Title>Account Secured</Title>
                             <ProductType>{productName}</ProductType>
-                            <Message>
-                                You have successfully secured your account! Click below to finalize ownership and secure your Digital Twin NFT.
-                            </Message>
-                            <ActionButton
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleMint}
-                            >
-                                Claim Collectible <FaArrowRight />
-                            </ActionButton>
+                            {!codeSent ? (
+                                <>
+                                    <Message>
+                                        Enter your email to receive a verification code and finalize ownership of your Digital Twin NFT.
+                                    </Message>
+                                    <ClaimInput
+                                        type="email"
+                                        placeholder="your@email.com"
+                                        value={claimEmail}
+                                        onChange={(e) => setClaimEmail(e.target.value)}
+                                        autoComplete="email"
+                                    />
+                                    <ActionButton
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleSendCode}
+                                        disabled={sendingCode || !claimEmail.trim()}
+                                    >
+                                        {sendingCode ? 'Sending Code...' : 'Send Verification Code'} <FaArrowRight />
+                                    </ActionButton>
+                                </>
+                            ) : (
+                                <>
+                                    <SentNote>Verification code sent to {claimEmail}</SentNote>
+                                    <ClaimInput
+                                        $code
+                                        type="text"
+                                        inputMode="numeric"
+                                        maxLength={6}
+                                        placeholder="000000"
+                                        value={claimCode}
+                                        onChange={(e) => setClaimCode(e.target.value.replace(/\D/g, ''))}
+                                    />
+                                    <ActionButton
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleMint}
+                                        disabled={claimCode.length !== 6}
+                                    >
+                                        Claim Collectible <FaArrowRight />
+                                    </ActionButton>
+                                    <SecondaryButton
+                                        onClick={() => { setCodeSent(false); setClaimCode(''); }}
+                                    >
+                                        Use a different email
+                                    </SecondaryButton>
+                                </>
+                            )}
                         </motion.div>
                     )}
 

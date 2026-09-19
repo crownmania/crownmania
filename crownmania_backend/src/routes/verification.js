@@ -1,10 +1,12 @@
 import express from 'express';
 import { verificationService } from '../services/verificationService.js';
+import { twoFactorService } from '../services/twoFactorService.js';
 import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
 import { sendClaimConfirmationEmail } from '../config/email.js';
+import { db } from '../config/firebase.js';
 import { sendScanAttemptEmail, sendCodeEntryEmail, sendClaimAttemptEmail, sendAdminSMS } from '../services/notificationService.js';
 import { notifyNewClaim } from '../services/pushService.js';
-import { serialNumberLimiter, claimLimiter } from '../middleware/rateLimiter.js';
+import { serialNumberLimiter, claimLimiter, emailVerificationLimiter } from '../middleware/rateLimiter.js';
 import { validateSerialNumber, validateWallet } from '../middleware/validation.js';
 const router = express.Router();
 
@@ -87,24 +89,76 @@ router.get('/verify-product/:id', async (req, res) => {
 });
 
 /**
+ * @route POST /api/verification/claim/request-code
+ * @desc Send an email verification code required to claim a product
+ * @access Public (rate limited)
+ */
+router.post('/claim/request-code', emailVerificationLimiter, validateSerialNumber, async (req, res) => {
+  try {
+    const { serialNumber, email } = req.body;
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return res.status(400).json({ error: 'A valid email address is required' });
+    }
+
+    // The serial must exist and be unclaimed before a code is issued
+    const claimCodeDoc = await db.collection('claimCodes').doc(serialNumber.toLowerCase().trim()).get();
+    if (!claimCodeDoc.exists) {
+      return res.status(404).json({ error: 'Invalid serial number' });
+    }
+    const claimCodeData = claimCodeDoc.data();
+    if (claimCodeData.claimed || claimCodeData.claimedBy) {
+      return res.status(409).json({ error: 'This product has already been claimed' });
+    }
+
+    await twoFactorService.sendClaimEmailCode(serialNumber, email);
+    res.json({ sent: true, message: 'Verification code sent' });
+  } catch (error) {
+    console.error('Error sending claim verification code:', error);
+    const message = error.message || 'Server error while sending verification code';
+    const status = message.includes('Too many') ? 429 : 500;
+    res.status(status).json({ error: message });
+  }
+});
+
+/**
  * @route POST /api/verification/claim
  * @desc Claim a product to a wallet address
- * @access Private (authenticated wallet)
+ * @access Private (authenticated wallet + verified email code)
  */
 router.post('/claim', claimLimiter, validateWallet, authenticateWallet, async (req, res) => {
   try {
-    const { productId, walletAddress, signature, message, email } = req.body;
+    const { productId, walletAddress, signature, message, email, verificationCode } = req.body;
 
     if (!productId || !walletAddress) {
       return res.status(400).json({ error: 'Product ID and wallet address are required' });
     }
 
+    if (!email || !verificationCode) {
+      return res.status(400).json({ error: 'Email verification is required to claim. Request a code first.' });
+    }
+
+    // Verify the email code before attempting the claim
+    try {
+      await twoFactorService.verifyClaimEmailCode(productId, email, verificationCode);
+    } catch (verifyError) {
+      return res.status(400).json({ error: verifyError.message });
+    }
+
     const result = await verificationService.claimProduct(productId, walletAddress, signature, message);
+
+    // Record the verified claimant email on the claim record
+    if (result.success) {
+      db.collection('claimCodes').doc(productId.toLowerCase())
+        .update({ claimedByEmail: email.toLowerCase().trim() })
+        .catch(err => console.error('Failed to record claimant email:', err));
+    }
 
     // Send admin email notification for claim attempt
     sendClaimAttemptEmail({
       claimCodeId: productId,
       walletAddress,
+      claimEmail: email,
       success: result.success,
       edition: result.edition,
       ip: req.ip || req.headers['x-forwarded-for']

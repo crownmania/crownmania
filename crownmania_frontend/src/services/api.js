@@ -334,20 +334,45 @@ export const verificationAPI = {
   },
 
   /**
+   * Request an email verification code required to claim a product
+   * @param {string} serialNumber - The serial number / claim code
+   * @param {string} email - The claimant's email address
+   * @returns {Promise<{sent: boolean, message: string}>}
+   */
+  requestClaimCode: async (serialNumber, email) => {
+    try {
+      const response = await api.post('/api/verification/claim/request-code', {
+        serialNumber,
+        email
+      }, {
+        requiresAuth: false, // Public endpoint (rate limited)
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error requesting claim code:', error);
+      throw error.response?.data || { error: 'Failed to send verification code' };
+    }
+  },
+
+  /**
    * Claim a product to a wallet address
    * @param {string} productId - The product ID
    * @param {string} walletAddress - The wallet address to claim to
    * @param {string} signature - Signed proof of ownership
    * @param {string} message - The signed message
+   * @param {string} email - The verified claimant email
+   * @param {string} verificationCode - The emailed verification code
    * @returns {Promise<{success: boolean, tokenId: string, message: string}>}
    */
-  claimProduct: async (productId, walletAddress, signature, message) => {
+  claimProduct: async (productId, walletAddress, signature, message, email, verificationCode) => {
     try {
       const response = await api.post('/api/verification/claim', {
         productId,
         walletAddress,
         signature,
-        message
+        message,
+        email,
+        verificationCode
       }, {
         sensitive: true,
         walletAddress,

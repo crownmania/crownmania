@@ -72,7 +72,7 @@ export const sendCodeEntryEmail = async (claimCodeId, details = {}) => {
  * @param {object} claimDetails - Claim attempt details
  */
 export const sendClaimAttemptEmail = async (claimDetails) => {
-  const { claimCodeId, walletAddress, success, edition, ip } = claimDetails;
+  const { claimCodeId, walletAddress, claimEmail, success, edition, ip } = claimDetails;
 
   try {
     await sendBrandedAdminEmail({
@@ -86,6 +86,7 @@ export const sendClaimAttemptEmail = async (claimDetails) => {
       rows: {
         'Claim code': claimCodeId,
         Wallet: walletAddress,
+        ...(claimEmail ? { 'Claim email': claimEmail } : {}),
         ...(success && edition ? { Edition: `#${edition}` } : {}),
         Status: success ? 'Success' : 'Failed',
         Time: new Date().toISOString(),
