@@ -311,6 +311,7 @@ export const verificationService = {
 
       // Result object to be populated by transaction
       let claimResult = null;
+      let claimCodeData = null;
 
       // Execute entire claim in a single atomic transaction
       await db.runTransaction(async (transaction) => {
@@ -327,7 +328,7 @@ export const verificationService = {
           throw new Error('CLAIM_ERROR:Invalid claim code');
         }
 
-        const claimCodeData = claimCodeDoc.data();
+        claimCodeData = claimCodeDoc.data();
 
         // Step 2: Check if already claimed (race condition prevention)
         if (claimCodeData.claimed || claimCodeData.claimedBy) {
@@ -410,6 +411,17 @@ export const verificationService = {
         };
       });
 
+      // Test codes exercise the full claim flow without a real on-chain
+      // transfer or customer-facing notifications — the mint pipeline is
+      // already covered by production claims.
+      if (claimCodeData?.isTestCode) {
+        await collectibleRef.update({
+          status: 'test_claimed',
+          isTest: true,
+          nftTransferred: false
+        });
+        claimResult.isTestCode = true;
+      } else {
       // Transaction succeeded - now enqueue NFT transfer job (outside transaction)
       // Using queue ensures reliability with automatic retries
       try {
@@ -462,6 +474,7 @@ export const verificationService = {
           status: 'failed_transfer',
           transferError: queueError.message
         });
+      }
       }
 
       // Mass-claim velocity check — the serial list is bearer-instrument data,

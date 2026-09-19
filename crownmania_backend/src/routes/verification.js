@@ -171,8 +171,8 @@ router.post('/claim', claimLimiter, validateWallet, authenticateWallet, async (r
         : `⚠️ CrownMania: NFT claim FAILED for ${productId.substring(0, 8)}... by ${walletAddress.substring(0, 8)}...`
     ).catch(err => console.error('SMS claim notification error:', err));
 
-    // Send push notification to all users on successful claim
-    if (result.success && result.edition) {
+    // Send push notification to all users on successful claim (test codes excluded)
+    if (result.success && result.edition && !result.isTestCode) {
       notifyNewClaim(result.edition, result.productName || 'Lil Durk Figure')
         .catch(err => console.error('Push notification error:', err));
     }
