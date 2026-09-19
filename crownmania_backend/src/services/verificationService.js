@@ -509,6 +509,7 @@ export const verificationService = {
         editionNumber: claimResult.editionNumber,
         totalEditions: claimResult.totalEditions,
         productName: claimResult.productName,
+        isTestCode: claimResult.isTestCode === true,
         status: 'pending_transfer',
         claimDate: new Date().toISOString(),
         message: 'Collectible claimed successfully. NFT transfer is being processed and will complete shortly.'

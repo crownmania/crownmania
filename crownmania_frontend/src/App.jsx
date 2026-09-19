@@ -1,5 +1,5 @@
 import React, { useEffect, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useSearchParams, Navigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { GlobalStyles } from './styles/GlobalStyles';
 import Header from './components/Header';
@@ -31,7 +31,6 @@ const ForumPage = React.lazy(() => import('./pages/ForumPage'));
 const ContactPage = React.lazy(() => import('./pages/ContactPage'));
 const ProductPage = React.lazy(() => import('./components/ProductPage'));
 const VerifyPage = React.lazy(() => import('./pages/VerifyPage'));
-const MintNFTPage = React.lazy(() => import('./pages/MintNFTPage'));
 const SuccessPage = React.lazy(() => import('./pages/SuccessPage'));
 const CancelPage = React.lazy(() => import('./pages/CancelPage'));
 const LegalPage = React.lazy(() => import('./pages/LegalPage'));
@@ -48,6 +47,15 @@ const MainContent = styled.main`
   flex: 1;
   padding-top: 80px;
 `;
+
+// Legacy /mintNFT?id=X links (old QR codes, bookmarks, session restore)
+// forward to the canonical claim route. Path params survive the
+// Web3Auth login redirect that used to strip the query string.
+const MintNFTRedirect = () => {
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get('id') || sessionStorage.getItem('claim_id');
+  return <Navigate to={id ? `/verify/${id}` : '/'} replace />;
+};
 
 const HomePage = () => (
   <>
@@ -114,7 +122,7 @@ function App() {
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/product/:id" element={<ProductPage />} />
               <Route path="/verify/:serial" element={<VerifyPage />} />
-              <Route path="/mintNFT" element={<MintNFTPage />} />
+              <Route path="/mintNFT" element={<MintNFTRedirect />} />
               <Route path="/success" element={<SuccessPage />} />
               <Route path="/cancel" element={<CancelPage />} />
               <Route path="/legal" element={<LegalPage />} />

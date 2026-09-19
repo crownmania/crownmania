@@ -444,6 +444,8 @@ export default function VerifyPage() {
     const [claimResult, setClaimResult] = useState(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [isCurrentOwner, setIsCurrentOwner] = useState(false);
+    const [deliveryInfo, setDeliveryInfo] = useState(null);
+    const [deliveryTimedOut, setDeliveryTimedOut] = useState(false);
     const [claimEmail, setClaimEmail] = useState('');
     const [claimCode, setClaimCode] = useState('');
     const [codeSent, setCodeSent] = useState(false);
@@ -467,6 +469,59 @@ export default function VerifyPage() {
         };
         syncWallet();
     }, [user, getAddress, claimInfo]);
+
+    // Poll for on-chain NFT delivery after a real claim succeeds
+    // (test claims have no transfer — they go straight to the success screen)
+    useEffect(() => {
+        if (status !== 'delivering' || !serial) return;
+
+        let cancelled = false;
+        let pollCount = 0;
+        const maxPolls = 36; // 36 x 5s = 3 minutes max
+
+        const poll = async () => {
+            if (cancelled) return;
+            pollCount++;
+
+            try {
+                const result = await verificationAPI.getTransferStatus(serial);
+                if (cancelled) return;
+
+                if (result.status === 'transferred') {
+                    setDeliveryInfo({
+                        transactionHash: result.transactionHash,
+                        tokenId: result.tokenId,
+                        contractAddress: result.contractAddress,
+                        edition: result.edition,
+                        totalEditions: result.totalEditions
+                    });
+                    setStatus('ownership_verified');
+                    return;
+                }
+
+                if (pollCount >= maxPolls) {
+                    setDeliveryTimedOut(true);
+                    setStatus('ownership_verified');
+                } else {
+                    setTimeout(poll, 5000);
+                }
+            } catch (err) {
+                if (cancelled) return;
+                if (pollCount >= maxPolls) {
+                    setDeliveryTimedOut(true);
+                    setStatus('ownership_verified');
+                } else {
+                    setTimeout(poll, 5000);
+                }
+            }
+        };
+
+        const initialDelay = setTimeout(poll, 3000);
+        return () => {
+            cancelled = true;
+            clearTimeout(initialDelay);
+        };
+    }, [status, serial]);
 
     useEffect(() => {
         const checkSerial = async () => {
@@ -583,15 +638,17 @@ export default function VerifyPage() {
                 // Success!
                 const claimedAt = new Date().toISOString();
                 setClaimResult({
-                    edition: result.edition,
+                    edition: result.editionNumber || result.edition,
                     totalEditions: result.totalEditions,
                     tokenId: result.tokenId,
                     blockchainTokenId: result.blockchainTokenId,
                     transactionHash: result.transactionHash,
+                    isTestCode: result.isTestCode === true,
                     claimedAt: claimedAt,
                     walletAddress: walletAddress
                 });
-                setStatus('ownership_verified');
+                // Real claims wait for on-chain delivery; test claims have no transfer
+                setStatus(result.isTestCode ? 'ownership_verified' : 'delivering');
 
                 // Update local storage for vault display
                 const owned = JSON.parse(localStorage.getItem('my_collectibles') || '[]');
@@ -771,6 +828,23 @@ export default function VerifyPage() {
                         </StateContainer>
                     )}
 
+                    {/* DELIVERING STATE — waiting for on-chain transfer */}
+                    {status === 'delivering' && (
+                        <StateContainer
+                            key="delivering"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                        >
+                            <StatusIcon className="checking" animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>
+                                <FaShieldAlt />
+                            </StatusIcon>
+                            <Title>Claim Successful</Title>
+                            <Message>Your digital collectible is being delivered to your wallet on-chain. This usually takes under a minute.</Message>
+                            <SerialDisplay>{serial}</SerialDisplay>
+                        </StateContainer>
+                    )}
+
                     {/* OWNERSHIP VERIFIED (Success) */}
                     {status === 'ownership_verified' && (
                         <StateContainer
@@ -808,12 +882,26 @@ export default function VerifyPage() {
                             <Message style={{ color: "#ffd700", fontWeight: "bold" }}>Ownership Verified Successfully</Message>
                             <ProductDetails product={product} serial={serial} showBadge />
                             <OwnershipDetails
-                                edition={claimResult?.edition}
-                                totalEditions={claimResult?.totalEditions}
+                                edition={deliveryInfo?.edition || claimResult?.edition}
+                                totalEditions={deliveryInfo?.totalEditions || claimResult?.totalEditions}
                                 claimedAt={claimResult?.claimedAt}
                                 walletAddress={claimResult?.walletAddress}
-                                tokenId={claimResult?.tokenId}
+                                tokenId={deliveryInfo?.tokenId || claimResult?.tokenId}
                             />
+                            {deliveryTimedOut && (
+                                <Message style={{ fontSize: '0.85rem', opacity: 0.8 }}>
+                                    On-chain delivery is taking longer than usual — it completes automatically, no action needed.
+                                </Message>
+                            )}
+                            {(deliveryInfo?.transactionHash || claimResult?.transactionHash) && (
+                                <BlockchainLink
+                                    href={`https://polygonscan.com/tx/${deliveryInfo?.transactionHash || claimResult?.transactionHash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    View Transaction <FaExternalLinkAlt />
+                                </BlockchainLink>
+                            )}
                             <ButtonGroup>
                                 <ActionButton
                                     whileHover={{ scale: 1.05 }}
