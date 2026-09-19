@@ -62,24 +62,45 @@ async function main() {
     return;
   }
 
-  const sdk = ThirdwebSDK.fromPrivateKey(PRIVATE_KEY, 'polygon', { secretKey: SECRET_KEY });
-  const contract = await sdk.getContract(CONTRACT);
+  // Direct ethers writes — thirdweb's managed RPC needs a client ID we
+  // don't have; these are plain owner calls on the drop contract.
+  const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+
+  // Polygon fees are spiky — compute EIP-1559 fees from the live baseFee
+  // with headroom (baseFee*2 + 35 gwei tip).
+  const block = await provider.getBlock('latest');
+  const tip = ethers.utils.parseUnits('35', 'gwei');
+  const overrides = {
+    maxFeePerGas: block.baseFeePerGas.mul(2).add(tip),
+    maxPriorityFeePerGas: tip,
+  };
+  console.log(`gas: baseFee=${ethers.utils.formatUnits(block.baseFeePerGas, 'gwei')} gwei, maxFee=${ethers.utils.formatUnits(overrides.maxFeePerGas, 'gwei')} gwei`);
+  const contract = new ethers.Contract(CONTRACT, [
+    'function lazyMint(uint256 amount, string baseURIForTokens, bytes data)',
+    'function setClaimConditions(tuple(uint256 startTimestamp, uint256 maxClaimableSupply, uint256 supplyClaimed, uint256 quantityLimitPerWallet, bytes32 merkleRoot, uint256 pricePerToken, address currency, string metadata)[] conditions, bool resetClaimEligibility)'
+  ], wallet);
 
   if (toMint > 0) {
     console.log(`\nlazyMint(${toMint}) with baseURI ${METADATA_BASE}...`);
-    const tx = await contract.call('lazyMint', [toMint, METADATA_BASE, '0x']);
-    console.log(`lazyMint tx: ${tx.receipt.transactionHash}`);
+    const tx = await contract.lazyMint(toMint, METADATA_BASE, '0x', overrides);
+    const rc = await tx.wait();
+    console.log(`lazyMint tx: ${rc.transactionHash}`);
   }
 
   console.log(`Setting claim condition: maxClaimableSupply=${remainingCap}...`);
-  const setTx = await contract.erc721.claimConditions.set([{
-    startTimestamp: cond.startTimestamp.toNumber(),
-    maxClaimableSupply: remainingCap.toString(),
-    quantityLimitPerWallet: 'unlimited',
-    price: '0',
-    currencyAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
-  }]);
-  console.log(`setClaimConditions tx: ${setTx.receipt.transactionHash}`);
+  const UNLIMITED = ethers.constants.MaxUint256;
+  const setTx = await contract.setClaimConditions([{
+    startTimestamp: cond.startTimestamp,
+    maxClaimableSupply: remainingCap,
+    supplyClaimed: 0,
+    quantityLimitPerWallet: UNLIMITED,
+    merkleRoot: cond.merkleRoot,
+    pricePerToken: 0,
+    currency: cond.currency,
+    metadata: cond.metadata || ''
+  }], false, overrides);
+  const setRc = await setTx.wait();
+  console.log(`setClaimConditions tx: ${setRc.transactionHash}`);
 
   const after = (await ro.nextTokenIdToMint()).toNumber();
   const newCond = await ro.getClaimConditionById(await ro.getActiveClaimConditionId());
