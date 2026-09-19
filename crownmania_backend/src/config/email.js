@@ -3,14 +3,6 @@ import { Resend } from 'resend';
 // Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Email templates
-const EMAIL_TEMPLATES = {
-  ORDER_CONFIRMATION: 'd-xxxxxxxxxxxxx',
-  SHIPPING_CONFIRMATION: 'd-xxxxxxxxxxxxx',
-  TOKEN_CLAIM: 'd-xxxxxxxxxxxxx',
-  WELCOME: 'd-xxxxxxxxxxxxx'
-};
-
 // Email sender configuration
 const EMAIL_CONFIG = {
   from: {
@@ -49,7 +41,7 @@ const sgMail = {
   setApiKey() {}
 };
 
-export { sgMail, EMAIL_TEMPLATES, EMAIL_CONFIG };
+export { sgMail, EMAIL_CONFIG };
 
 /**
  * Brand tokens mirroring the site's Royal Blue Vault palette
@@ -266,46 +258,6 @@ export const sendBrandedAdminEmail = async ({ subject, title, subtitle = '', row
     .join('\n')}`;
 
   await sgMail.send({ to: adminEmail, from: EMAIL_CONFIG.from, subject, text: plainText, html });
-};
-
-/**
- * Send the verification email containing a one-time token
- * @param {string} toEmail - Recipient email address
- * @param {string} token - One-time verification token
- * @param {string} serialNumber - Associated product serial number
- */
-export const sendVerificationEmail = async (toEmail, token, serialNumber) => {
-  const subject = 'Your Crownmania verification code';
-  const plainText = `Your Crownmania verification code is:\n\n${token}\n\nSerial: ${serialNumber}\n\nThis code expires in 15 minutes. If you did not request this, you can ignore this email.`;
-  const bodyHtml = `
-    <p style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.7; color:${BRAND.textMuted};">
-      Enter this code to verify your collectible:
-    </p>
-    ${infoCard(`
-      <p style="margin:0; text-align:center; font-family:'Courier New',monospace; font-size:30px; font-weight:700; letter-spacing:0.22em; color:${BRAND.text};">${escapeHtml(token)}</p>`)}
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;">
-      ${detailRow('Serial', serialNumber, { mono: true })}
-      ${detailRow('Expires in', '15 minutes')}
-    </table>
-    <p style="margin:22px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:12px; line-height:1.7; color:${BRAND.textFaint};">
-      If you did not request this code, you can safely ignore this email.
-    </p>`;
-
-  const html = renderEmailShell({
-    preheader: `Your Crownmania verification code is ${token}.`,
-    title: 'Verification Code',
-    bodyHtml
-  });
-
-  const msg = {
-    to: toEmail,
-    from: EMAIL_CONFIG.from,
-    subject,
-    text: plainText,
-    html
-  };
-
-  await sgMail.send(msg);
 };
 
 /**

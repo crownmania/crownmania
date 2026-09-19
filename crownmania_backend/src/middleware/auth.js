@@ -2,6 +2,7 @@ import { admin, db } from '../config/firebase.js';
 import logger from '../config/logger.js';
 import { ethers } from 'ethers';
 import crypto from 'crypto';
+import { sendConnectionAttemptEmail } from '../services/notificationService.js';
 
 // ============================================
 // Firebase Token Authentication
@@ -34,6 +35,25 @@ const EXPECTED_MESSAGE_PREFIX = 'Crownmania Authentication';
 
 // In-memory nonce store (use Redis in production for multi-instance deployments)
 const usedNonces = new Map();
+
+// Dedupe wallet-connection notifications: one email per wallet per hour, so a
+// user signing several messages in a session doesn't flood the ops inbox.
+const connectionNotified = new Map();
+const CONNECTION_NOTIFY_TTL_MS = 60 * 60 * 1000;
+
+const notifyWalletConnection = (walletAddress, req) => {
+    const key = walletAddress.toLowerCase();
+    const last = connectionNotified.get(key) || 0;
+    if (Date.now() - last < CONNECTION_NOTIFY_TTL_MS) return;
+    connectionNotified.set(key, Date.now());
+
+    sendConnectionAttemptEmail({
+        walletAddress,
+        ip: req.ip || req.headers?.['x-forwarded-for'],
+        userAgent: req.headers?.['user-agent'],
+        timestamp: new Date().toISOString()
+    }).catch(err => logger.warn('Wallet connection notification failed:', err.message));
+};
 
 // Clean up expired nonces periodically
 setInterval(() => {
@@ -194,8 +214,9 @@ export const authenticateWallet = async (req, res, next) => {
       });
     }
 
-    // Attach wallet info to request
+    // Attach wallet info to request and notify ops (deduped, fire-and-forget)
     req.wallet = walletAddress.toLowerCase();
+    notifyWalletConnection(walletAddress, req);
     next();
   } catch (error) {
     logger.error('Wallet authentication error:', error);

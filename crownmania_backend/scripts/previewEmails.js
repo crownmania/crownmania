@@ -70,9 +70,6 @@ await email.sendNewSaleEmail({
 });
 save('new-sale-admin');
 
-await email.sendVerificationEmail('preview@example.com', '123456', '37498811f9a04add82aba501244f7fbb');
-save('verification-code');
-
 // ── Admin + ops notifications (notificationService / adminService / contact) ──
 
 const notifications = await import('../src/services/notificationService.js');

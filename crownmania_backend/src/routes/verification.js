@@ -4,7 +4,7 @@ import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
 import { sendClaimConfirmationEmail } from '../config/email.js';
 import { sendScanAttemptEmail, sendCodeEntryEmail, sendClaimAttemptEmail, sendAdminSMS } from '../services/notificationService.js';
 import { notifyNewClaim } from '../services/pushService.js';
-import { serialNumberLimiter, claimLimiter, emailVerificationLimiter } from '../middleware/rateLimiter.js';
+import { serialNumberLimiter, claimLimiter } from '../middleware/rateLimiter.js';
 import { validateSerialNumber, validateWallet } from '../middleware/validation.js';
 const router = express.Router();
 
@@ -147,69 +147,6 @@ router.post('/claim', claimLimiter, validateWallet, authenticateWallet, async (r
   }
 });
 
-
-/**
- * @route POST /api/verification/request-email-verification
- * @desc Request email verification for a serial number
- * @access Public
- */
-router.post('/request-email-verification', emailVerificationLimiter, serialNumberLimiter, async (req, res) => {
-  try {
-    const { serialNumber, email } = req.body;
-
-    if (!serialNumber || !email) {
-      return res.status(400).json({ error: 'Serial number and email are required' });
-    }
-
-    const result = await verificationService.generateEmailVerification(serialNumber, email);
-    res.json(result);
-  } catch (error) {
-    console.error('Error requesting email verification:', error);
-    res.status(500).json({ error: error.message || 'Server error during email verification request' });
-  }
-});
-
-/**
- * @route POST /api/verification/verify-token
- * @desc Verify a token received via email
- * @access Public
- */
-router.post('/verify-token', async (req, res) => {
-  try {
-    const { token } = req.body;
-
-    if (!token) {
-      return res.status(400).json({ error: 'Token is required' });
-    }
-
-    const result = await verificationService.verifyToken(token);
-    res.json(result);
-  } catch (error) {
-    console.error('Error verifying token:', error);
-    res.status(500).json({ error: error.message || 'Server error during token verification' });
-  }
-});
-
-/**
- * @route POST /api/verification/issue-token
- * @desc Issue a digital token for a verified product
- * @access Public
- */
-router.post('/issue-token', authenticateWallet, serialNumberLimiter, async (req, res) => {
-  try {
-    const { serialNumber, walletAddress } = req.body;
-
-    if (!serialNumber || !walletAddress) {
-      return res.status(400).json({ error: 'Serial number and wallet address are required' });
-    }
-
-    const result = await verificationService.issueToken(serialNumber, walletAddress);
-    res.json(result);
-  } catch (error) {
-    console.error('Error issuing token:', error);
-    res.status(500).json({ error: error.message || 'Server error during token issuance' });
-  }
-});
 
 /**
  * @route GET /api/verification/wallet-tokens/:walletAddress
