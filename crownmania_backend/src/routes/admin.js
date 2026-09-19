@@ -605,40 +605,9 @@ router.get('/export/users', requireAdmin, async (req, res) => {
   }
 });
 
-/**
- * GET /api/admin/export/claim-codes
- * Export claim codes data as CSV
- */
-router.get('/export/claim-codes', requireAdmin, async (req, res) => {
-  try {
-    const snapshot = await db.collection('claimCodes').get();
-
-    const headers = ['ID', 'ProductId', 'Claimed', 'ClaimedBy', 'ClaimedAt', 'EditionNumber', 'TokenId'];
-    const rows = snapshot.docs.map(doc => {
-      const d = doc.data();
-      return [
-        doc.id,
-        d.productId || '',
-        d.claimed || false,
-        d.claimedBy || '',
-        d.claimedAt?.toDate?.()?.toISOString() || '',
-        d.editionNumber || '',
-        d.tokenId || ''
-      ].join(',');
-    });
-
-    const csv = [headers.join(','), ...rows].join('\n');
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=claim_codes_${Date.now()}.csv`);
-    res.send(csv);
-
-    logger.info(`CSV export: claim-codes (${rows.length} rows) by admin ${req.adminEmail}`);
-  } catch (error) {
-    logger.error('Error exporting claim codes CSV:', error);
-    res.status(500).json({ error: 'Failed to export CSV' });
-  }
-});
+// NOTE: the claim-codes CSV export was intentionally removed — the master
+// serial list must never be downloadable in bulk. Per-code lookups remain in
+// GET /api/admin/claim-codes.
 
 // ============================================
 // ORDER MANAGEMENT

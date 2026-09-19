@@ -1,5 +1,5 @@
 import { db } from '../config/firebase.js';
-import { sendClaimConfirmationEmail } from '../config/email.js';
+import { sendClaimConfirmationEmail, sendAdminAlertEmail } from '../config/email.js';
 import crypto from 'crypto';
 import { contentSecurity } from '../utils/contentSecurity.js';
 import { claimNFTToWallet, transferNFTToWallet, checkNFTOwnership } from './thirdwebService.js';
@@ -463,6 +463,31 @@ export const verificationService = {
           transferError: queueError.message
         });
       }
+
+      // Mass-claim velocity check — the serial list is bearer-instrument data,
+      // so a spike in claims is the earliest signal of scripted abuse.
+      // Fire-and-forget; must never delay or fail the claim response.
+      (async () => {
+        try {
+          const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+          const recent = await db.collection('collectibles')
+            .where('createdAt', '>=', hourAgo)
+            .get();
+          const claimsLastHour = recent.size;
+          // Alert on first crossing and each subsequent multiple of 10
+          if (claimsLastHour === 8 || (claimsLastHour > 8 && claimsLastHour % 10 === 0)) {
+            await sendAdminAlertEmail('Unusual claim activity', {
+              'claims in last hour': claimsLastHour,
+              'latest edition': claimResult.editionNumber,
+              wallet: sanitizedWallet,
+              'claim code': sanitizedCodeId,
+              note: 'Claim velocity exceeds normal levels — verify these are legitimate box stickers, and use the admin panel revoke controls if they are not.'
+            });
+          }
+        } catch (velocityErr) {
+          logger.warn('Claim velocity check failed:', velocityErr.message);
+        }
+      })();
 
       return {
         success: true,

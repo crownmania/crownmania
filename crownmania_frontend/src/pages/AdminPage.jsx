@@ -433,7 +433,6 @@ const TABS = [
 const EXPORTS = [
   { path: '/api/admin/export/collectibles', label: 'Collectibles CSV', fallback: 'collectibles.csv' },
   { path: '/api/admin/export/users', label: 'Users CSV', fallback: 'users.csv' },
-  { path: '/api/admin/export/claim-codes', label: 'Claim Codes CSV', fallback: 'claim_codes.csv' },
 ];
 
 const AdminPage = () => {
