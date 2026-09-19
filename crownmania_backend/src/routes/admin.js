@@ -531,83 +531,9 @@ router.post('/queue/retry/:collectibleId', requireAdmin, async (req, res) => {
 // PROTECTED: CSV Export
 // ============================================
 
-/**
- * GET /api/admin/export/collectibles
- * Export collectibles data as CSV
- */
-router.get('/export/collectibles', requireAdmin, async (req, res) => {
-  try {
-    const snapshot = await db.collection('collectibles').get();
-
-    const headers = ['ID', 'SerialNumber', 'ProductName', 'Edition', 'TotalEditions', 'OwnerWallet', 'Status', 'TokenId', 'TransactionHash', 'ClaimedAt'];
-    const rows = snapshot.docs.map(doc => {
-      const d = doc.data();
-      return [
-        doc.id,
-        d.serialNumber || '',
-        (d.productName || '').replace(/,/g, ' '),
-        d.editionNumber || d.edition || '',
-        d.totalEditions || '',
-        d.ownerId || '',
-        d.status || '',
-        d.tokenId || '',
-        d.transactionHash || '',
-        d.createdAt?.toDate?.()?.toISOString() || ''
-      ].join(',');
-    });
-
-    const csv = [headers.join(','), ...rows].join('\n');
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=collectibles_${Date.now()}.csv`);
-    res.send(csv);
-
-    logger.info(`CSV export: collectibles (${rows.length} rows) by admin ${req.adminEmail}`);
-  } catch (error) {
-    logger.error('Error exporting collectibles CSV:', error);
-    res.status(500).json({ error: 'Failed to export CSV' });
-  }
-});
-
-/**
- * GET /api/admin/export/users
- * Export users data as CSV (masked PII)
- */
-router.get('/export/users', requireAdmin, async (req, res) => {
-  try {
-    const snapshot = await db.collection('users').get();
-
-    const headers = ['ID', 'WalletAddress', 'Name', 'Email(masked)', 'ProfileComplete', 'TwoFactorEnabled', 'Role', 'CreatedAt'];
-    const rows = snapshot.docs.map(doc => {
-      const d = doc.data();
-      return [
-        doc.id,
-        d.walletAddress || '',
-        (d.name || '').replace(/,/g, ' '),
-        d.emailPlain || '[no email]',
-        d.profileComplete || false,
-        d.twoFactorEnabled || false,
-        d.role || 'user',
-        d.createdAt?.toDate?.()?.toISOString() || ''
-      ].join(',');
-    });
-
-    const csv = [headers.join(','), ...rows].join('\n');
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=users_${Date.now()}.csv`);
-    res.send(csv);
-
-    logger.info(`CSV export: users (${rows.length} rows) by admin ${req.adminEmail}`);
-  } catch (error) {
-    logger.error('Error exporting users CSV:', error);
-    res.status(500).json({ error: 'Failed to export CSV' });
-  }
-});
-
-// NOTE: the claim-codes CSV export was intentionally removed — the master
-// serial list must never be downloadable in bulk. Per-code lookups remain in
-// GET /api/admin/claim-codes.
+// NOTE: all CSV exports were intentionally removed — bulk downloads of
+// serials, wallets, and emails are leak paths. Per-record data remains
+// available through the individual admin endpoints.
 
 // ============================================
 // ORDER MANAGEMENT

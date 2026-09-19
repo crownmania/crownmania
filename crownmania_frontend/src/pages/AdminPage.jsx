@@ -3,11 +3,11 @@ import styled, { keyframes } from 'styled-components';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   FaChartPie, FaBox, FaTicketAlt, FaUsers, FaExclamationTriangle,
-  FaSignOutAlt, FaFileDownload, FaShieldAlt, FaSignal,
+  FaSignOutAlt, FaShieldAlt, FaSignal,
 } from 'react-icons/fa';
 
 import {
-  adminRequest, adminDownload, getAdminToken, setAdminToken, clearAdminToken,
+  adminRequest, getAdminToken, setAdminToken, clearAdminToken,
   AdminAuthError,
 } from '../services/adminApi';
 import crownLogo from '../assets/crown_logo_white.svg';
@@ -204,11 +204,6 @@ const NavItem = styled.button`
     color: #fff;
     background: rgba(65, 105, 225, 0.12);
   }
-`;
-
-const ExportButton = styled(NavItem)`
-  font-size: 0.72rem;
-  padding: 0.6rem 0.9rem;
 `;
 
 const Main = styled.div`
@@ -432,11 +427,6 @@ const TABS = [
   { id: 'failures', label: 'Failures', icon: FaExclamationTriangle },
 ];
 
-const EXPORTS = [
-  { path: '/api/admin/export/collectibles', label: 'Collectibles CSV', fallback: 'collectibles.csv' },
-  { path: '/api/admin/export/users', label: 'Users CSV', fallback: 'users.csv' },
-];
-
 const AdminPage = () => {
   const [authState, setAuthState] = useState('checking'); // checking | unauthenticated | authenticated
   const [email, setEmail] = useState('');
@@ -444,7 +434,6 @@ const AdminPage = () => {
   const [tab, setTab] = useState('dashboard');
   const [toast, setToast] = useState(null);
   const [pendingOrderId, setPendingOrderId] = useState(null);
-  const [exporting, setExporting] = useState('');
   const toastTimer = useRef(null);
 
   const notify = useCallback((message, type = 'success') => {
@@ -513,19 +502,6 @@ const AdminPage = () => {
     setTab('orders');
   };
 
-  const runExport = async (exp) => {
-    setExporting(exp.path);
-    try {
-      await adminDownload(exp.path, exp.fallback);
-      notify(`${exp.label} downloaded`);
-    } catch (e) {
-      if (e instanceof AdminAuthError) { handleAuthError(e.message); return; }
-      notify(e.message, 'error');
-    } finally {
-      setExporting('');
-    }
-  };
-
   return (
     <AdminRoot>
       <BlueprintBackground />
@@ -546,17 +522,6 @@ const AdminPage = () => {
               <NavItem key={id} $active={tab === id} onClick={() => setTab(id)}>
                 <Icon /> {label}
               </NavItem>
-            ))}
-
-            <SideLabel>Exports</SideLabel>
-            {EXPORTS.map((exp) => (
-              <ExportButton
-                key={exp.path}
-                onClick={() => runExport(exp)}
-                disabled={exporting === exp.path}
-              >
-                <FaFileDownload /> {exporting === exp.path ? 'Exporting…' : exp.label}
-              </ExportButton>
             ))}
           </Sidebar>
 
