@@ -73,5 +73,44 @@ save('new-sale-admin');
 await email.sendVerificationEmail('preview@example.com', '123456', '37498811f9a04add82aba501244f7fbb');
 save('verification-code');
 
+// ── Admin + ops notifications (notificationService / adminService / contact) ──
+
+const notifications = await import('../src/services/notificationService.js');
+
+await notifications.sendConnectionAttemptEmail({
+  walletAddress: '0x40B3fcE398FeCB3c002b7a71C1A576106e6a8a1B',
+  ip: '203.0.113.10',
+  userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15'
+});
+save('admin-connection-attempt');
+
+await notifications.sendScanAttemptEmail('37498811f9a04add82aba501244f7fbb', 'qr_scan', {
+  ip: '203.0.113.10', userAgent: 'Mozilla/5.0', verified: true,
+  productName: 'Lil Durk Collectible Figure'
+});
+save('admin-scan-attempt');
+
+await notifications.sendClaimAttemptEmail({
+  claimCodeId: '37498811f9a04add82aba501244f7fbb',
+  walletAddress: '0x40B3fcE398FeCB3c002b7a71C1A576106e6a8a1B',
+  success: true, edition: 12, ip: '203.0.113.10'
+});
+save('admin-claim-attempt');
+
+// Admin login OTP + wallet 2FA code use the shared renderCodeEmail renderer —
+// preview it directly since triggering the services writes Firestore state.
+{
+  const { html, text } = email.renderCodeEmail({
+    title: 'Admin Login',
+    subtitle: 'Sign in to the Crownmania admin dashboard',
+    code: '482910',
+    expiryLabel: '10 minutes',
+    note: 'If you did not request this login, ignore this email.'
+  });
+  fs.writeFileSync(path.join(outDir, 'admin-login-otp.html'), html);
+  fs.writeFileSync(path.join(outDir, 'admin-login-otp.txt'), text);
+  console.log('admin-login-otp           Your Crownmania admin login code');
+}
+
 console.log(`\nNo emails were sent. Previews written to ${outDir}`);
 process.exit(0);

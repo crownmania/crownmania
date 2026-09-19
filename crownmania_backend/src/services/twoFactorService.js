@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { db } from '../config/firebase.js';
 import logger from '../config/logger.js';
 import smsService from './smsService.js';
-import { sgMail, EMAIL_CONFIG } from '../config/email.js';
+import { sgMail, EMAIL_CONFIG, renderCodeEmail } from '../config/email.js';
 
 const CODE_LENGTH = 6;
 const CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -49,18 +49,19 @@ export const twoFactorService = {
 
         // Send email
         try {
+            const { html, text } = renderCodeEmail({
+                title: 'Verify Your Email',
+                subtitle: 'Two-factor authentication',
+                code,
+                expiryLabel: '5 minutes'
+            });
+
             await sgMail.send({
                 to: email,
                 from: EMAIL_CONFIG.from,
-                subject: 'CrownMania – Your Verification Code',
-                html: `
-                    <div style="font-family:Arial,sans-serif;padding:24px;background:#0a1628;color:#fff;">
-                        <h2 style="color:#ffd700;">Verify Your Email</h2>
-                        <p>Your code is:</p>
-                        <div style="font-size:32px;font-weight:bold;letter-spacing:8px;
-                                    color:#00c8ff;padding:16px 0;">${code}</div>
-                        <p style="color:#aaa;">This code expires in 5 minutes.</p>
-                    </div>`,
+                subject: 'Your Crownmania verification code',
+                text,
+                html,
             });
             logger.info(`[2FA] Email code sent to user ${userId}`);
         } catch (err) {

@@ -10,12 +10,13 @@
  */
 
 import { db } from '../config/firebase.js';
-import { sgMail, EMAIL_CONFIG } from '../config/email.js';
+import { sgMail, EMAIL_CONFIG, renderCodeEmail, resolveAdminEmail } from '../config/email.js';
 import crypto from 'crypto';
 import logger from '../config/logger.js';
 
-// Admin configuration
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'crown@crownmania.com';
+// Admin configuration — resolves across ADMIN_ALERT_EMAIL / ADMIN_EMAIL /
+// ADMIN_NOTIFICATION_EMAIL so login OTPs reach the same inbox as alerts.
+const ADMIN_EMAIL = resolveAdminEmail();
 const OTP_EXPIRY_MINUTES = 10;
 const SESSION_EXPIRY_HOURS = 24;
 
@@ -78,28 +79,20 @@ export const adminService = {
 
     // Send email
     try {
+      const { html, text } = renderCodeEmail({
+        title: 'Admin Login',
+        subtitle: 'Sign in to the Crownmania admin dashboard',
+        code: otp,
+        expiryLabel: `${OTP_EXPIRY_MINUTES} minutes`,
+        note: 'If you did not request this login, ignore this email and consider rotating your credentials.'
+      });
+
       await sgMail.send({
         to: email,
         from: EMAIL_CONFIG.from,
-        subject: '🔐 Crownmania Admin Login Code',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; background: #0a1628; padding: 40px; border-radius: 12px;">
-            <h1 style="color: #00ff88; text-align: center; margin-bottom: 30px;">Admin Login</h1>
-            <p style="color: white; font-size: 16px; text-align: center;">Your verification code is:</p>
-            <div style="background: rgba(0, 255, 136, 0.1); border: 2px solid #00ff88; border-radius: 8px; padding: 30px; margin: 20px 0; text-align: center;">
-              <span style="font-family: monospace; font-size: 36px; color: #00ff88; letter-spacing: 8px; font-weight: bold;">${otp}</span>
-            </div>
-            <p style="color: rgba(255,255,255,0.6); font-size: 14px; text-align: center;">
-              This code expires in ${OTP_EXPIRY_MINUTES} minutes.<br>
-              If you didn't request this, please ignore this email.
-            </p>
-            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 30px 0;">
-            <p style="color: rgba(255,255,255,0.4); font-size: 12px; text-align: center;">
-              Crownmania Admin System<br>
-              ${new Date().toISOString()}
-            </p>
-          </div>
-        `
+        subject: 'Your Crownmania admin login code',
+        text,
+        html
       });
       logger.info(`Admin OTP sent to ${email}`);
     } catch (error) {

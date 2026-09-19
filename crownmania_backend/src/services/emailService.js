@@ -1,3 +1,10 @@
+/**
+ * @deprecated DEAD CODE — nothing imports this module (verified Sept 2026).
+ * The order/alert functions below still use the pre-rebrand green palette and
+ * SendGrid-style template calls; they would need rework before reuse.
+ * Live order emails live in src/config/email.js; admin notifications in
+ * src/services/notificationService.js.
+ */
 import { sgMail, EMAIL_CONFIG, sendVerificationEmail, sendClaimConfirmationEmail } from '../config/email.js';
 import {
     sendConnectionAttemptEmail,

@@ -1,8 +1,5 @@
-import { sgMail, EMAIL_CONFIG } from '../config/email.js';
+import { sgMail, EMAIL_CONFIG, sendBrandedAdminEmail, renderEmailShell, ctaButton, escapeHtml } from '../config/email.js';
 import logger from '../config/logger.js';
-
-// Admin email for receiving notifications
-const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || 'crown@crownmania.com';
 
 /**
  * Send notification email when someone attempts to connect their wallet
@@ -11,37 +8,17 @@ const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || 'crown@crownmania.co
 export const sendConnectionAttemptEmail = async (userInfo) => {
   const { walletAddress, timestamp, userAgent, ip } = userInfo;
 
-  const subject = '🔗 New Wallet Connection Attempt';
-  const html = `
-    <div style="font-family: Arial, sans-serif; padding: 20px; background: #0a1628; color: white;">
-      <h2 style="color: #00c8ff;">Wallet Connection Attempt</h2>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">Wallet</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333; font-family: monospace;">${walletAddress || 'Not available'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">Time</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333;">${timestamp || new Date().toISOString()}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">IP Address</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333;">${ip || 'Unknown'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; color: #aaa;">User Agent</td>
-          <td style="padding: 10px; font-size: 12px;">${userAgent || 'Unknown'}</td>
-        </tr>
-      </table>
-    </div>
-  `;
-
   try {
-    await sgMail.send({
-      to: ADMIN_EMAIL,
-      from: EMAIL_CONFIG.from,
-      subject,
-      html
+    await sendBrandedAdminEmail({
+      subject: 'Wallet connection attempt',
+      title: 'Wallet Connection Attempt',
+      subtitle: 'Someone connected a wallet to the Vault',
+      rows: {
+        Wallet: walletAddress || 'Not available',
+        Time: timestamp || new Date().toISOString(),
+        IP: ip || 'Unknown',
+        Device: userAgent || 'Unknown'
+      }
     });
     logger.info('Connection attempt notification sent');
   } catch (error) {
@@ -58,45 +35,22 @@ export const sendConnectionAttemptEmail = async (userInfo) => {
 export const sendScanAttemptEmail = async (claimCodeId, method, details = {}) => {
   const { ip, userAgent, verified, productName } = details;
 
-  const subject = `📸 QR Code ${method === 'qr_scan' ? 'Scanned' : 'Entered'}: ${claimCodeId?.substring(0, 8)}...`;
-  const html = `
-    <div style="font-family: Arial, sans-serif; padding: 20px; background: #0a1628; color: white;">
-      <h2 style="color: #ffd700;">Code Verification Attempt</h2>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">Claim Code</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333; font-family: monospace;">${claimCodeId}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">Method</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333;">${method === 'qr_scan' ? '📱 QR Scan' : '⌨️ Manual Entry'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">Verified</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: ${verified ? '#00ff88' : '#ff4444'};">${verified ? '✅ Valid' : '❌ Invalid'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">Product</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333;">${productName || 'N/A'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">Time</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333;">${new Date().toISOString()}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; color: #aaa;">IP Address</td>
-          <td style="padding: 10px;">${ip || 'Unknown'}</td>
-        </tr>
-      </table>
-    </div>
-  `;
+  const wasScanned = method === 'qr_scan';
 
   try {
-    await sgMail.send({
-      to: ADMIN_EMAIL,
-      from: EMAIL_CONFIG.from,
-      subject,
-      html
+    await sendBrandedAdminEmail({
+      subject: `Serial ${wasScanned ? 'scanned' : 'entered'}: ${String(claimCodeId ?? '').substring(0, 8)}…`,
+      title: verified ? 'Valid Serial Checked' : 'Invalid Serial Attempt',
+      subtitle: wasScanned ? 'Via QR scan' : 'Via manual entry',
+      rows: {
+        'Claim code': claimCodeId,
+        Method: wasScanned ? 'QR scan' : 'Manual entry',
+        Result: verified ? 'Valid' : 'Invalid',
+        Product: productName || 'N/A',
+        Time: new Date().toISOString(),
+        IP: ip || 'Unknown',
+        Device: userAgent || 'Unknown'
+      }
     });
     logger.info('Scan attempt notification sent');
   } catch (error) {
@@ -120,46 +74,23 @@ export const sendCodeEntryEmail = async (claimCodeId, details = {}) => {
 export const sendClaimAttemptEmail = async (claimDetails) => {
   const { claimCodeId, walletAddress, success, edition, ip } = claimDetails;
 
-  const subject = success
-    ? `🎉 NFT Claimed Successfully: Edition #${edition}`
-    : `⚠️ NFT Claim Attempt Failed`;
-
-  const html = `
-    <div style="font-family: Arial, sans-serif; padding: 20px; background: #0a1628; color: white;">
-      <h2 style="color: ${success ? '#00ff88' : '#ff4444'};">${success ? 'NFT Claimed!' : 'Claim Failed'}</h2>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">Claim Code</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333; font-family: monospace;">${claimCodeId}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">Wallet</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333; font-family: monospace;">${walletAddress}</td>
-        </tr>
-        ${success ? `
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">Edition</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #00c8ff; font-weight: bold;">#${edition} of 500</td>
-        </tr>
-        ` : ''}
-        <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: #aaa;">Status</td>
-          <td style="padding: 10px; border-bottom: 1px solid #333; color: ${success ? '#00ff88' : '#ff4444'};">${success ? '✅ Success' : '❌ Failed'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px; color: #aaa;">Time</td>
-          <td style="padding: 10px;">${new Date().toISOString()}</td>
-        </tr>
-      </table>
-    </div>
-  `;
-
   try {
-    await sgMail.send({
-      to: ADMIN_EMAIL,
-      from: EMAIL_CONFIG.from,
-      subject,
-      html
+    await sendBrandedAdminEmail({
+      subject: success
+        ? `Collectible claimed — edition #${edition}`
+        : 'Collectible claim failed',
+      title: success ? 'Collectible Claimed' : 'Claim Failed',
+      subtitle: success
+        ? 'A customer claimed their digital collectible'
+        : 'A claim attempt did not complete',
+      rows: {
+        'Claim code': claimCodeId,
+        Wallet: walletAddress,
+        ...(success && edition ? { Edition: `#${edition}` } : {}),
+        Status: success ? 'Success' : 'Failed',
+        Time: new Date().toISOString(),
+        IP: ip || 'Unknown'
+      }
     });
     logger.info('Claim attempt notification sent');
   } catch (error) {
@@ -225,19 +156,17 @@ async function sendContentDropNotification(drop, user, prefs) {
       sgMail.send({
         to: email,
         from: EMAIL_CONFIG.from,
-        subject: `🎁 New Drop: ${drop.title}`,
-        html: `
-          <div style="font-family:Arial,sans-serif;padding:24px;background:#0a1628;color:#fff;">
-            <h2 style="color:#ffd700;">New Content Drop!</h2>
-            <p><strong>${drop.title}</strong></p>
-            <p style="color:#aaa;">${drop.description || ''}</p>
-            <p style="margin-top:16px;">
-              <a href="${process.env.FRONTEND_URL || 'https://crownmania.com'}/vault"
-                 style="background:#ffd700;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
-                Open Vault
-              </a>
-            </p>
-          </div>`,
+        subject: `New Crownmania drop: ${drop.title}`,
+        text: `New drop: ${drop.title}\n\n${drop.description || ''}\n\nOpen your Vault: ${process.env.FRONTEND_URL || 'https://crownmania.com'}/vault`,
+        html: renderEmailShell({
+          preheader: `New drop: ${drop.title}`,
+          title: 'New Content Drop',
+          subtitle: 'Exclusive to verified collectors',
+          bodyHtml: `
+            <p style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:16px; font-weight:700; color:#FFFFFF; text-align:center;">${escapeHtml(drop.title)}</p>
+            ${drop.description ? `<p style="margin:14px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.7; color:#C7CEDA; text-align:center;">${escapeHtml(drop.description)}</p>` : ''}
+            ${ctaButton(`${process.env.FRONTEND_URL || 'https://crownmania.com'}/vault`, 'Open The Vault')}`
+        }),
       }).catch(err => console.error('Content drop email failed:', err.message))
     );
   }

@@ -1,6 +1,6 @@
 import { db } from '../config/firebase.js';
 import { claimNFTToWallet, transferNFTToWallet } from './thirdwebService.js';
-import { sendClaimConfirmationEmail } from '../config/email.js';
+import { sendAdminAlertEmail } from '../config/email.js';
 import logger from '../config/logger.js';
 
 /**
@@ -169,18 +169,18 @@ async function sendAdminAlert(alertData) {
     // Log critical alert and send email notification to admin
     logger.error('[ADMIN ALERT] Critical NFT Transfer Failure:', JSON.stringify(alertData, null, 2));
 
-    // If SendGrid is configured, send email to admin
+    // Alert ops — previously this called sendClaimConfirmationEmail with the
+    // wrong signature, so it threw on every failure and was swallowed here.
     try {
-        const adminEmail = process.env.ADMIN_EMAIL || 'admin@crownmania.com';
-        await sendClaimConfirmationEmail({
-            email: adminEmail,
-            productName: `ALERT: ${alertData.productName}`,
+        await sendAdminAlertEmail('Critical NFT transfer failure', {
+            product: alertData.productName,
             edition: alertData.edition,
-            walletAddress: alertData.ownerId,
-            message: `NFT transfer has failed ${alertData.retryCount} times. Error: ${alertData.error}`
+            owner: alertData.ownerId,
+            retries: alertData.retryCount,
+            error: alertData.error
         });
     } catch (error) {
-        logger.error('[NFT Retry Service] Failed to send admin email alert:', error);
+        logger.error('[NFT Retry Service] Failed to send admin email alert:', error.message);
     }
 }
 

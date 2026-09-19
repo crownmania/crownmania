@@ -76,6 +76,22 @@ const BRAND = {
 const siteUrl = () => process.env.FRONTEND_URL || 'https://crownmania.com';
 
 /**
+ * Single source of truth for the ops inbox.
+ *
+ * Three different env var names accumulated across services
+ * (ADMIN_ALERT_EMAIL, ADMIN_EMAIL, ADMIN_NOTIFICATION_EMAIL) and only
+ * ADMIN_ALERT_EMAIL is actually set in production — the rest silently fell
+ * back to hardcoded literals that differed per file, including one pointing at
+ * admin@crownmania.com. Resolve all three here so every notification lands in
+ * the same inbox regardless of which var is configured.
+ */
+export const resolveAdminEmail = () =>
+  process.env.ADMIN_ALERT_EMAIL
+  || process.env.ADMIN_EMAIL
+  || process.env.ADMIN_NOTIFICATION_EMAIL
+  || 'crown@crownmania.com';
+
+/**
  * Escape values that originate from customer input (names, addresses) before
  * interpolating them into HTML email bodies.
  */
@@ -174,6 +190,83 @@ const detailRow = (label, value, opts = {}) => `
     <td style="padding:10px 0; border-bottom:1px solid ${BRAND.border}; font-family:Arial,Helvetica,sans-serif; font-size:12px; color:${BRAND.textMuted}; text-transform:uppercase; letter-spacing:0.06em;">${escapeHtml(label)}</td>
     <td style="padding:10px 0; border-bottom:1px solid ${BRAND.border}; font-family:${opts.mono ? "'Courier New',monospace" : 'Arial,Helvetica,sans-serif'}; font-size:13px; color:${opts.accent ? BRAND.accentBright : BRAND.text}; text-align:right;">${escapeHtml(value)}</td>
   </tr>`;
+
+/**
+ * Shared branding primitives, exported so every service that sends mail
+ * renders the same shell instead of hand-rolling its own markup.
+ */
+export { BRAND, renderEmailShell, ctaButton, infoCard, detailRow, escapeHtml };
+
+/**
+ * Shared renderer for one-time-code emails (admin login, wallet 2FA,
+ * collectible verification) so every code email looks identical.
+ *
+ * @param {object} opts - { title, subtitle, code, expiryLabel, rows, note }
+ * @returns {{html: string, text: string}}
+ */
+export const renderCodeEmail = ({ title, subtitle = '', code, expiryLabel, rows = {}, note = '' }) => {
+  const detailRows = Object.entries(rows)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => detailRow(k, String(v), { mono: /wallet|serial|code|id/i.test(k) }))
+    .join('');
+
+  const bodyHtml = `
+    <p style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.7; color:${BRAND.textMuted}; text-align:center;">
+      Your verification code is:
+    </p>
+    ${infoCard(`
+      <p style="margin:0; text-align:center; font-family:'Courier New',monospace; font-size:32px; font-weight:700; letter-spacing:0.22em; color:${BRAND.text};">${escapeHtml(code)}</p>`)}
+    ${detailRows || expiryLabel ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;">
+      ${detailRows}
+      ${expiryLabel ? detailRow('Expires in', expiryLabel) : ''}
+    </table>` : ''}
+    <p style="margin:22px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:12px; line-height:1.7; color:${BRAND.textFaint}; text-align:center;">
+      ${escapeHtml(note || 'If you did not request this code, you can safely ignore this email.')}
+    </p>`;
+
+  const text = [
+    title,
+    '',
+    `Your verification code is: ${code}`,
+    ...Object.entries(rows).map(([k, v]) => `${k}: ${v}`),
+    expiryLabel ? `Expires in: ${expiryLabel}` : '',
+    '',
+    note || 'If you did not request this code, you can safely ignore this email.'
+  ].filter(Boolean).join('\n');
+
+  return { html: renderEmailShell({ preheader: `Your code: ${code}`, title, subtitle, bodyHtml }), text };
+};
+
+/**
+ * Convenience wrapper for the common "notify ops with a table of details"
+ * email. Values are escaped; keys are rendered as labels.
+ *
+ * @param {object} opts - { subject, title, subtitle, rows, bodyHtml, preheader }
+ */
+export const sendBrandedAdminEmail = async ({ subject, title, subtitle = '', rows = {}, bodyHtml = '', preheader = '' }) => {
+  const adminEmail = resolveAdminEmail();
+  const detailRows = Object.entries(rows)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => detailRow(k, String(v), { mono: /wallet|serial|code|id|ip/i.test(k) }))
+    .join('');
+
+  const html = renderEmailShell({
+    preheader: preheader || subtitle || title,
+    title,
+    subtitle,
+    bodyHtml: `
+      ${bodyHtml}
+      ${detailRows ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${detailRows}</table>` : ''}`
+  });
+
+  const plainText = `${title}\n\n${Object.entries(rows)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n')}`;
+
+  await sgMail.send({ to: adminEmail, from: EMAIL_CONFIG.from, subject, text: plainText, html });
+};
 
 /**
  * Send the verification email containing a one-time token
@@ -409,12 +502,7 @@ Thank you for being part of the Crownmania community!`;
  * @param {object} saleData - { orderId, customerEmail, total, items, shippingAddress, serials }
  */
 export const sendNewSaleEmail = async (saleData) => {
-  const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.ADMIN_EMAIL;
-  if (!adminEmail) {
-    console.warn('ADMIN_ALERT_EMAIL not configured — cannot send new sale notification');
-    return;
-  }
-
+  const adminEmail = resolveAdminEmail();
   const { orderId, customerEmail, total, items = [], shippingAddress = {}, serials = [] } = saleData;
   const amount = typeof total === 'number' ? `$${total.toFixed(2)}` : 'unknown';
 
@@ -496,12 +584,7 @@ Time: ${new Date().toISOString()}`;
  * @param {object|string} details - Details to include in the body
  */
 export const sendAdminAlertEmail = async (subject, details) => {
-  const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.ADMIN_EMAIL;
-  if (!adminEmail) {
-    console.warn('ADMIN_ALERT_EMAIL not configured — cannot send admin alert:', subject);
-    return;
-  }
-
+  const adminEmail = resolveAdminEmail();
   const detailText = typeof details === 'string' ? details : JSON.stringify(details, null, 2);
 
   try {
