@@ -347,11 +347,14 @@ export const verificationService = {
         const totalEditions = productData.totalEditions || 500;
 
         // Step 4: Get and increment edition counter atomically
+        // Test codes skip this — they don't consume real edition numbers
         const counterRef = db.collection('counters').doc(claimCodeData.productId);
-        const counterDoc = await transaction.get(counterRef);
+        const counterDoc = claimCodeData.isTestCode ? null : await transaction.get(counterRef);
 
         let editionNumber;
-        if (counterDoc.exists) {
+        if (claimCodeData.isTestCode) {
+          editionNumber = null;
+        } else if (counterDoc.exists) {
           const currentData = counterDoc.data();
           editionNumber = (currentData.currentEdition || 0) + 1;
 
@@ -382,7 +385,9 @@ export const verificationService = {
           signature: signature || null,
           message: message || null,
           metadata: {
-            name: `${productData.name || 'Crownmania Collectible'} #${editionNumber}`,
+            name: editionNumber
+              ? `${productData.name || 'Crownmania Collectible'} #${editionNumber}`
+              : `${productData.name || 'Crownmania Collectible'} (TEST)`,
             description: productData.description,
             image: productData.imageUrl || productData.images?.[0],
             modelUrl: productData.modelUrl
@@ -506,6 +511,7 @@ export const verificationService = {
         success: true,
         collectibleId: collectibleRef.id,
         tokenId: claimResult.tokenId,
+        edition: claimResult.editionNumber,
         editionNumber: claimResult.editionNumber,
         totalEditions: claimResult.totalEditions,
         productName: claimResult.productName,

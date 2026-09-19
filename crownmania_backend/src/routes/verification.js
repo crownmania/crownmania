@@ -164,9 +164,10 @@ router.post('/claim', claimLimiter, validateWallet, authenticateWallet, async (r
     }).catch(err => console.error('Claim notification error:', err));
 
     // Send admin SMS notification for claim
+    const editionLabel = result.isTestCode ? 'TEST (no NFT minted)' : `Edition #${result.edition}/500`;
     sendAdminSMS(
       result.success
-        ? `🎉 CrownMania: NFT CLAIMED! Edition #${result.edition}/500 by ${walletAddress.substring(0, 8)}...`
+        ? `🎉 CrownMania: NFT CLAIMED! ${editionLabel} by ${walletAddress.substring(0, 8)}...`
         : `⚠️ CrownMania: NFT claim FAILED for ${productId.substring(0, 8)}... by ${walletAddress.substring(0, 8)}...`
     ).catch(err => console.error('SMS claim notification error:', err));
 
