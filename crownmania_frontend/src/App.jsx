@@ -1,11 +1,23 @@
 import React, { useEffect, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { GlobalStyles } from './styles/GlobalStyles';
 import Header from './components/Header';
 import BackgroundBeams from './components/BackgroundBeams';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import { verifyStorageSetup } from './utils/storageUtils';
+import { initAnalytics, trackPageview } from './services/analytics';
+
+// Fires a pageview ping on every route change and starts the "online now"
+// heartbeat. Skips /admin and respects Do Not Track.
+const AnalyticsTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    initAnalytics();
+    trackPageview(location.pathname);
+  }, [location.pathname]);
+  return null;
+};
 
 // Lazy load components
 const Landing = React.lazy(() => import('./components/Landing'));
@@ -92,6 +104,7 @@ function App() {
       <GlobalStyles />
       <BackgroundBeams />
       <Router>
+        <AnalyticsTracker />
         <Header />
         <MainContent>
           <Suspense fallback={<LoadingSpinner fullScreen />}>

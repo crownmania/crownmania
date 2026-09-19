@@ -20,6 +20,7 @@ import { notificationPreferencesRouter } from './routes/notificationPreferences.
 import { contactRouter } from './routes/contact.js';
 import { forumRouter } from './routes/forum.js';
 import { userDatabaseRouter } from './routes/userDatabase.js';
+import analyticsRouter from './routes/analytics.js';
 import { getNonceHandler } from './middleware/auth.js';
 import logger from './config/logger.js';
 
@@ -174,7 +175,11 @@ const limiter = rateLimit({
   // Skip rate limiting for health checks and inbound webhooks.
   // ShipStation fires one SHIP_NOTIFY per label created; batch label printing
   // would otherwise hit the per-IP cap from a single ShipStation source.
-  skip: (req) => req.path === '/health' || req.path === '/api/shipstation/webhook',
+  // The analytics beacon fires pageviews + 45s heartbeats per open tab and has
+  // its own dedicated limiter.
+  skip: (req) => req.path === '/health'
+    || req.path === '/api/shipstation/webhook'
+    || req.path === '/api/analytics/ping',
 });
 app.use(limiter);
 
@@ -239,6 +244,7 @@ app.use('/api/notifications', notificationPreferencesRouter);
 app.use('/api/contact', contactRouter);
 app.use('/api/forum', forumRouter);
 app.use('/api/users', userDatabaseRouter);
+app.use('/api/analytics', analyticsRouter);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

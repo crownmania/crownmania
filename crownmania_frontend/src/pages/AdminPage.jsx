@@ -3,7 +3,7 @@ import styled, { keyframes } from 'styled-components';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   FaChartPie, FaBox, FaTicketAlt, FaUsers, FaExclamationTriangle,
-  FaSignOutAlt, FaFileDownload, FaShieldAlt,
+  FaSignOutAlt, FaFileDownload, FaShieldAlt, FaSignal,
 } from 'react-icons/fa';
 
 import {
@@ -17,6 +17,7 @@ import Orders from '../components/admin/Orders';
 import Claims from '../components/admin/Claims';
 import Users from '../components/admin/Users';
 import Failures from '../components/admin/Failures';
+import Live from '../components/admin/Live';
 import {
   Panel, Input, Button, Spinner, ErrorBanner, SmallButton,
 } from '../components/admin/shared';
@@ -424,6 +425,7 @@ const AdminLogin = ({ onAuthenticated, notice }) => {
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: FaChartPie },
+  { id: 'live', label: 'Live Traffic', icon: FaSignal },
   { id: 'orders', label: 'Orders', icon: FaBox },
   { id: 'claims', label: 'Claims', icon: FaTicketAlt },
   { id: 'users', label: 'Users', icon: FaUsers },
@@ -585,6 +587,7 @@ const AdminPage = () => {
                   onOrderOpened={() => setPendingOrderId(null)}
                 />
               )}
+              {tab === 'live' && <Live onAuthError={handleAuthError} />}
               {tab === 'claims' && <Claims notify={notify} onAuthError={handleAuthError} />}
               {tab === 'users' && <Users notify={notify} onAuthError={handleAuthError} />}
               {tab === 'failures' && <Failures notify={notify} onAuthError={handleAuthError} />}
