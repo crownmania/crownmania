@@ -60,6 +60,32 @@ const sourceLabel = (referrer) => {
   }
 };
 
+const Bar = styled.div`
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--vault-accent, #4169E1), #6B8DD6);
+  margin-top: 4px;
+`;
+
+const BreakdownRow = styled.div`
+  font-family: var(--font-secondary);
+  font-size: 0.78rem;
+  padding: 0.45rem 0.25rem;
+  color: rgba(255, 255, 255, 0.75);
+
+  .top { display: flex; justify-content: space-between; }
+  .count { color: var(--vault-accent-bright); font-weight: 700; }
+`;
+
+const aggregate = (sessions, key) => {
+  const counts = {};
+  for (const s of sessions || []) {
+    const label = key(s);
+    counts[label] = (counts[label] || 0) + 1;
+  }
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+};
+
 const deviceLabel = (ua) => {
   if (!ua) return '—';
   if (/iPhone|iPad|iPod/.test(ua)) return 'iOS';
@@ -160,22 +186,45 @@ const Live = ({ onAuthError }) => {
             )}
           </Panel>
 
-          <Panel>
+          <Panel style={{ marginBottom: '1.5rem' }}>
             <PanelTitle>Last 7 Days</PanelTitle>
             {!d.last7Days?.length ? (
               <EmptyState>No traffic recorded yet</EmptyState>
-            ) : (
-              d.last7Days.map((day) => (
+            ) : (() => {
+              const max = Math.max(...d.last7Days.map(x => x.pageviews || 0), 1);
+              return d.last7Days.map((day) => (
                 <DayRow key={day.date}>
-                  <span className="date">{day.date}</span>
+                  <span className="date">{day.date.slice(5)}</span>
+                  <div style={{ flex: 1, margin: '0 0.75rem' }}>
+                    <Bar style={{ width: `${(day.pageviews / max) * 100}%` }} />
+                  </div>
                   <span>
                     <span className="views">{day.pageviews}</span>{' '}
-                    <span className="uniques">({day.uniques} visitors)</span>
+                    <span className="uniques">({day.uniques})</span>
                   </span>
                 </DayRow>
-              ))
-            )}
+              ));
+            })()}
           </Panel>
+
+          <TwoCol style={{ gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <Panel>
+              <PanelTitle>Top Sources</PanelTitle>
+              {!d.recentSessions?.length ? <EmptyState>—</EmptyState> : (
+                aggregate(d.recentSessions, s => sourceLabel(s.referrer)).map(([label, n]) => (
+                  <BreakdownRow key={label}><div className="top"><span>{label}</span><span className="count">{n}</span></div></BreakdownRow>
+                ))
+              )}
+            </Panel>
+            <Panel>
+              <PanelTitle>Devices</PanelTitle>
+              {!d.recentSessions?.length ? <EmptyState>—</EmptyState> : (
+                aggregate(d.recentSessions, s => deviceLabel(s.ua)).map(([label, n]) => (
+                  <BreakdownRow key={label}><div className="top"><span>{label}</span><span className="count">{n}</span></div></BreakdownRow>
+                ))
+              )}
+            </Panel>
+          </TwoCol>
         </div>
 
         <Panel>
