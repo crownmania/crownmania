@@ -21,6 +21,7 @@ import { contactRouter } from './routes/contact.js';
 import { forumRouter } from './routes/forum.js';
 import { userDatabaseRouter } from './routes/userDatabase.js';
 import analyticsRouter from './routes/analytics.js';
+import nftMetadataRouter from './routes/nftMetadata.js';
 import { getNonceHandler } from './middleware/auth.js';
 import logger from './config/logger.js';
 
@@ -179,7 +180,8 @@ const limiter = rateLimit({
   // its own dedicated limiter.
   skip: (req) => req.path === '/health'
     || req.path === '/api/shipstation/webhook'
-    || req.path === '/api/analytics/ping',
+    || req.path === '/api/analytics/ping'
+    || req.path.startsWith('/api/metadata/'),
 });
 app.use(limiter);
 
@@ -245,6 +247,7 @@ app.use('/api/contact', contactRouter);
 app.use('/api/forum', forumRouter);
 app.use('/api/users', userDatabaseRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/metadata', nftMetadataRouter);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
