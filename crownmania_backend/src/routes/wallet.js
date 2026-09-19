@@ -108,7 +108,7 @@ router.post('/connect', async (req, res) => {
             serialNumber: collectible.serialNumber.substring(0, 8) + '...'
         }, req.ip, sanitizedWallet);
 
-        logger.info(`Wallet ${sanitizedWallet.substring(0, 10)}... connected for collectible ${collectible.serialNumber}`);
+        logger.info(`Wallet ${sanitizedWallet.substring(0, 10)}... connected for collectible ${collectible.serialNumber.substring(0, 8)}...`);
 
         // Get all collectibles for this wallet
         const allCollectibles = await db.collection('collectibles')
@@ -157,7 +157,8 @@ router.get('/:address/collectibles', async (req, res) => {
             const data = doc.data();
             return {
                 id: doc.id,
-                serialNumber: data.serialNumber,
+                // Public endpoint — serials are bearer credentials, mask them
+                serialNumber: data.serialNumber ? data.serialNumber.substring(0, 8) + '…' : null,
                 productName: data.productName,
                 productId: data.productId,
                 edition: data.edition,

@@ -628,10 +628,17 @@ export default function VerifyPage() {
                 throw new Error('Failed to sign ownership proof. Please try again.');
             }
 
-            // 4. Submit claim to backend
+            // 4. Submit claim to backend — include the Web3Auth login
+            // identity (social account behind the wallet) when present so
+            // admins can attribute claims to real accounts.
+            const authIdentity = (user && (user.email || user.name || user.typeOfLogin)) ? {
+                email: user.email || null,
+                name: user.name || null,
+                provider: user.typeOfLogin || user.verifier || null
+            } : null;
             const result = await verificationAPI.claimProduct(
                 serial, walletAddress, signature, message,
-                claimEmail.trim(), claimCode.trim()
+                claimEmail.trim(), claimCode.trim(), authIdentity
             );
 
             if (result.success) {

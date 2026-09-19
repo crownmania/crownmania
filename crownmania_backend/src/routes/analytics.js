@@ -61,7 +61,9 @@ router.post('/ping', analyticsLimiter, async (req, res) => {
     // Normalize the path — must be a same-site path, capped length.
     let cleanPath = String(pagePath || '/');
     if (!cleanPath.startsWith('/')) cleanPath = `/${cleanPath}`;
-    cleanPath = cleanPath.slice(0, 200);
+    // Serials in claim URLs are bearer credentials — collapse them so
+    // they never land in session/page records.
+    cleanPath = cleanPath.replace(/^\/verify\/.+/, '/verify/:code').slice(0, 200);
 
     const now = new Date();
     const day = now.toISOString().slice(0, 10);

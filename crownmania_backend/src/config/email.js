@@ -273,7 +273,7 @@ export const sendClaimConfirmationEmail = async (toEmail, claimData) => {
 
 Product: ${productName}
 Edition: #${editionNumber || '1'} of 500
-Serial Number: ${serialNumber}
+Serial Number: ${serialNumber.slice(0, 8)}...${serialNumber.slice(-8)}
 Token ID: ${tokenId || 'Pending'}
 Wallet: ${walletAddress}
 Claimed: ${claimDate || new Date().toLocaleDateString()}

@@ -264,7 +264,7 @@ export const verificationService = {
    * @param {string} clientIP - Client IP address for audit logging
    * @returns {Promise<{success: boolean, tokenId: string|null, message: string}>}
    */
-  claimProduct: async (claimCodeId, walletAddress, signature, message, clientIP = '') => {
+  claimProduct: async (claimCodeId, walletAddress, signature, message, clientIP = '', claimant = {}) => {
     try {
       // Sanitize inputs
       const sanitizedCodeId = contentSecurity.sanitizeInput(claimCodeId);
@@ -384,6 +384,8 @@ export const verificationService = {
           productType: productData.type,
           signature: signature || null,
           message: message || null,
+          claimedByEmail: claimant.email || null,
+          claimedByAuth: claimant.auth || null,
           metadata: {
             name: editionNumber
               ? `${productData.name || 'Crownmania Collectible'} #${editionNumber}`
@@ -403,6 +405,8 @@ export const verificationService = {
           tokenId: tokenId,
           edition: editionNumber,
           claimedBy: walletAddress.toLowerCase(),
+          claimedByEmail: claimant.email || null,
+          claimedByAuth: claimant.auth || null,
           claimedAt: new Date()
         });
 
@@ -564,7 +568,9 @@ export const verificationService = {
         claimHistory = claimCodesSnapshot.docs.map(doc => {
           const data = doc.data();
           return {
-            serialNumber: doc.id,
+            // Serials are bearer credentials — never return them in full,
+            // even for claimed codes, on this public endpoint.
+            serialNumber: doc.id.slice(0, 8) + '…',
             productId: data.productId,
             edition: data.edition,
             tokenId: data.tokenId,
@@ -582,7 +588,7 @@ export const verificationService = {
           id: doc.id,
           productId: data.productId,
           productName: data.productName,
-          serialNumber: data.serialNumber,
+          serialNumber: data.serialNumber ? data.serialNumber.slice(0, 8) + '…' : null,
           tokenId: data.blockchainTokenId || data.tokenId,
           edition: data.edition,
           editionNumber: data.edition,

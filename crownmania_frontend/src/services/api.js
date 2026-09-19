@@ -364,7 +364,7 @@ export const verificationAPI = {
    * @param {string} verificationCode - The emailed verification code
    * @returns {Promise<{success: boolean, tokenId: string, message: string}>}
    */
-  claimProduct: async (productId, walletAddress, signature, message, email, verificationCode) => {
+  claimProduct: async (productId, walletAddress, signature, message, email, verificationCode, authIdentity = null) => {
     try {
       const response = await api.post('/api/verification/claim', {
         productId,
@@ -372,7 +372,8 @@ export const verificationAPI = {
         signature,
         message,
         email,
-        verificationCode
+        verificationCode,
+        authIdentity
       }, {
         sensitive: true,
         walletAddress,

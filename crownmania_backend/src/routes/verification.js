@@ -127,7 +127,7 @@ router.post('/claim/request-code', emailVerificationLimiter, validateSerialNumbe
  */
 router.post('/claim', claimLimiter, validateWallet, authenticateWallet, async (req, res) => {
   try {
-    const { productId, walletAddress, signature, message, email, verificationCode } = req.body;
+    const { productId, walletAddress, signature, message, email, verificationCode, authIdentity } = req.body;
 
     if (!productId || !walletAddress) {
       return res.status(400).json({ error: 'Product ID and wallet address are required' });
@@ -144,14 +144,25 @@ router.post('/claim', claimLimiter, validateWallet, authenticateWallet, async (r
       return res.status(400).json({ error: verifyError.message });
     }
 
-    const result = await verificationService.claimProduct(productId, walletAddress, signature, message);
-
-    // Record the verified claimant email on the claim record
-    if (result.success) {
-      db.collection('claimCodes').doc(productId.toLowerCase())
-        .update({ claimedByEmail: email.toLowerCase().trim() })
-        .catch(err => console.error('Failed to record claimant email:', err));
+    // Sanitize the optional Web3Auth login identity — informational only,
+    // never trusted for auth. Each field is a short string or dropped.
+    let sanitizedAuth = null;
+    if (authIdentity && typeof authIdentity === 'object') {
+      const str = v => (typeof v === 'string' ? v.trim().slice(0, 120) : null);
+      const authEmail = str(authIdentity.email);
+      sanitizedAuth = {
+        email: authEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmail) ? authEmail.toLowerCase() : null,
+        name: str(authIdentity.name),
+        provider: str(authIdentity.provider)
+      };
+      if (!sanitizedAuth.email && !sanitizedAuth.name && !sanitizedAuth.provider) sanitizedAuth = null;
     }
+
+    const clientIP = req.ip || req.headers['x-forwarded-for'] || '';
+    const result = await verificationService.claimProduct(
+      productId, walletAddress, signature, message, clientIP,
+      { email: email.toLowerCase().trim(), auth: sanitizedAuth }
+    );
 
     // Send admin email notification for claim attempt
     sendClaimAttemptEmail({

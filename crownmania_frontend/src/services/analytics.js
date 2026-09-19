@@ -44,12 +44,16 @@ const dntEnabled = () =>
 const shouldSkip = (path) =>
   dntEnabled() || String(path || '').startsWith('/admin');
 
+// Serials in claim URLs are bearer credentials — never beacon them.
+const sanitizePath = (path) =>
+  String(path || '/').replace(/^\/verify\/.+/, '/verify/:code');
+
 const ping = (type, path) => {
   if (shouldSkip(path)) return;
   const payload = {
     sessionId: getSessionId(),
     type,
-    path,
+    path: sanitizePath(path),
     referrer: !referrerSent ? (document.referrer || '') : undefined,
   };
   referrerSent = true;

@@ -34,7 +34,7 @@ const ClaimCodesTable = ({ rows }) => (
     <Table>
       <thead>
         <tr>
-          <th>Serial / ID</th><th>Product</th><th>Status</th><th>Claimed By</th><th>Edition</th><th>Claimed At</th>
+          <th>Serial / ID</th><th>Product</th><th>Status</th><th>Claimed By</th><th>Email</th><th>Login</th><th>Edition</th><th>Claimed At</th>
         </tr>
       </thead>
       <tbody>
@@ -48,6 +48,10 @@ const ClaimCodesTable = ({ rows }) => (
               </StatusChip>
             </td>
             <td>{c.claimedBy ? <CopyValue value={c.claimedBy} head={8} tail={5} /> : '—'}</td>
+            <td>{c.claimedByEmail || '—'}</td>
+            <td>{c.claimedByAuth?.email
+              ? `${c.claimedByAuth.email}${c.claimedByAuth.provider ? ` (${c.claimedByAuth.provider})` : ''}`
+              : '—'}</td>
             <td>{c.editionNumber ?? c.edition ?? '—'}</td>
             <td>{formatDate(c.claimedAt)}</td>
           </tr>
@@ -62,7 +66,7 @@ const CollectiblesTable = ({ rows }) => (
     <Table>
       <thead>
         <tr>
-          <th>Edition</th><th>Serial</th><th>Owner</th><th>Status</th><th>NFT</th><th>Created</th>
+          <th>Edition</th><th>Serial</th><th>Owner</th><th>Email</th><th>Status</th><th>NFT</th><th>Created</th>
         </tr>
       </thead>
       <tbody>
@@ -71,6 +75,7 @@ const CollectiblesTable = ({ rows }) => (
             <td>{c.editionNumber ?? c.edition ?? '—'}{c.totalEditions ? ` / ${c.totalEditions}` : ''}</td>
             <td>{c.serialNumber ? <CopyValue value={c.serialNumber} head={10} tail={5} /> : '—'}</td>
             <td>{c.ownerId ? <CopyValue value={c.ownerId} head={8} tail={6} /> : '—'}</td>
+            <td>{c.claimedByEmail || '—'}</td>
             <td><StatusChip $status={c.status}>{c.status || '—'}</StatusChip></td>
             <td>
               <StatusChip $status={c.nftTransferred ? 'transferred' : 'pending_transfer'}>
