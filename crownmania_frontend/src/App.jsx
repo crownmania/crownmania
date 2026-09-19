@@ -24,6 +24,7 @@ const SuccessPage = React.lazy(() => import('./pages/SuccessPage'));
 const CancelPage = React.lazy(() => import('./pages/CancelPage'));
 const LegalPage = React.lazy(() => import('./pages/LegalPage'));
 const ExclusivePerks = React.lazy(() => import('./pages/ExclusivePerks'));
+const AdminPage = React.lazy(() => import('./pages/AdminPage'));
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -108,6 +109,7 @@ function App() {
               <Route path="/terms-of-service" element={<LegalPage />} />
               <Route path="/returns" element={<LegalPage />} />
               <Route path="/exclusive-perks" element={<ExclusivePerks />} />
+              <Route path="/admin" element={<AdminPage />} />
             </Routes>
           </Suspense>
         </MainContent>
