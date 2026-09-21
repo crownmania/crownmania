@@ -117,10 +117,15 @@ router.get('/', requireAdmin, async (req, res) => {
     const liveCutoff = new Date(now - LIVE_WINDOW_MS);
     const today = new Date().toISOString().slice(0, 10);
 
-    const [liveSnap, recentSnap, dailySnap] = await Promise.all([
+    // Doc IDs are the UTC dates themselves — point reads for the last 7 days
+    // avoid an orderBy('__name__') that would need a composite index.
+    const dayKeys = Array.from({ length: 7 }, (_, i) =>
+      new Date(now - i * 86400000).toISOString().slice(0, 10));
+
+    const [liveSnap, recentSnap, dailyDocs] = await Promise.all([
       sessions().where('lastSeen', '>=', liveCutoff).get(),
       sessions().orderBy('lastSeen', 'desc').limit(15).get(),
-      daily().orderBy('__name__', 'desc').limit(7).get(),
+      Promise.all(dayKeys.map((k) => daily().doc(k).get())),
     ]);
 
     const liveSessions = liveSnap.docs.map(d => {
@@ -138,7 +143,8 @@ router.get('/', requireAdmin, async (req, res) => {
     // Daily counters for the last 7 days
     const days = {};
     const topPageCounts = {};
-    for (const doc of dailySnap.docs) {
+    for (const doc of dailyDocs) {
+      if (!doc.exists) continue;
       const d = doc.data();
       const uniqueCount = Object.keys(d.sessions || {}).length;
       days[doc.id] = {
