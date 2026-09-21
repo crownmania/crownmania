@@ -247,6 +247,9 @@ app.use('/api/contact', contactRouter);
 app.use('/api/forum', forumRouter);
 app.use('/api/users', userDatabaseRouter);
 app.use('/api/analytics', analyticsRouter);
+// Same router also serves GET / under the admin namespace — the admin panel's
+// Live Traffic tab calls /api/admin/analytics (requireAdmin is on the route).
+app.use('/api/admin/analytics', analyticsRouter);
 app.use('/api/metadata', nftMetadataRouter);
 
 // Health check endpoint
