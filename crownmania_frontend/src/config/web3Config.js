@@ -71,8 +71,25 @@ const mockWeb3Auth = {
   }),
 };
 
+// In-flight init promise so concurrent callers (e.g. the deferred idle init
+// in useWeb3Auth plus an early user click on Connect) share one Web3Auth
+// instance instead of racing two init() calls.
+let web3authInitPromise = null;
+
 // Initialize Web3Auth using the npm SDK (@web3auth/modal v10)
-const getWeb3Auth = async () => {
+const getWeb3Auth = () => {
+  if (web3authInstance && isInitialized) {
+    return Promise.resolve(web3authInstance);
+  }
+  if (!web3authInitPromise) {
+    web3authInitPromise = createWeb3Auth().finally(() => {
+      web3authInitPromise = null;
+    });
+  }
+  return web3authInitPromise;
+};
+
+const createWeb3Auth = async () => {
   if (web3authInstance && isInitialized) {
     return web3authInstance;
   }
@@ -85,6 +102,10 @@ const getWeb3Auth = async () => {
   }
 
   try {
+    // Install buffer/stream globals before the SDK evaluates its internals
+    const { installWeb3Polyfills } = await import('../utils/installWeb3Polyfills');
+    await installWeb3Polyfills();
+
     // Dynamic import keeps the heavy SDK out of the initial bundle
     const { Web3Auth } = await import('@web3auth/modal');
 
@@ -164,6 +185,8 @@ const initMoralis = async () => {
 
   if (!moralisInstance) {
     try {
+      const { installWeb3Polyfills } = await import('../utils/installWeb3Polyfills');
+      await installWeb3Polyfills();
       const Moralis = (await import('moralis')).default;
 
       // Check both our flag and Moralis internal state

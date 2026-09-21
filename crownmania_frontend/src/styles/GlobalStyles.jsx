@@ -1,5 +1,4 @@
 import { createGlobalStyle } from 'styled-components';
-import blueprintBg from '../assets/crownmania_blueprint.svg';
 
 export const GlobalStyles = createGlobalStyle`
 

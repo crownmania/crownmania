@@ -2,8 +2,7 @@ import { useState, useEffect, Suspense, lazy, useCallback, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
+
 import { FaLock, FaCheck, FaTimes, FaSpinner, FaWallet, FaSignOutAlt, FaCube, FaChevronLeft, FaChevronRight, FaKeyboard, FaQrcode, FaDiscord, FaGift, FaTag, FaInfoCircle, FaCopy, FaExternalLinkAlt, FaExchangeAlt, FaTwitter, FaInstagram, FaYoutube, FaTiktok, FaShieldAlt, FaArrowRight, FaExclamationTriangle, FaImages, FaBell, FaGem, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 
 import { playVerificationSuccess, playError, playUnlock, playClick, playRarityReveal, setSoundEnabled as setGlobalSound } from '../utils/soundEffects';
@@ -13,10 +12,11 @@ import useWeb3Auth from '../hooks/useWeb3Auth';
 import { verificationAPI, transferAPI } from '../services/api';
 import crownLogo from '../assets/crown_logo_white.svg';
 import blueprintBg from '../assets/crownmania_blueprint.svg';
-import QRScanner from './QRScanner';
 
-// Lazy load the 3D model for better performance
-const DurkModel = lazy(() => import('./3d/DurkModel').then(module => ({ default: module.DurkModel })));
+// Lazy load the 3D viewer (three.js/fiber/drei) and QR scanner so they stay
+// out of the Vault chunk and only download when actually rendered.
+const VaultModelViewer = lazy(() => import('./3d/VaultModelViewer'));
+const QRScanner = lazy(() => import('./QRScanner'));
 
 // Firebase Storage image URLs
 const DURK_PREVIEW_IMG = 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy7.webp?alt=media';
@@ -3110,7 +3110,7 @@ export default function Vault() {
                       src={idCardImages[idCardImageIndex].src}
                       alt={idCardImages[idCardImageIndex].label}
                       style={{
-                        width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.05)', transformOrigin: 'center 40%',
+                        width: '100%', height: '100%', objectFit: 'contain',
                         filter: isAssetVerified
                           ? 'saturate(1.15) contrast(1.05) brightness(1.02)'
                           : 'grayscale(100%) contrast(1.1) brightness(0.85)',
@@ -3332,28 +3332,7 @@ export default function Vault() {
                       <span>LOADING 3D MODEL...</span>
                     </LoadingSpinner>
                   }>
-                    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0.5, 12], fov: 50 }}>
-                      <ambientLight intensity={0.7} />
-                      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1.2} castShadow />
-                      <pointLight position={[-10, -10, -10]} intensity={0.5} />
-                      <pointLight position={[0, 5, 5]} intensity={0.3} />
-                      <Suspense fallback={null}>
-                        <group position={[0, -1.8, 0]}>
-                          <DurkModel isUnlocked={!isVaultLocked || isAssetVerified} />
-                        </group>
-                        <Environment preset="city" />
-                      </Suspense>
-                      <OrbitControls
-                        autoRotate={true}
-                        autoRotateSpeed={28.0}
-                        enableZoom={true}
-                        enablePan={false}
-                        minDistance={6}
-                        maxDistance={22}
-                        minPolarAngle={Math.PI / 6}
-                        maxPolarAngle={Math.PI / 1.8}
-                      />
-                    </Canvas>
+                    <VaultModelViewer isUnlocked={!isVaultLocked || isAssetVerified} />
                   </Suspense>
                 </ModelCanvas>
               </ModelViewerPanel>
@@ -4094,26 +4073,30 @@ export default function Vault() {
         )}
       </AnimatePresence>
 
-      {/* QR Scanner Modal */}
-      <QRScanner
-        isOpen={showQRScanner}
-        onClose={() => setShowQRScanner(false)}
-        onScan={(rawCode) => {
-          const code = extractSerialFromText(rawCode);
-          if (!code) {
-            showToastMessage('Could not read a valid code from QR.');
-            return;
-          }
-          setSerialNumber(code);
-          setShowQRScanner(false);
-          showToastMessage('QR code scanned! Verifying...');
-          // Pass code directly to avoid React state race condition
-          setTimeout(() => {
-            handleVerify(code);
-          }, 300);
-        }}
-        themeColor={themes[currentTheme].color}
-      />
+      {/* QR Scanner Modal — lazy chunk, only mounted when opened */}
+      {showQRScanner && (
+        <Suspense fallback={null}>
+          <QRScanner
+            isOpen={showQRScanner}
+            onClose={() => setShowQRScanner(false)}
+            onScan={(rawCode) => {
+              const code = extractSerialFromText(rawCode);
+              if (!code) {
+                showToastMessage('Could not read a valid code from QR.');
+                return;
+              }
+              setSerialNumber(code);
+              setShowQRScanner(false);
+              showToastMessage('QR code scanned! Verifying...');
+              // Pass code directly to avoid React state race condition
+              setTimeout(() => {
+                handleVerify(code);
+              }, 300);
+            }}
+            themeColor={themes[currentTheme].color}
+          />
+        </Suspense>
+      )}
     </VaultSection >
   );
 }

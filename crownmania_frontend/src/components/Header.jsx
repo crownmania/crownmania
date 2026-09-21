@@ -1,11 +1,9 @@
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaHome, FaShoppingBag, FaLock, FaInfoCircle, FaEnvelope, FaComments, FaWallet, FaSpinner, FaSun, FaMoon } from 'react-icons/fa';
+import { FaSun, FaMoon } from 'react-icons/fa';
 import crownLogo from '../assets/crown_logo_white.svg';
-import BackgroundBeams from './BackgroundBeams';
-import useWeb3Auth from '../hooks/useWeb3Auth';
 import { StickyHalfToneSeparator } from './HalfToneSeparator';
 
 const HeaderContainer = styled(motion.header)`
@@ -136,42 +134,6 @@ const ActionsContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 1.5rem;
-`;
-
-const AccessButton = styled(motion.button)`
-  background: ${props => props.$connected ? 'rgba(0, 163, 255, 0.1)' : 'var(--vault-accent)'};
-  border: 1px solid ${props => props.$connected ? 'var(--vault-accent)' : 'transparent'};
-  color: ${props => props.$connected ? 'var(--vault-accent)' : '#000'};
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-family: var(--font-secondary);
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
-
-  &:hover {
-    background: #fff;
-    color: #000;
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  @media (max-width: 768px) {
-    padding: 0.6rem 1rem;
-    font-size: 0.7rem;
-  }
 `;
 
 const MenuToggle = styled(motion.button)`
@@ -317,7 +279,6 @@ const MenuDivider = styled.div`
 
 export default function Header() {
   const navigate = useNavigate();
-  const { isInitialized, isWeb3Available, user, isLoading, login, logout, walletAddress } = useWeb3Auth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('landing');
@@ -343,34 +304,6 @@ export default function Header() {
   ];
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-
-  const formatAddress = (address) => {
-    if (!address) return '';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
-
-  const handleConnect = async () => {
-    if (user) {
-      const confirmDisconnect = window.confirm('Disconnect session?');
-      if (confirmDisconnect) {
-        await logout();
-      }
-      return;
-    }
-
-    try {
-      await login();
-      navigate('/#vault');
-      setTimeout(() => {
-        const vaultSection = document.getElementById('vault');
-        if (vaultSection) {
-          vaultSection.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 500);
-    } catch (err) {
-      console.error('Connection failed:', err);
-    }
-  };
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

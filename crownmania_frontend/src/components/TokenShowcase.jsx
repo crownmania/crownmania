@@ -22,12 +22,17 @@ const TokenGrid = styled.div`
   }
   
   @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    overflow-x: auto;
     gap: 1rem;
-  }
-  
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 `;
 
@@ -42,6 +47,15 @@ const TokenCard = styled(motion.div)`
   
   &:hover {
     transform: translateY(-5px);
+  }
+
+  @media (max-width: 768px) {
+    flex: 0 0 44%;
+    scroll-snap-align: start;
+  }
+
+  @media (max-width: 480px) {
+    flex: 0 0 72%;
   }
 `;
 

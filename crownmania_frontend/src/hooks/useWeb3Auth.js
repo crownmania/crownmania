@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getWeb3Auth, initMoralis, initializeModal, isWeb3AuthReady, WEB3_ENABLED } from '../config/web3Config';
+import { installWeb3Polyfills } from '../utils/installWeb3Polyfills';
 
 // Security configuration constants
 const SECURITY_CONFIG = {
@@ -300,7 +301,10 @@ const useWeb3Auth = () => {
     };
   }, [provider, web3, validateSession, fetchAddress, verifyAddressIntegrity, validateNonce, generateNonce]);
 
-  // Initialize Web3Auth — runs once on mount
+  // Initialize Web3Auth — deferred until the browser is idle so the multi-MB
+  // SDK chunk stays off the critical rendering path. Session restore still
+  // happens automatically, and login() works on demand because it calls
+  // getWeb3Auth() itself if init hasn't run yet.
   useEffect(() => {
     let cancelled = false;
 
@@ -340,6 +344,7 @@ const useWeb3Auth = () => {
           // Initialize Web3 instance
           let web3Instance = null;
           try {
+            await installWeb3Polyfills();
             const Web3 = (await import('web3')).default;
             web3Instance = new Web3(web3auth.provider);
             setWeb3(web3Instance);
@@ -388,11 +393,17 @@ const useWeb3Auth = () => {
       }
     };
 
-    init();
+    // Defer the heavy SDK download/init until the page is idle (or after a
+    // short timeout), whichever the browser supports.
+    const schedule = typeof window !== 'undefined' && 'requestIdleCallback' in window
+      ? { run: window.requestIdleCallback.bind(window), cancel: window.cancelIdleCallback.bind(window) }
+      : { run: (cb) => setTimeout(cb, 1200), cancel: clearTimeout };
+    const idleHandle = schedule.run(() => { if (!cancelled) init(); }, { timeout: 4000 });
 
     // Cleanup on unmount
     return () => {
       cancelled = true;
+      schedule.cancel(idleHandle);
       stopHeartbeat();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -447,6 +458,7 @@ const useWeb3Auth = () => {
           setIsConnected(true);
 
           try {
+            await installWeb3Polyfills();
             const Web3 = (await import('web3')).default;
             const web3Instance = new Web3(existingProvider);
             setWeb3(web3Instance);
@@ -524,6 +536,7 @@ const useWeb3Auth = () => {
 
       let web3Instance = null;
       try {
+        await installWeb3Polyfills();
         const Web3 = (await import('web3')).default;
         web3Instance = new Web3(web3authProvider);
         setWeb3(web3Instance);
@@ -554,6 +567,7 @@ const useWeb3Auth = () => {
         setIsConnected(true);
         try { setUser(await w3a.getUserInfo()); } catch { setUser({ connected: true }); }
         try {
+          await installWeb3Polyfills();
           const Web3 = (await import('web3')).default;
           const w3 = new Web3(p);
           setWeb3(w3);
