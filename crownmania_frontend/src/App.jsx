@@ -29,7 +29,8 @@ const TokenShowcase = React.lazy(() => import('./components/TokenShowcase'));
 const Footer = React.lazy(() => import('./components/Footer'));
 const ForumPage = React.lazy(() => import('./pages/ForumPage'));
 const ContactPage = React.lazy(() => import('./pages/ContactPage'));
-const ProductPage = React.lazy(() => import('./components/ProductPage'));
+const ShopPage = React.lazy(() => import('./pages/ShopPage'));
+const ProductDetailPage = React.lazy(() => import('./pages/ProductDetailPage'));
 const VerifyPage = React.lazy(() => import('./pages/VerifyPage'));
 const SuccessPage = React.lazy(() => import('./pages/SuccessPage'));
 const CancelPage = React.lazy(() => import('./pages/CancelPage'));
@@ -120,7 +121,8 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/forum" element={<ForumPage />} />
               <Route path="/contact" element={<ContactPage />} />
-              <Route path="/product/:id" element={<ProductPage />} />
+              <Route path="/shop" element={<ShopPage />} />
+              <Route path="/shop/:slug" element={<ProductDetailPage />} />
               <Route path="/verify/:serial" element={<VerifyPage />} />
               <Route path="/mintNFT" element={<MintNFTRedirect />} />
               <Route path="/success" element={<SuccessPage />} />
@@ -131,6 +133,9 @@ function App() {
               <Route path="/returns" element={<LegalPage />} />
               <Route path="/exclusive-perks" element={<ExclusivePerks />} />
               <Route path="/admin" element={<AdminPage />} />
+              {/* Unknown paths (incl. the retired /product/:id links) land on
+                  the homepage rather than a blank screen. */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </MainContent>

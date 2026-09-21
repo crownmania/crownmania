@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
+import productOgTags from './vite-plugins/productOgTags';
 
 export default defineConfig({
   plugins: [
     react(),
+    productOgTags(),
     nodePolyfills({
       // Enable comprehensive polyfills for Web3Auth
       include: ['buffer', 'stream', 'events', 'util', 'crypto', 'string_decoder', 'path', 'os', 'fs', 'vm'],
@@ -50,7 +52,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+          firebase: ['firebase/app', 'firebase/storage'],
         },
       },
     },

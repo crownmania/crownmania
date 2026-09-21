@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FaChevronLeft, FaChevronRight, FaLock } from 'react-icons/fa';
+import { motion } from 'framer-motion';
+import { FaLock } from 'react-icons/fa';
 
 import { useNavigate } from 'react-router-dom';
-import { getStorageURL } from "../utils/storageUtils";
-import LoadingSpinner from "./common/LoadingSpinner";
 import { PRODUCTS } from '../data/productData';
-import { stripePromise } from '../config/paymentConfig';
+import { startCheckout } from '../utils/checkout';
 
 const ShopSection = styled.section`
   padding: 4rem 2rem 5rem;
@@ -213,184 +211,17 @@ const ActionButton = styled(motion.button)`
   }
 `;
 
-const ExpandedOverlay = styled(motion.div)`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.9);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-`;
-
-const ExpandedContent = styled(motion.div)`
-  width: 100%;
-  max-width: 1100px;
-  background: var(--bg-vault);
-  border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  max-height: 90vh;
-  box-shadow: 0 0 50px rgba(0,0,0,0.5);
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-    max-height: 95vh;
-    overflow-y: auto;
-  }
-`;
-
-const GallerySection = styled.div`
-  position: relative;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 500px;
-
-  @media (max-width: 900px) {
-    min-height: 400px;
-  }
-`;
-
-const SidePanel = styled.div`
-  padding: 3rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  border-left: 1px solid var(--glass-border);
-
-  @media (max-width: 900px) {
-    border-left: none;
-    border-top: 1px solid var(--glass-border);
-    padding: 2rem;
-  }
-`;
-
-const CloseIconButton = styled(motion.button)`
-  position: absolute;
-  top: 2rem;
-  right: 2rem;
-  background: var(--bg-vault);
-  border: 1px solid var(--glass-border);
-  color: white;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 2001;
-  font-size: 1.5rem;
-
-  &:hover {
-    border-color: var(--vault-accent);
-    color: var(--vault-accent);
-  }
-`;
-
-const GalleryNav = styled(motion.button)`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: white;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: var(--vault-accent);
-    color: #000;
-  }
-
-  &.left { left: 1.5rem; }
-  &.right { right: 1.5rem; }
-`;
-
-const ComingSoonBadge = styled.div`
-  font-family: var(--font-secondary);
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.4);
-  text-transform: uppercase;
-  letter-spacing: 0.3em;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  margin-top: 1rem;
-`;
-
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-
 export default function Shop() {
   const navigate = useNavigate();
-  const [selectedWindow, setSelectedWindow] = useState(null);
-  const [loadingImages, setLoadingImages] = useState(true);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
-
-  useEffect(() => {
-    setLoadingImages(false);
-  }, []);
-
-  // Reset image index when modal closes or product changes
-  useEffect(() => {
-    setCurrentImageIndex(0);
-  }, [selectedWindow]);
 
   const handleBuyClick = async (e, product) => {
     e.stopPropagation();
     if (product.comingSoon || !product.id) return;
 
-    if (!stripePromise) {
-      alert('Stripe is not configured. Payment features are disabled.');
-      return;
-    }
-
     setIsCheckingOut(true);
     try {
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe not configured');
-
-      const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          items: [{ productId: product.id, quantity: 1 }],
-        }),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Checkout session failed');
-      }
-
-      const session = await response.json();
-      const result = await stripe.redirectToCheckout({
-        sessionId: session.id,
-      });
-
-      if (result.error) {
-        throw result.error;
-      }
+      await startCheckout(product.id);
     } catch (error) {
       console.error('Checkout error:', error);
       alert(error.message || 'Checkout failed. Please try again.');
@@ -425,7 +256,7 @@ export default function Shop() {
           <ShopCard
             key={product.id}
             layoutId={`window-${product.id}`}
-            onClick={() => !product.comingSoon && setSelectedWindow(product)}
+            onClick={() => product.slug && navigate(`/shop/${product.slug}`)}
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -453,136 +284,11 @@ export default function Shop() {
                 >
                   {product.comingSoon ? 'LOCKED' : isCheckingOut ? 'PROCESSING...' : 'SHOP NOW'}
                 </ActionButton>
-                {!product.comingSoon && (
-                  <ActionButton
-                    style={{ width: '40px', flex: 'none' }}
-                    onClick={() => setSelectedWindow(product)}
-                  >
-                    <FaChevronRight />
-                  </ActionButton>
-                )}
               </ActionBar>
             </CardBody>
           </ShopCard>
         ))}
       </WindowsContainer>
-
-      <AnimatePresence>
-        {selectedWindow && (
-          <ExpandedOverlay
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedWindow(null)}
-          >
-            <CloseIconButton
-              onClick={() => setSelectedWindow(null)}
-              whileHover={{ scale: 1.1, rotate: 90 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              ×
-            </CloseIconButton>
-
-            <ExpandedContent
-              onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            >
-              <GallerySection>
-                {selectedWindow.galleryImages && selectedWindow.galleryImages.length > 1 && (
-                  <>
-                    <GalleryNav
-                      className="left"
-                      onClick={() => setCurrentImageIndex(prev =>
-                        prev === 0 ? selectedWindow.galleryImages.length - 1 : prev - 1
-                      )}
-                    >
-                      <FaChevronLeft />
-                    </GalleryNav>
-                    <GalleryNav
-                      className="right"
-                      onClick={() => setCurrentImageIndex(prev =>
-                        prev === selectedWindow.galleryImages.length - 1 ? 0 : prev + 1
-                      )}
-                    >
-                      <FaChevronRight />
-                    </GalleryNav>
-                  </>
-                )}
-
-                <AnimatePresence mode="wait">
-                  <motion.img
-                    key={currentImageIndex}
-                    src={selectedWindow.galleryImages ? selectedWindow.galleryImages[currentImageIndex] : selectedWindow.mainImage}
-                    alt={selectedWindow.name}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.05 }}
-                    transition={{ duration: 0.3 }}
-                    style={{ maxHeight: '80%', maxWidth: '80%', objectFit: 'contain' }}
-                  />
-                </AnimatePresence>
-              </GallerySection>
-
-              <SidePanel>
-                <div style={{ marginBottom: '2rem' }}>
-                  <ComingSoonBadge style={{ display: 'inline-block', marginBottom: '1rem' }}>
-                    SERIES 1 / ASSET 001
-                  </ComingSoonBadge>
-                  <h2 style={{
-                    fontFamily: 'var(--font-primary)',
-                    fontSize: '2.5rem',
-                    marginBottom: '1rem',
-                    lineHeight: 1.1
-                  }}>
-                    {selectedWindow.name}
-                  </h2>
-                  <p style={{
-                    color: 'rgba(255,255,255,0.6)',
-                    lineHeight: 1.6,
-                    fontSize: '0.95rem'
-                  }}>
-                    {selectedWindow.description || 'Premium 10-inch hand-painted resin figure. Includes a unique Certificate of Authenticity and digital identity vault access.'}
-                  </p>
-                </div>
-
-                <div style={{ marginBottom: '2.5rem' }}>
-                  <div style={{ fontSize: '0.8rem', opacity: 0.5, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-                    Current Value
-                  </div>
-                  <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--vault-accent)' }}>
-                    {selectedWindow.price || '$300.00'}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <ActionButton
-                    $primary
-                    style={{ padding: '1.2rem', fontSize: '0.9rem' }}
-                    disabled={isCheckingOut}
-                    onClick={(e) => handleBuyClick(e, selectedWindow)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    {isCheckingOut ? 'PROCESSING...' : 'SHOP NOW'}
-                  </ActionButton>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.75rem',
-                    opacity: 0.5
-                  }}>
-                    <FaLock size={10} /> SECURE CHECKOUT VIA STRIPE
-                  </div>
-                </div>
-              </SidePanel>
-            </ExpandedContent>
-          </ExpandedOverlay>
-        )}
-      </AnimatePresence>
     </ShopSection>
   );
 }

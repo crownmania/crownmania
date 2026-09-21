@@ -9,6 +9,8 @@
 export const PRODUCTS = [
     {
         id: 'lil-durk-figure',
+        // Vanity slug for marketing links: crownmania.com/shop/lildurk
+        slug: 'lildurk',
         name: 'Lil Durk Collectible Figure',
         type: 1,
         price: '$300.00',
@@ -20,6 +22,10 @@ Designed to capture Lil Durk's signature style and presence, it's the perfect pi
 • High-quality, durable build
 • Detailed design and finish
 • Limited edition collectible`,
+        // Social preview copy. Kept short and free of claims not already made
+        // in the description above; consumed by the build-time OG tag plugin.
+        tagline: 'Premium 10-inch resin collectible with detailed sculpting and a display-ready build. Limited edition.',
+        ogImage: '/og/lildurk.jpg',
         mainImage: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy1.webp?alt=media',
         galleryImages: [
             'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fdurktoy1.webp?alt=media',
@@ -60,3 +66,9 @@ Designed to capture Lil Durk's signature style and presence, it's the perfect pi
 ];
 
 export const getProductById = (id) => PRODUCTS.find(p => p.id === id);
+
+export const getProductBySlug = (slug) => PRODUCTS.find(p => p.slug && p.slug === slug);
+
+// Products with a public landing page. Drives both routing and the
+// build-time Open Graph tag generation, so the two can never drift.
+export const LINKABLE_PRODUCTS = PRODUCTS.filter(p => p.slug && p.active);

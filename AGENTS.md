@@ -38,12 +38,43 @@ never means lost secrets.
 
 ## Deploying the frontend
 
-`firebase deploy --only hosting`. Pushing to `main` does **not** deploy it — the
-only Firebase workflow is a pull-request preview. `crownmania.com` and
+`firebase deploy --only hosting` **from the repo root**, using the Homebrew CLI
+(`/opt/homebrew/bin/firebase`). Pushing to `main` does **not** deploy it — the
+only Firebase workflow is a pull-request preview.
+
+Do not use `npm run deploy` in `crownmania_frontend`: it resolves `firebase` to
+a corrupt local `firebase-tools` in that workspace's `node_modules` and dies on
+a missing `lib/templates/hosting/init.js` before deploying. Credentials also
+expire periodically — `firebase login --reauth` fixes
+`Authentication Error: Your credentials are no longer valid`. `crownmania.com` and
 `sonorous-crane-440603-s6.web.app` are the same site.
 
 Firebase Hosting rewrites unknown paths to `index.html`, so a `200` does not
 prove a route exists. Check the router in `src/App.jsx`.
+
+## Product landing pages & marketing links
+
+Each sellable product has a vanity URL for ads: `crownmania.com/shop/<slug>`
+(currently `/shop/lildurk`). The slug lives on the product in
+`crownmania_frontend/src/data/productData.js` alongside `tagline` and
+`ogImage`, which feed the social preview.
+
+Because the app is a client-rendered SPA behind a catch-all rewrite, crawlers
+never run the JS and would see only the homepage tags. `vite-plugins/productOgTags.js`
+solves this at build time: it clones `dist/index.html` into
+`dist/shop/<slug>/index.html` with product-specific Open Graph / Twitter tags,
+replacing everything between the `SOCIAL_META_START` / `SOCIAL_META_END`
+markers in `index.html`. **Do not remove those markers** — the build throws if
+they're missing. Firebase serves matching static files before applying
+rewrites, so the crawler gets real tags and React still renders for humans.
+
+Adding a product: give it a `slug`, `tagline`, `ogImage`, and `active: true`,
+and both the route and the OG page are generated from `LINKABLE_PRODUCTS`.
+OG images must be 1200x630 JPEG/PNG (not webp — X/Twitter cards are unreliable
+with it); `sips --padToHeightWidth 630 1200 --padColor FFFFFF` is enough.
+
+Checkout goes through `src/utils/checkout.js`; prices always resolve from
+`PRODUCT_CATALOG` in `crownmania_backend/src/routes/stripe.js`, never the client.
 
 ## Verification
 
