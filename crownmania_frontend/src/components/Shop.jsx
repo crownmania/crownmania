@@ -441,7 +441,7 @@ export default function Shop() {
 
             <CardBody>
               <ProductTitle>{product.name || 'Available Soon'}</ProductTitle>
-              <ProductPrice>{product.comingSoon ? '—' : product.price || '$200.00'}</ProductPrice>
+              <ProductPrice>{product.comingSoon ? '—' : product.price || '$300.00'}</ProductPrice>
 
               <ActionBar>
                 <ActionButton
@@ -552,7 +552,7 @@ export default function Shop() {
                     Current Value
                   </div>
                   <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--vault-accent)' }}>
-                    {selectedWindow.price || '$200.00'}
+                    {selectedWindow.price || '$300.00'}
                   </div>
                 </div>
 
@@ -565,7 +565,7 @@ export default function Shop() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    {isCheckingOut ? 'PROCESSING...' : 'ACQUIRE FRAGMENT'}
+                    {isCheckingOut ? 'PROCESSING...' : 'SHOP NOW'}
                   </ActionButton>
                   <div style={{
                     display: 'flex',

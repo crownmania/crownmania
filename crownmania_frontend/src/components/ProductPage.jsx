@@ -256,7 +256,7 @@ export default function ProductPage() {
         </div>
         <ProductInfo>
           <ProductTitle>Limited Edition: Lil Durk Collectible Figure</ProductTitle>
-          <ProductPrice>$200.00</ProductPrice>
+          <ProductPrice>$300.00</ProductPrice>
           <ProductDescription>
             Exclusive, limited-edition collectible figure featuring Lil Durk. Each piece is meticulously crafted with attention to detail, capturing the essence of the artist. This collector's item comes with a certificate of authenticity and is part of a limited production run.
           </ProductDescription>
