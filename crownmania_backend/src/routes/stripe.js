@@ -1,6 +1,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { authenticateUser } from '../middleware/auth.js';
+import requireAdmin from '../middleware/requireAdmin.js';
 import { orderFulfillmentService } from '../services/orderFulfillmentService.js';
 import { sendAdminAlertEmail } from '../config/email.js';
 import logger from '../config/logger.js';
@@ -229,10 +230,10 @@ router.post('/webhook', async (req, res) => {
 
 /**
  * @route GET /api/stripe/session/:sessionId
- * @desc Get checkout session details (for success page)
+ * @desc Get checkout session details (admin/ops only — returns customer PII)
  * @access Public (limited info returned)
  */
-router.get('/session/:sessionId', async (req, res) => {
+router.get('/session/:sessionId', requireAdmin, async (req, res) => {
   try {
     const { sessionId } = req.params;
 
@@ -263,10 +264,11 @@ router.get('/session/:sessionId', async (req, res) => {
 
 /**
  * @route GET /api/stripe/orders/:email
- * @desc Get customer order history by email (for order tracking page)
- * @access Public (limited info, keyed by email)
+ * @desc Get customer order history by email (admin/ops only — public email
+ *       lookup would allow order enumeration)
+ * @access Admin
  */
-router.get('/orders/:email', async (req, res) => {
+router.get('/orders/:email', requireAdmin, async (req, res) => {
   try {
     const email = decodeURIComponent(req.params.email).toLowerCase().trim();
 

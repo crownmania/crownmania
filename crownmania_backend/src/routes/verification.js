@@ -31,18 +31,24 @@ router.post('/verify-serial', serialNumberLimiter, validateSerialNumber, async (
 
     const result = await verificationService.verifySerialNumber(serialNumber);
 
-    // Send admin email notification
-    sendCodeEntryEmail(serialNumber, {
-      ip: req.ip || req.headers['x-forwarded-for'],
-      userAgent: req.headers['user-agent'],
-      verified: result.verified,
-      productName: result.product?.name
-    }).catch(err => console.error('Notification error:', err));
+    // Admin notifications only fire for real codes. Invalid/probe attempts
+    // are rate-limited and logged, but never paged — otherwise anyone could
+    // spam the admin inbox and Twilio SMS bill with fake serials.
+    if (result.verified) {
+      sendCodeEntryEmail(serialNumber, {
+        ip: req.ip || req.headers['x-forwarded-for'],
+        userAgent: req.headers['user-agent'],
+        verified: result.verified,
+        productName: result.product?.name
+      }).catch(err => console.error('Notification error:', err));
 
-    // Send admin SMS notification
-    sendAdminSMS(
-      `🔔 CrownMania: Code ${serialNumber.substring(0, 8)}... was ${result.verified ? '✅ verified' : '❌ failed'}${result.product?.name ? ` (${result.product.name})` : ''} at ${new Date().toLocaleTimeString()}`
-    ).catch(err => console.error('SMS notification error:', err));
+      // SMS only for a live, unclaimed code — the event that matters most
+      if (!result.claimed) {
+        sendAdminSMS(
+          `🔔 CrownMania: Code ${serialNumber.substring(0, 8)}... was verified${result.product?.name ? ` (${result.product.name})` : ''} at ${new Date().toLocaleTimeString()}`
+        ).catch(err => console.error('SMS notification error:', err));
+      }
+    }
 
     res.json(result);
   } catch (error) {
@@ -244,7 +250,7 @@ router.get('/wallet-tokens/:walletAddress', async (req, res) => {
  * @desc Check NFT transfer status for a given serial number
  * @access Public
  */
-router.get('/transfer-status/:serialNumber', async (req, res) => {
+router.get('/transfer-status/:serialNumber', serialNumberLimiter, async (req, res) => {
   try {
     const { serialNumber } = req.params;
 
@@ -280,10 +286,8 @@ router.get('/transfer-status/:serialNumber', async (req, res) => {
       transactionHash: data.transactionHash || null,
       contractAddress: data.contractAddress || process.env.NFT_CONTRACT_ADDRESS || process.env.THIRDWEB_NFT_CONTRACT || null,
       tokenId: data.blockchainTokenId || data.tokenId || null,
-      ownerId: data.ownerId,
+      ownerId: data.ownerId ? `${String(data.ownerId).substring(0, 10)}…` : null,
       claimDate: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
-      retryCount: data.retryCount || 0,
-      lastRetryError: data.lastRetryError || null,
       message: data.nftTransferred
         ? 'NFT successfully transferred to wallet'
         : 'NFT transfer pending - will be retried automatically'
