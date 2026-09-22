@@ -6,6 +6,12 @@ import logger from '../config/logger.js';
  * All limits are per IP address
  */
 
+// Serials / claim codes are bearer credentials — log only a prefix.
+const maskCode = (code) => {
+  const s = typeof code === 'string' ? code : '';
+  return s.length > 8 ? `${s.substring(0, 8)}…` : s;
+};
+
 // General API rate limiter
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -49,7 +55,7 @@ export const serialNumberLimiter = rateLimit({
   message: { error: 'Too many verification attempts, please try again later.' },
   handler: (req, res) => {
     logger.warn(`Serial number verification rate limit exceeded for IP: ${req.ip}`, {
-      serialNumber: req.body?.serialNumber || req.params?.serial,
+      serialNumber: maskCode(req.body?.serialNumber || req.params?.serial),
       path: req.path,
       method: req.method
     });
@@ -95,7 +101,7 @@ export const failedVerificationLimiter = rateLimit({
   message: { error: 'Too many failed verification attempts, please try again later.' },
   handler: (req, res) => {
     logger.warn(`Failed verification rate limit exceeded for IP: ${req.ip}`, {
-      serialNumber: req.body?.serialNumber || req.params?.serial,
+      serialNumber: maskCode(req.body?.serialNumber || req.params?.serial),
       path: req.path,
       attempts: req.rateLimit.current
     });
@@ -143,6 +149,30 @@ export const emailVerificationLimiter = rateLimit({
     });
     res.status(429).json({
       error: 'Too many email verification requests. Please try again later.',
+      retryAfter: Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000)
+    });
+  }
+});
+
+// Rate limiter for admin OTP login requests
+// Keys on email + IP so an attacker cannot spam the admin inbox by rotating IPs.
+export const adminLoginLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Max 5 OTP emails per (email, IP) per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login requests. Please try again later.' },
+  keyGenerator: (req) => {
+    const email = (req.body?.email || 'no-email').toLowerCase().trim();
+    return `admin-login:${email}:${req.ip}`;
+  },
+  handler: (req, res) => {
+    logger.warn('Admin login rate limit exceeded', {
+      ip: req.ip,
+      path: req.path
+    });
+    res.status(429).json({
+      error: 'Too many login requests. Please try again later.',
       retryAfter: Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000)
     });
   }

@@ -527,7 +527,6 @@ export default function VerifyPage() {
         const checkSerial = async () => {
             try {
                 const data = await verificationAPI.verifyProduct(serial);
-                console.log('Verification response:', data);
 
                 if (data.verified) {
                     setProduct(data.product);
@@ -604,7 +603,6 @@ export default function VerifyPage() {
             let nonceData;
             try {
                 nonceData = await verificationAPI.getNonce();
-                console.log('Fetched nonce data:', nonceData);
             } catch (nonceError) {
                 console.error('Failed to fetch nonce:', nonceError);
                 throw new Error('Security initialization failed. Please try again.');

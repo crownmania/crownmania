@@ -112,7 +112,6 @@ const PostForm = styled.form`
   background: var(--vault-bg);
   backdrop-filter: blur(var(--vault-blur));
   -webkit-backdrop-filter: blur(var(--vault-blur));
-  border: px solid var(--vault-border);
   border: 1px solid var(--vault-border);
   border-radius: 20px;
 `;

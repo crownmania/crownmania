@@ -8,6 +8,7 @@ import express from 'express';
 import { adminService } from '../services/adminService.js';
 import { db } from '../config/firebase.js';
 import requireAdmin from '../middleware/requireAdmin.js';
+import { adminLoginLimiter, authLimiter } from '../middleware/rateLimiter.js';
 import logger from '../config/logger.js';
 
 const router = express.Router();
@@ -33,7 +34,7 @@ const maskSerialFields = (obj) => {
  * POST /api/admin/login
  * Request admin login - sends OTP to email
  */
-router.post('/login', async (req, res) => {
+router.post('/login', adminLoginLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -53,7 +54,7 @@ router.post('/login', async (req, res) => {
  * POST /api/admin/verify
  * Verify OTP and get session token
  */
-router.post('/verify', async (req, res) => {
+router.post('/verify', authLimiter, async (req, res) => {
   try {
     const { email, code } = req.body;
 

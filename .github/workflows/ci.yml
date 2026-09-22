@@ -96,7 +96,6 @@ jobs:
           VITE_WEB3_CHAIN_ID=0x89
           VITE_WEB3_RPC_TARGET=https://polygon-bor-rpc.publicnode.com
           VITE_NFT_CONTRACT_ADDRESS=0x4785DBa85de01B0DB84269F3fd471dDd8461623C
-          VITE_SITE_PASSWORD=cm1997
           VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
           EOF
       

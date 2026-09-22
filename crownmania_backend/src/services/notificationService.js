@@ -1,6 +1,12 @@
 import { sgMail, EMAIL_CONFIG, sendBrandedAdminEmail, renderEmailShell, ctaButton, escapeHtml } from '../config/email.js';
 import logger from '../config/logger.js';
 
+// Claim codes / serials are bearer credentials — never email full values.
+const maskClaimCode = (code) => {
+  const s = String(code ?? '');
+  return s.length > 8 ? `${s.substring(0, 8)}…` : s;
+};
+
 /**
  * Send notification email when someone attempts to connect their wallet
  * @param {object} userInfo - Connection attempt details
@@ -43,7 +49,7 @@ export const sendScanAttemptEmail = async (claimCodeId, method, details = {}) =>
       title: verified ? 'Valid Serial Checked' : 'Invalid Serial Attempt',
       subtitle: wasScanned ? 'Via QR scan' : 'Via manual entry',
       rows: {
-        'Claim code': claimCodeId,
+        'Claim code': maskClaimCode(claimCodeId),
         Method: wasScanned ? 'QR scan' : 'Manual entry',
         Result: verified ? 'Valid' : 'Invalid',
         Product: productName || 'N/A',
@@ -84,7 +90,7 @@ export const sendClaimAttemptEmail = async (claimDetails) => {
         ? 'A customer claimed their digital collectible'
         : 'A claim attempt did not complete',
       rows: {
-        'Claim code': claimCodeId,
+        'Claim code': maskClaimCode(claimCodeId),
         Wallet: walletAddress,
         ...(claimEmail ? { 'Claim email': claimEmail } : {}),
         ...(success && edition ? { Edition: `#${edition}` } : {}),

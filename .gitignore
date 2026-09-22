@@ -64,6 +64,10 @@ firebase-debug.log*
 
 # Test output
 jest_results_debug.log
+*.log
+*_output.txt
+debug_*.mjs
+font_base64.txt
 # Local email preview output (scripts/previewEmails.js)
 crownmania_backend/email-previews/
 
