@@ -2,6 +2,12 @@
 **Last Updated:** February 17, 2026  
 **Author:** Anti-Gravity (compiled from 20+ conversation sessions)
 
+> ⚠️ **Stale snapshot.** This document predates several changes. Current truth:
+> the frontend is served by **Firebase Hosting** (not Vercel), email is **Resend**
+> (the `sgMail` shim only keeps the SendGrid call signature), an **admin panel
+> exists at `/admin`**, and the current inventory cap is 370 physical units.
+> Trust `AGENTS.md` and `PRODUCTION_READINESS.md` over this file.
+
 ---
 
 ## TABLE OF CONTENTS

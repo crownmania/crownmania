@@ -97,8 +97,9 @@ Checkout goes through `src/utils/checkout.js`; prices always resolve from
 - `thirdwebService.js` uses `MINTING_WALLET_PRIVATE_KEY` /
   `BACKEND_WALLET_PRIVATE_KEY` / `THIRDWEB_SECRET_KEY`. There is no
   `POLYGON_PRIVATE_KEY` despite older docs mentioning it.
-- There is **no admin UI**. Operations run through `crownmania_backend/scripts/`
-  (see `PRODUCTION_READINESS.md` for the table).
+- The admin panel lives at `/admin` — email OTP login via `/api/admin/login` +
+  `/api/admin/verify` (`AdminPage.jsx` + `components/admin/*`). Bulk operations
+  still run through `crownmania_backend/scripts/` (see `PRODUCTION_READINESS.md`).
 - `.env` and `serviceAccountKey*.json` are gitignored — keep them that way.
 - `github.com` may be unreachable from sandboxed environments; ask the user to
   run `git push` rather than assuming the remote is broken.

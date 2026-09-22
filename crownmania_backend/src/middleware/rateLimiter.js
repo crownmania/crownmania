@@ -154,6 +154,26 @@ export const emailVerificationLimiter = rateLimit({
   }
 });
 
+// Limiter for post-claim transfer-status polling. The frontend polls every
+// 5s for up to 3 minutes after a claim (~36 requests), so this must stay
+// loose enough for a few real polls while still blocking enumeration.
+export const transferStatusLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 120, // ~3 full polling sessions per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many status checks, please try again later.' },
+  keyGenerator: (req) => {
+    return `${req.ip}-${req.headers['user-agent']?.substring(0, 50) || 'unknown'}`;
+  },
+  handler: (req, res) => {
+    logger.warn(`Transfer status rate limit exceeded for IP: ${req.ip}`, {
+      path: req.path
+    });
+    res.status(429).json({ error: 'Too many status checks, please try again later.' });
+  }
+});
+
 // Rate limiter for admin OTP login requests
 // Keys on email + IP so an attacker cannot spam the admin inbox by rotating IPs.
 export const adminLoginLimiter = rateLimit({

@@ -131,9 +131,10 @@ it is not required.
 
 ## Order Fulfillment & Operations
 
-There is **no admin UI** — the frontend contains no admin panel. The admin API
-exists at `/api/admin/*` behind email-OTP auth, but day-to-day operations run
-through scripts in `crownmania_backend/scripts/`:
+An admin panel now exists at `/admin` (email-OTP login via `/api/admin/login` +
+`/api/admin/verify`, backed by `AdminPage.jsx` and `components/admin/*` —
+Dashboard, Live Traffic, Orders, Claims, Users, Failures). Bulk or one-off
+operations still run through scripts in `crownmania_backend/scripts/`:
 
 | Task | Command |
 | --- | --- |

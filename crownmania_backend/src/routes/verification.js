@@ -5,7 +5,7 @@ import { authenticateWallet, getNonceHandler } from '../middleware/auth.js';
 import { sendClaimConfirmationEmail } from '../config/email.js';
 import { db } from '../config/firebase.js';
 import { sendScanAttemptEmail, sendCodeEntryEmail, sendClaimAttemptEmail, sendAdminSMS } from '../services/notificationService.js';
-import { serialNumberLimiter, claimLimiter, emailVerificationLimiter } from '../middleware/rateLimiter.js';
+import { serialNumberLimiter, claimLimiter, emailVerificationLimiter, transferStatusLimiter } from '../middleware/rateLimiter.js';
 import { validateSerialNumber, validateWallet } from '../middleware/validation.js';
 const router = express.Router();
 
@@ -250,7 +250,7 @@ router.get('/wallet-tokens/:walletAddress', async (req, res) => {
  * @desc Check NFT transfer status for a given serial number
  * @access Public
  */
-router.get('/transfer-status/:serialNumber', serialNumberLimiter, async (req, res) => {
+router.get('/transfer-status/:serialNumber', transferStatusLimiter, async (req, res) => {
   try {
     const { serialNumber } = req.params;
 
