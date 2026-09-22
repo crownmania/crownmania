@@ -31,6 +31,8 @@ jest.unstable_mockModule('../../src/config/email.js', () => ({
     EMAIL_CONFIG: { from: { email: 'test@test.com', name: 'Test' } },
     sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
     sendClaimConfirmationEmail: jest.fn().mockResolvedValue(undefined),
+    sendAdminAlertEmail: jest.fn().mockResolvedValue(undefined),
+    renderCodeEmail: jest.fn().mockReturnValue({ html: '<p>123456</p>', text: '123456' }),
 }));
 
 jest.unstable_mockModule('../../src/services/notificationService.js', () => ({
@@ -38,9 +40,16 @@ jest.unstable_mockModule('../../src/services/notificationService.js', () => ({
     sendCodeEntryEmail: jest.fn().mockResolvedValue(undefined),
     sendClaimAttemptEmail: jest.fn().mockResolvedValue(undefined),
     sendConnectionAttemptEmail: jest.fn().mockResolvedValue(undefined),
+    sendAdminSMS: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.unstable_mockModule('../../src/services/thirdwebService.js', () => ({
+    claimNFTToWallet: jest.fn().mockResolvedValue({
+        success: true,
+        tokenId: '123',
+        transactionHash: '0xabc',
+        contractAddress: '0xcontract',
+    }),
     transferNFTToWallet: jest.fn().mockResolvedValue({
         success: true,
         tokenId: '123',
@@ -82,6 +91,8 @@ jest.unstable_mockModule('../../src/services/signatureService.js', () => ({
 jest.unstable_mockModule('../../src/middleware/rateLimiter.js', () => ({
     serialNumberLimiter: (req, res, next) => next(),
     claimLimiter: (req, res, next) => next(),
+    emailVerificationLimiter: (req, res, next) => next(),
+    transferStatusLimiter: (req, res, next) => next(),
 }));
 
 jest.unstable_mockModule('../../src/middleware/validation.js', () => ({

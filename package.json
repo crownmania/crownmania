@@ -7,7 +7,7 @@
     "crownmania_backend"
   ],
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.0.0",
     "npm": ">=8.0.0"
   },
   "scripts": {
@@ -33,7 +33,8 @@
     "concurrently": "^8.2.0"
   },
   "dependencies": {
-    "glob": "^9.3.5"
+    "glob": "^9.3.5",
+    "viem": "^2.56.8"
   },
   "overrides": {
     "glob": "^9.3.5",

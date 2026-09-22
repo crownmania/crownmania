@@ -6,6 +6,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { readFileSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import logger from './logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,23 +30,23 @@ function getServiceAccount() {
   const jsonPath = join(__dirname, 'serviceAccountKey.json');
 
   if (existsSync(jsonPath)) {
-    console.log('📁 Loading Firebase credentials from serviceAccountKey.json');
+    logger.info('📁 Loading Firebase credentials from serviceAccountKey.json');
     const jsonContent = readFileSync(jsonPath, 'utf8');
     return JSON.parse(jsonContent);
   }
 
   // Check for full JSON content in environment variable
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-    console.log('🔧 Loading Firebase credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON');
+    logger.info('🔧 Loading Firebase credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON');
     try {
       return JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
     } catch (e) {
-      console.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', e.message);
+      logger.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', e.message);
     }
   }
 
   // Fall back to individual environment variables
-  console.log('🔧 Loading Firebase credentials from individual environment variables');
+  logger.info('🔧 Loading Firebase credentials from individual environment variables');
 
   const serviceAccount = {
     type: 'service_account',
@@ -61,7 +62,7 @@ function getServiceAccount() {
   };
 
   // Debug: Log which env vars are set (without revealing values)
-  console.log('Firebase config check:', {
+  logger.info('Firebase config check:', {
     hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
     hasPrivateKeyId: !!process.env.FIREBASE_PRIVATE_KEY_ID,
     hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
@@ -84,7 +85,7 @@ try {
     credential: admin.credential.cert(serviceAccount),
     storageBucket: process.env.FIREBASE_STORAGE_BUCKET
   });
-  console.log('✅ Firebase Admin initialized successfully');
+  logger.info('✅ Firebase Admin initialized successfully');
 
   // Initialize services - using 'crownmania' named database (Native mode)
   // The default database is in Datastore mode, so we use a named database
@@ -103,7 +104,7 @@ try {
     }
   };
 
-  console.log('📊 Using Firestore database: crownmania');
+  logger.info('📊 Using Firestore database: crownmania');
 
   // Configure Firestore settings
   db.settings({ ignoreUndefinedProperties: true });
@@ -120,18 +121,18 @@ try {
       }
     ];
     await bucket.setCorsConfiguration(corsConfig);
-    console.log('✅ Storage CORS configuration applied');
+    logger.info('✅ Storage CORS configuration applied');
   } catch (corsErr) {
-    console.warn('⚠️ Could not apply storage CORS:', corsErr.message);
+    logger.warn('⚠️ Could not apply storage CORS:', corsErr.message);
   }
 
   firebaseReady = true;
 } catch (error) {
-  console.error('⚠️ Firebase admin initialization failed:', error.message);
-  console.error('\n💡 TIP: Copy your Firebase service account JSON file to:');
-  console.error(`   ${join(__dirname, 'serviceAccountKey.json')}`);
-  console.error('\nOr fix the FIREBASE_PRIVATE_KEY in your .env file.');
-  console.error('\n⚠️ Server will start but routes requiring Firebase will return 503.');
+  logger.error('⚠️ Firebase admin initialization failed:', error.message);
+  logger.error('\n💡 TIP: Copy your Firebase service account JSON file to:');
+  logger.error(`   ${join(__dirname, 'serviceAccountKey.json')}`);
+  logger.error('\nOr fix the FIREBASE_PRIVATE_KEY in your .env file.');
+  logger.error('\n⚠️ Server will start but routes requiring Firebase will return 503.');
 
   // Create stub objects so imports don't crash
   db = null;

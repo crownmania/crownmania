@@ -53,6 +53,9 @@ jest.unstable_mockModule('../../src/config/logger.js', () => ({
 
 jest.unstable_mockModule('../../src/config/email.js', () => ({
     sendClaimConfirmationEmail: jest.fn(),
+    sendAdminAlertEmail: jest.fn().mockResolvedValue(undefined),
+    renderCodeEmail: jest.fn().mockReturnValue({ html: '<p>123456</p>', text: '123456' }),
+    resolveAdminEmail: jest.fn().mockReturnValue('admin@test.com'),
     sgMail: { send: jest.fn() },
     EMAIL_CONFIG: { from: 'test@test.com' },
 }));
@@ -61,6 +64,8 @@ jest.unstable_mockModule('../../src/services/notificationService.js', () => ({
     sendScanAttemptEmail: jest.fn(),
     sendCodeEntryEmail: jest.fn(),
     sendClaimAttemptEmail: jest.fn(),
+    sendAdminSMS: jest.fn().mockResolvedValue(undefined),
+    sendConnectionAttemptEmail: jest.fn().mockResolvedValue(undefined),
     sendContentDropNotification: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -127,9 +132,9 @@ describe('Security Regression: Auth Gates', () => {
         });
     });
 
-    // ── S5: POST /api/verification/issue-token requires wallet auth ──
-    describe('S5: Issue-token auth gate', () => {
-        it('should reject requests without wallet signature', async () => {
+    // ── S5: POST /api/verification/issue-token was removed entirely ──
+    describe('S5: Issue-token endpoint removed', () => {
+        it('should return 404 for issue-token requests', async () => {
             const res = await supertest(app)
                 .post('/api/verification/issue-token')
                 .send({
@@ -137,8 +142,8 @@ describe('Security Regression: Auth Gates', () => {
                     walletAddress: '0x0000000000000000000000000000000000000000',
                 });
 
-            // authenticateWallet requires signature + message + walletAddress
-            expect([400, 401]).toContain(res.status);
+            // The endpoint no longer exists — tokens are issued via the claim flow only
+            expect(res.status).toBe(404);
         });
     });
 
@@ -194,8 +199,8 @@ describe('Security Regression: Auth Gates', () => {
                     message: 'I want to claim on crownmania',
                 });
 
-            // Should be rejected because message doesn't have nonce format
-            expect([400, 401]).toContain(res.status);
+            // The endpoint no longer exists — tokens are issued via the claim flow only
+            expect(res.status).toBe(404);
         });
     });
 });

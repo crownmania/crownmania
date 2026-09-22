@@ -38,6 +38,11 @@ jest.unstable_mockModule('../../src/config/firebase.js', () => ({
             }),
         }),
     },
+    admin: {
+        auth: jest.fn().mockReturnValue({
+            verifyIdToken: jest.fn().mockRejectedValue(new Error('not authenticated')),
+        }),
+    },
 }));
 
 jest.unstable_mockModule('../../src/config/logger.js', () => ({
@@ -65,6 +70,8 @@ jest.unstable_mockModule('../../src/services/contentService.js', () => ({
             expiresAt: Date.now() + 3600000,
         }),
         verifyTokenAccess: jest.fn().mockResolvedValue(true),
+        verifyAccessSession: jest.fn().mockResolvedValue(false),
+        createAccessSession: jest.fn().mockResolvedValue(undefined),
         getProductContent: jest.fn().mockResolvedValue([
             { id: 'ct-1', title: 'Video 1', type: 'video' },
         ]),

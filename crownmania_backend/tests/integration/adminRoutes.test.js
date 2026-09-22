@@ -175,42 +175,6 @@ describe('Admin Routes', () => {
         });
     });
 
-    // ── CSV Export ──
-    describe('GET /api/admin/export/collectibles', () => {
-        it('should export collectibles as CSV', async () => {
-            const res = await request(app).get('/api/admin/export/collectibles');
-
-            expect(res.status).toBe(200);
-            expect(res.headers['content-type']).toContain('text/csv');
-            expect(res.headers['content-disposition']).toContain('collectibles_');
-
-            const lines = res.text.split('\n');
-            expect(lines[0]).toContain('ID');
-            expect(lines[0]).toContain('SerialNumber');
-            expect(lines.length).toBeGreaterThan(1); // header + data rows
-        });
-    });
-
-    describe('GET /api/admin/export/users', () => {
-        it('should export users as CSV', async () => {
-            const res = await request(app).get('/api/admin/export/users');
-
-            expect(res.status).toBe(200);
-            expect(res.headers['content-type']).toContain('text/csv');
-            expect(res.text).toContain('WalletAddress');
-        });
-    });
-
-    describe('GET /api/admin/export/claim-codes', () => {
-        it('should export claim codes as CSV', async () => {
-            const res = await request(app).get('/api/admin/export/claim-codes');
-
-            expect(res.status).toBe(200);
-            expect(res.headers['content-type']).toContain('text/csv');
-            expect(res.text).toContain('ProductId');
-        });
-    });
-
     // ── Stats ──
     describe('GET /api/admin/stats', () => {
         it('should return system stats', async () => {

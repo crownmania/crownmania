@@ -3,7 +3,6 @@ import axios from 'axios';
 // Use environment variable for API URL, fallback to local development or production
 const isDev = import.meta.env.DEV;
 const API_BASE_URL = import.meta.env.VITE_API_URL || (isDev ? 'http://localhost:5001' : 'https://crownmania-backend-production.up.railway.app');
-console.log('[API] Base URL:', API_BASE_URL, '| isDev:', isDev);
 
 // Security configuration
 const SECURITY_CONFIG = {
@@ -206,7 +205,6 @@ api.interceptors.response.use(
           const refreshed = await sessionRefresher();
           if (refreshed) {
             config.retryCount += 1;
-            console.log('[API] Session refreshed, retrying request...');
             return api(config);
           }
         } catch (refreshErr) {

@@ -42,6 +42,10 @@ jest.unstable_mockModule('../../src/config/email.js', () => ({
     sgMail: { send: jest.fn() },
     EMAIL_TEMPLATES: { ORDER_CONFIRMATION: 'template-id' },
     EMAIL_CONFIG: { from: 'test@example.com' },
+    sendOrderConfirmationEmail: jest.fn().mockResolvedValue(undefined),
+    sendShippingConfirmationEmail: jest.fn().mockResolvedValue(undefined),
+    sendAdminAlertEmail: jest.fn().mockResolvedValue(undefined),
+    sendNewSaleEmail: jest.fn().mockResolvedValue(undefined),
 }));
 
 // ── Mock logger ──

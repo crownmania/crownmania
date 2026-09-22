@@ -28,6 +28,7 @@ jest.unstable_mockModule('../../src/config/firebase.js', () => ({
 jest.unstable_mockModule('../../src/config/email.js', () => ({
     sgMail: { send: jest.fn().mockResolvedValue([{ statusCode: 202 }]) },
     EMAIL_CONFIG: { from: { email: 'test@test.com', name: 'Test' } },
+    renderCodeEmail: jest.fn().mockReturnValue({ html: '<p>123456</p>', text: '123456' }),
 }));
 
 jest.unstable_mockModule('../../src/services/smsService.js', () => ({
