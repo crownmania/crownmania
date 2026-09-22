@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { stripeRouter } from './routes/stripe.js';
+import { orderLookupRouter } from './routes/orderLookup.js';
 import { verificationRouter } from './routes/verification.js';
 import contentRouter from './routes/content.js';
 import { adminRouter } from './routes/admin.js';
@@ -232,6 +233,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Routes
 // ============================================
 app.use('/api/stripe', stripeRouter);
+app.use('/api/orders', orderLookupRouter);
 app.use('/api/verification', verificationRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/admin', adminRouter);

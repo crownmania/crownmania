@@ -287,6 +287,116 @@ export const twoFactorService = {
         return true;
     },
 
+    // ── order lookup verification ────────────────
+
+    /**
+     * Send an email code that unlocks the customer's order history.
+     * Deterministic doc (orderlookup_<email>) so the latest request wins
+     * and no composite index is needed.
+     * @param {string} email - Customer's email address
+     */
+    async sendOrderLookupCode(email) {
+        const normalizedEmail = email.toLowerCase().trim();
+        const docRef = db.collection('verificationCodes').doc(`orderlookup_${normalizedEmail}`);
+
+        const now = Date.now();
+        const existing = await docRef.get();
+        let requestCount = 0;
+        let windowStart = new Date(now);
+
+        if (existing.exists) {
+            const data = existing.data();
+            const windowStartMs = data.windowStart?.toDate ? data.windowStart.toDate().getTime() : 0;
+            if (now - windowStartMs < 60 * 60 * 1000) {
+                requestCount = data.requestCount || 0;
+                windowStart = data.windowStart;
+            }
+        }
+
+        if (requestCount >= MAX_CLAIM_CODES_PER_HOUR) {
+            throw new Error('Too many verification codes requested. Please try again later.');
+        }
+
+        const code = this.generateCode();
+        const expiresAt = new Date(now + CLAIM_CODE_TTL_MS);
+
+        await docRef.set({
+            type: 'order-lookup',
+            email: normalizedEmail,
+            code,
+            expiresAt,
+            verified: false,
+            attempts: 0,
+            requestCount: requestCount + 1,
+            windowStart,
+            createdAt: new Date(now),
+        });
+
+        try {
+            const { html, text } = renderCodeEmail({
+                title: 'Track Your Order',
+                subtitle: 'Confirm your email to view your order history',
+                code,
+                expiryLabel: '10 minutes',
+                note: 'If you did not request order tracking, you can safely ignore this email.'
+            });
+
+            await sgMail.send({
+                to: normalizedEmail,
+                from: EMAIL_CONFIG.from,
+                subject: 'Your Crownmania order lookup code',
+                text,
+                html,
+            });
+            logger.info(`[2FA] Order lookup code sent to ${normalizedEmail}`);
+        } catch (err) {
+            logger.error(`[2FA] Failed to send order lookup code:`, err.message);
+            throw new Error('Failed to send verification code. Please try again.');
+        }
+
+        return { sent: true, expiresAt };
+    },
+
+    /**
+     * Verify an order lookup code. Stays valid for the remainder of its TTL
+     * so a page refresh doesn't force a new code.
+     * @param {string} email
+     * @param {string} code
+     * @returns {Promise<boolean>}
+     */
+    async verifyOrderLookupCode(email, code) {
+        const normalizedEmail = email.toLowerCase().trim();
+        const docRef = db.collection('verificationCodes').doc(`orderlookup_${normalizedEmail}`);
+        const doc = await docRef.get();
+
+        if (!doc.exists || doc.data().type !== 'order-lookup') {
+            throw new Error('No verification code was requested for this email.');
+        }
+
+        const data = doc.data();
+
+        if (data.expiresAt.toDate() < new Date()) {
+            throw new Error('Verification code expired. Please request a new one.');
+        }
+
+        if (data.verified) {
+            return true;
+        }
+
+        if (data.attempts >= MAX_VERIFY_ATTEMPTS) {
+            throw new Error('Too many failed attempts. Please request a new code.');
+        }
+
+        if (data.code !== String(code).trim()) {
+            await docRef.update({ attempts: data.attempts + 1 });
+            throw new Error('Invalid verification code.');
+        }
+
+        await docRef.update({ verified: true, verifiedAt: new Date() });
+        logger.info(`[2FA] Order lookup verified for ${normalizedEmail}`);
+        return true;
+    },
+
     // ── 2FA enable / disable ─────────────────────
 
     /**

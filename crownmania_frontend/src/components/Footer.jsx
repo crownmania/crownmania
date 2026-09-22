@@ -225,9 +225,9 @@ export default function Footer() {
           transition={{ delay: 0.1 }}
         >
           <h3>Support</h3>
-          <FooterLink href="#" whileHover={{ x: 5 }}>FAQ</FooterLink>
+          <FooterLink href="/track-order" whileHover={{ x: 5 }}>Track Order</FooterLink>
           <FooterLink href="/contact" whileHover={{ x: 5 }}>Contact Us</FooterLink>
-          <FooterLink href="#" whileHover={{ x: 5 }}>Help Center</FooterLink>
+          <FooterLink href="#" whileHover={{ x: 5 }}>FAQ</FooterLink>
         </FooterSection>
 
         <FooterSection

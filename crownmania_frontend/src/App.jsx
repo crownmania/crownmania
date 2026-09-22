@@ -36,6 +36,7 @@ const SuccessPage = React.lazy(() => import('./pages/SuccessPage'));
 const CancelPage = React.lazy(() => import('./pages/CancelPage'));
 const LegalPage = React.lazy(() => import('./pages/LegalPage'));
 const ExclusivePerks = React.lazy(() => import('./pages/ExclusivePerks'));
+const TrackOrderPage = React.lazy(() => import('./pages/TrackOrderPage'));
 const AdminPage = React.lazy(() => import('./pages/AdminPage'));
 
 const AppContainer = styled.div`
@@ -132,6 +133,7 @@ function App() {
               <Route path="/terms-of-service" element={<LegalPage />} />
               <Route path="/returns" element={<LegalPage />} />
               <Route path="/exclusive-perks" element={<ExclusivePerks />} />
+              <Route path="/track-order" element={<TrackOrderPage />} />
               <Route path="/admin" element={<AdminPage />} />
               {/* Unknown paths (incl. the retired /product/:id links) land on
                   the homepage rather than a blank screen. */}
