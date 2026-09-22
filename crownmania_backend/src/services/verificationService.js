@@ -62,6 +62,15 @@ export const verificationService = {
 
       const productData = productDoc.data();
 
+      // Revoked codes are dead ends — do not confirm authenticity
+      if (claimCodeData.revoked) {
+        return {
+          verified: false,
+          product: null,
+          message: 'This code is no longer valid. Please contact support.'
+        };
+      }
+
       // Check if the code has already been claimed
       if (claimCodeData.claimed || claimCodeData.claimedBy) {
         // Look up the collectible record for full token details
@@ -166,6 +175,15 @@ export const verificationService = {
       }
 
       const claimCodeData = claimCodeDoc.data();
+
+      // Revoked codes are dead ends — do not confirm authenticity
+      if (claimCodeData.revoked) {
+        return {
+          verified: false,
+          product: null,
+          message: 'This code is no longer valid. Please contact support.'
+        };
+      }
 
       // Check if already claimed
       if (claimCodeData.claimed || claimCodeData.claimedBy) {
@@ -330,7 +348,10 @@ export const verificationService = {
 
         claimCodeData = claimCodeDoc.data();
 
-        // Step 2: Check if already claimed (race condition prevention)
+        // Step 2: Check if already claimed or revoked (race condition prevention)
+        if (claimCodeData.revoked) {
+          throw new Error('CLAIM_ERROR:This claim code is no longer valid');
+        }
         if (claimCodeData.claimed || claimCodeData.claimedBy) {
           throw new Error('CLAIM_ERROR:This product has already been claimed');
         }

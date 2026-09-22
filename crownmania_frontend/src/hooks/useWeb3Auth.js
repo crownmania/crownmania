@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getWeb3Auth, initMoralis, initializeModal, isWeb3AuthReady, WEB3_ENABLED } from '../config/web3Config';
 import { installWeb3Polyfills } from '../utils/installWeb3Polyfills';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5001' : 'https://crownmania-backend-production.up.railway.app');
+
 // Security configuration constants
 const SECURITY_CONFIG = {
   HEARTBEAT_INTERVAL: 15000, // 15 seconds
@@ -673,22 +675,40 @@ const useWeb3Auth = () => {
    * Sign message with nonce for authentication
    */
   const signMessageWithNonce = useCallback(async (customMessage = null) => {
-    if (!validateNonce()) {
-      generateNonce();
+    const address = walletAddress || await fetchAddress(provider, web3);
+    if (!address) {
+      setError('Wallet not connected');
+      return null;
     }
 
-    const message = customMessage || `Crownmania authentication\nNonce: ${sessionNonceRef.current}\nTimestamp: ${Date.now()}`;
-    
+    // Fetch a server-issued nonce and canonical message template. The backend
+    // only accepts signatures over this exact format — a client-generated
+    // nonce or ad-hoc message always fails verification.
+    let nonceData;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/verification/nonce`);
+      if (!res.ok) throw new Error(`Nonce request failed (${res.status})`);
+      nonceData = await res.json();
+    } catch (e) {
+      setError('Security initialization failed. Please try again.');
+      return null;
+    }
+
+    const message = nonceData.messageTemplate
+      .replace('{ACTION}', customMessage || 'authenticate')
+      .replace('{WALLET_ADDRESS}', address);
+
     const signature = await signMessage(message);
-    
+    if (!signature) return null;
+
     return {
       message,
       signature,
-      nonce: sessionNonceRef.current,
-      timestamp: Date.now(),
-      address: walletAddress
+      nonce: nonceData.nonce,
+      timestamp: nonceData.timestamp,
+      address
     };
-  }, [signMessage, validateNonce, generateNonce, walletAddress]);
+  }, [signMessage, fetchAddress, walletAddress, provider, web3]);
 
   /**
    * Check if wallet is ready for vault operations

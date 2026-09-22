@@ -17,9 +17,14 @@ router.get('/preferences', async (req, res) => {
             return res.status(400).json({ error: 'address is required' });
         }
 
-        // Verify ownership
-        if (signature && message) {
+        // Verify ownership — signature is required
+        if (!signature || !message) {
+            return res.status(401).json({ error: 'Wallet signature is required' });
+        }
+        try {
             await signatureService.verifySignature(address, signature, message);
+        } catch {
+            return res.status(401).json({ error: 'Signature verification failed' });
         }
 
         const snap = await db.collection('notificationPreferences')
@@ -56,9 +61,14 @@ router.put('/preferences', async (req, res) => {
             return res.status(400).json({ error: 'walletAddress is required' });
         }
 
-        // Verify wallet ownership
-        if (signature && message) {
+        // Verify wallet ownership — signature is required
+        if (!signature || !message) {
+            return res.status(401).json({ error: 'Wallet signature is required' });
+        }
+        try {
             await signatureService.verifySignature(walletAddress, signature, message);
+        } catch {
+            return res.status(401).json({ error: 'Signature verification failed' });
         }
 
         const prefs = {

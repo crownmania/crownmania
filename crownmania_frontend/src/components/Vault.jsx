@@ -2396,9 +2396,9 @@ export default function Vault() {
   }, []);
 
   const openTransferModal = useCallback(() => {
-    resetTransferState();
-    setShowTransferModal(true);
-  }, [resetTransferState]);
+    // External transfers are disabled until the backend supports them safely.
+    showToastMessage('External transfers are coming soon.');
+  }, []);
 
   const closeTransferModal = useCallback(() => {
     if (transferProcessing) return; // Don't close while processing
@@ -3364,12 +3364,11 @@ export default function Vault() {
             <ActionButton
               style={{ justifyContent: 'space-between', flex: 1, minWidth: '200px' }}
               onClick={openTransferModal}
-              disabled={!isDurkOwned}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <FaExchangeAlt /> LEGACY TRANSFER
+                <FaExchangeAlt /> COMING SOON
               </span>
-              {!isDurkOwned && <FaLock size={12} />}
+              <FaLock size={12} />
             </ActionButton>
             <ActionButton
               style={{

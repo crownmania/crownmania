@@ -47,13 +47,14 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Wallet address is required' });
         }
 
-        // Verify wallet signature for profile creation
-        if (signature && message) {
-            try {
-                await signatureService.verifySignature(walletAddress, signature, message);
-            } catch (error) {
-                return res.status(401).json({ error: 'Signature verification failed' });
-            }
+        // Verify wallet signature for profile creation — required
+        if (!signature || !message) {
+            return res.status(401).json({ error: 'Wallet signature is required' });
+        }
+        try {
+            await signatureService.verifySignature(walletAddress, signature, message);
+        } catch (error) {
+            return res.status(401).json({ error: 'Signature verification failed' });
         }
 
         // Sanitize inputs

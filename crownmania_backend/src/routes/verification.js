@@ -106,6 +106,9 @@ router.post('/claim/request-code', emailVerificationLimiter, validateSerialNumbe
       return res.status(404).json({ error: 'Invalid serial number' });
     }
     const claimCodeData = claimCodeDoc.data();
+    if (claimCodeData.revoked) {
+      return res.status(410).json({ error: 'This code is no longer valid' });
+    }
     if (claimCodeData.claimed || claimCodeData.claimedBy) {
       return res.status(409).json({ error: 'This product has already been claimed' });
     }
