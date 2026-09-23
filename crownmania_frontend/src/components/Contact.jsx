@@ -199,7 +199,7 @@ export default function Contact() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          Direct Communication
+          Get in Touch
         </motion.p>
         <motion.h2
           initial={{ opacity: 0, scale: 0.95 }}
@@ -207,7 +207,7 @@ export default function Contact() {
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          CONTACT THE ARCHIVE
+          Contact the Team
         </motion.h2>
       </TitleHeader>
 
@@ -224,7 +224,7 @@ export default function Contact() {
             style={{ textAlign: 'center', padding: '2rem 0' }}
           >
             <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>👑</div>
-            <h3 style={{ fontFamily: 'var(--font-primary)', color: 'white', marginBottom: '0.75rem', fontSize: '1.5rem' }}>TRANSMISSION SENT</h3>
+            <h3 style={{ fontFamily: 'var(--font-primary)', color: 'white', marginBottom: '0.75rem', fontSize: '1.5rem' }}>MESSAGE SENT</h3>
             <p style={{ fontFamily: 'var(--font-secondary)', color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', lineHeight: 1.7 }}>
               We've received your message. Expect a reply within 1–2 business days.
             </p>
@@ -232,7 +232,7 @@ export default function Contact() {
         ) : (
           <Form onSubmit={handleSubmit}>
             <InputGroup>
-              <Label htmlFor="name">Full Identity</Label>
+              <Label htmlFor="name">Name</Label>
               <Input
                 type="text"
                 id="name"
@@ -245,7 +245,7 @@ export default function Contact() {
             </InputGroup>
 
             <InputGroup>
-              <Label htmlFor="email">Nexus Address</Label>
+              <Label htmlFor="email">Email Address</Label>
               <Input
                 type="email"
                 id="email"
@@ -258,13 +258,13 @@ export default function Contact() {
             </InputGroup>
 
             <InputGroup>
-              <Label htmlFor="message">Transmission</Label>
+              <Label htmlFor="message">Message</Label>
               <TextArea
                 id="message"
                 name="message"
                 value={formData.message}
                 onChange={handleChange}
-                placeholder="Describe your inquiry..."
+                placeholder="How can we help?"
                 required
               />
             </InputGroup>
@@ -281,9 +281,9 @@ export default function Contact() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
             >
-              {isSubmitting ? 'TRANSMITTING...' : (
+              {isSubmitting ? 'SENDING...' : (
                 <>
-                  SEND TRANSMISSION
+                  SEND MESSAGE
                   <FaPaperPlane size={14} />
                 </>
               )}
