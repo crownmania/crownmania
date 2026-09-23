@@ -5,6 +5,7 @@ import { GlobalStyles } from './styles/GlobalStyles';
 import Header from './components/Header';
 import BackgroundBeams from './components/BackgroundBeams';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import { verifyStorageSetup } from './utils/storageUtils';
 import { initAnalytics, trackPageview } from './services/analytics';
 
@@ -115,10 +116,11 @@ function App() {
       <BackgroundBeams />
       <Router>
         <AnalyticsTracker />
-        <Header />
-        <MainContent>
-          <Suspense fallback={<LoadingSpinner fullScreen />}>
-            <Routes>
+        <ErrorBoundary>
+          <Header />
+          <MainContent>
+            <Suspense fallback={<LoadingSpinner fullScreen />}>
+              <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/forum" element={<ForumPage />} />
               <Route path="/contact" element={<ContactPage />} />
@@ -139,8 +141,9 @@ function App() {
                   the homepage rather than a blank screen. */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </Suspense>
-        </MainContent>
+            </Suspense>
+          </MainContent>
+        </ErrorBoundary>
       </Router>
     </AppContainer>
   );

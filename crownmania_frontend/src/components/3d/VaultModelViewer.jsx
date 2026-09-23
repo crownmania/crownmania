@@ -14,7 +14,9 @@ const VaultModelViewer = ({ isUnlocked }) => (
       <group position={[0, -1.8, 0]}>
         <DurkModel isUnlocked={isUnlocked} />
       </group>
-      <Environment preset="city" />
+      {/* Self-hosted HDRI — the "city" preset fetches from raw.githack.com at
+          runtime, which the hosting CSP blocks. */}
+      <Environment files="/hdri/potsdamer_platz_1k.hdr" />
     </Suspense>
     <OrbitControls
       autoRotate={true}

@@ -9,6 +9,7 @@ import { playVerificationSuccess, playError, playUnlock, playClick, playRarityRe
 import { isPushSupported, getPermissionStatus, requestPushPermission, onForegroundMessage } from '../utils/pushNotifications';
 
 import useWeb3Auth from '../hooks/useWeb3Auth';
+import ErrorBoundary from './common/ErrorBoundary';
 import { verificationAPI, transferAPI } from '../services/api';
 import crownLogo from '../assets/crown_logo_white.svg';
 import blueprintBg from '../assets/crownmania_blueprint.svg';
@@ -3326,14 +3327,18 @@ export default function Vault() {
                   </div>
                 </ModelHeader>
                 <ModelCanvas $locked={isVaultLocked && !isAssetVerified}>
-                  <Suspense fallback={
-                    <LoadingSpinner>
-                      <FaSpinner size={32} />
-                      <span>LOADING 3D MODEL...</span>
-                    </LoadingSpinner>
-                  }>
-                    <VaultModelViewer isUnlocked={!isVaultLocked || isAssetVerified} />
-                  </Suspense>
+                  {/* If WebGL is unavailable or the HDRI fails to load, fail
+                      just the canvas — the rest of the Vault stays usable. */}
+                  <ErrorBoundary fallback={null}>
+                    <Suspense fallback={
+                      <LoadingSpinner>
+                        <FaSpinner size={32} />
+                        <span>LOADING 3D MODEL...</span>
+                      </LoadingSpinner>
+                    }>
+                      <VaultModelViewer isUnlocked={!isVaultLocked || isAssetVerified} />
+                    </Suspense>
+                  </ErrorBoundary>
                 </ModelCanvas>
               </ModelViewerPanel>
             </>
