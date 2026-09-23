@@ -350,7 +350,7 @@ export const twoFactorService = {
             });
             logger.info(`[2FA] Order lookup code sent to ${normalizedEmail}`);
         } catch (err) {
-            logger.error(`[2FA] Failed to send order lookup code:`, err.message);
+            logger.error(`[2FA] Failed to send order lookup code: ${err.message}`);
             throw new Error('Failed to send verification code. Please try again.');
         }
 
