@@ -3,7 +3,8 @@ import styled, { keyframes } from 'styled-components';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   FaChartPie, FaBox, FaTicketAlt, FaUsers, FaExclamationTriangle,
-  FaSignOutAlt, FaShieldAlt, FaSignal,
+  FaSignOutAlt, FaShieldAlt, FaSignal, FaGem, FaServer, FaFilm,
+  FaEnvelopeOpenText, FaComments, FaBullhorn, FaClipboardList,
 } from 'react-icons/fa';
 
 import {
@@ -18,6 +19,13 @@ import Claims from '../components/admin/Claims';
 import Users from '../components/admin/Users';
 import Failures from '../components/admin/Failures';
 import Live from '../components/admin/Live';
+import Collectibles from '../components/admin/Collectibles';
+import Queue from '../components/admin/Queue';
+import ContentManager from '../components/admin/Content';
+import Inbox from '../components/admin/Inbox';
+import ForumMod from '../components/admin/ForumMod';
+import Notify from '../components/admin/Notify';
+import Activity from '../components/admin/Activity';
 import {
   Panel, Input, Button, Spinner, ErrorBanner, SmallButton,
 } from '../components/admin/shared';
@@ -424,6 +432,13 @@ const TABS = [
   { id: 'orders', label: 'Orders', icon: FaBox },
   { id: 'claims', label: 'Claims', icon: FaTicketAlt },
   { id: 'users', label: 'Users', icon: FaUsers },
+  { id: 'collectibles', label: 'Collectibles', icon: FaGem },
+  { id: 'queue', label: 'Queue', icon: FaServer },
+  { id: 'content', label: 'Content', icon: FaFilm },
+  { id: 'inbox', label: 'Inbox', icon: FaEnvelopeOpenText },
+  { id: 'forum', label: 'Forum', icon: FaComments },
+  { id: 'notify', label: 'Notify', icon: FaBullhorn },
+  { id: 'activity', label: 'Activity', icon: FaClipboardList },
   { id: 'failures', label: 'Failures', icon: FaExclamationTriangle },
 ];
 
@@ -555,6 +570,13 @@ const AdminPage = () => {
               {tab === 'live' && <Live onAuthError={handleAuthError} />}
               {tab === 'claims' && <Claims notify={notify} onAuthError={handleAuthError} />}
               {tab === 'users' && <Users notify={notify} onAuthError={handleAuthError} />}
+              {tab === 'collectibles' && <Collectibles notify={notify} onAuthError={handleAuthError} />}
+              {tab === 'queue' && <Queue notify={notify} onAuthError={handleAuthError} />}
+              {tab === 'content' && <ContentManager notify={notify} onAuthError={handleAuthError} />}
+              {tab === 'inbox' && <Inbox notify={notify} onAuthError={handleAuthError} />}
+              {tab === 'forum' && <ForumMod notify={notify} onAuthError={handleAuthError} />}
+              {tab === 'notify' && <Notify notify={notify} onAuthError={handleAuthError} />}
+              {tab === 'activity' && <Activity onAuthError={handleAuthError} />}
               {tab === 'failures' && <Failures notify={notify} onAuthError={handleAuthError} />}
             </Content>
           </Main>

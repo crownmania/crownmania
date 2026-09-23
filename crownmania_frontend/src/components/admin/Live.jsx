@@ -4,6 +4,7 @@ import { adminRequest, AdminAuthError } from '../../services/adminApi';
 import {
   Panel, PanelTitle, StatGrid, StatCard, StatLabel, StatValue, StatSub,
   TableWrap, Table, LoadingRow, Spinner, EmptyState, ErrorBanner, RefreshButton,
+  RangePicker, Toolbar,
   formatDate, truncateMiddle,
 } from './shared';
 
@@ -98,6 +99,7 @@ const deviceLabel = (ua) => {
 
 const Live = ({ onAuthError }) => {
   const [data, setData] = useState(null);
+  const [range, setRange] = useState('7d');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const timerRef = useRef(null);
@@ -105,7 +107,7 @@ const Live = ({ onAuthError }) => {
   const load = useCallback(async (showSpinner = false) => {
     if (showSpinner) setLoading(true);
     try {
-      const result = await adminRequest('/api/admin/analytics');
+      const result = await adminRequest(`/api/admin/analytics?range=${range}`);
       setData(result);
       setError('');
     } catch (e) {
@@ -114,7 +116,7 @@ const Live = ({ onAuthError }) => {
     } finally {
       setLoading(false);
     }
-  }, [onAuthError]);
+  }, [range, onAuthError]);
 
   useEffect(() => {
     load(true);
@@ -138,6 +140,10 @@ const Live = ({ onAuthError }) => {
         </ErrorBanner>
       )}
 
+      <Toolbar style={{ justifyContent: 'flex-end' }}>
+        <RangePicker value={range} onChange={setRange} />
+      </Toolbar>
+
       <StatGrid>
         <StatCard>
           <StatLabel><LiveDot />Online Now</StatLabel>
@@ -145,14 +151,14 @@ const Live = ({ onAuthError }) => {
           <StatSub>active in last {d.live?.windowMinutes ?? 3} min</StatSub>
         </StatCard>
         <StatCard>
-          <StatLabel>Today's Visitors</StatLabel>
-          <StatValue>{d.today?.uniques ?? 0}</StatValue>
-          <StatSub>unique sessions</StatSub>
+          <StatLabel>Visitors — {d.range?.label ?? '…'}</StatLabel>
+          <StatValue>{d.range?.uniques ?? 0}</StatValue>
+          <StatSub>unique sessions{range === 'today' ? ` (${d.today?.uniques ?? 0} today)` : ''}</StatSub>
         </StatCard>
         <StatCard>
-          <StatLabel>Today's Pageviews</StatLabel>
-          <StatValue $color="var(--vault-accent-bright)">{d.today?.pageviews ?? 0}</StatValue>
-          <StatSub>across all pages</StatSub>
+          <StatLabel>Pageviews — {d.range?.label ?? '…'}</StatLabel>
+          <StatValue $color="var(--vault-accent-bright)">{d.range?.pageviews ?? 0}</StatValue>
+          <StatSub>across all pages{range === 'today' ? ` (${d.today?.pageviews ?? 0} today)` : ''}</StatSub>
         </StatCard>
       </StatGrid>
 
@@ -187,12 +193,12 @@ const Live = ({ onAuthError }) => {
           </Panel>
 
           <Panel style={{ marginBottom: '1.5rem' }}>
-            <PanelTitle>Last 7 Days</PanelTitle>
-            {!d.last7Days?.length ? (
+            <PanelTitle>{d.range?.label ?? 'History'}</PanelTitle>
+            {!d.days?.length ? (
               <EmptyState>No traffic recorded yet</EmptyState>
             ) : (() => {
-              const max = Math.max(...d.last7Days.map(x => x.pageviews || 0), 1);
-              return d.last7Days.map((day) => (
+              const max = Math.max(...d.days.map(x => x.pageviews || 0), 1);
+              return d.days.map((day) => (
                 <DayRow key={day.date}>
                   <span className="date">{day.date.slice(5)}</span>
                   <div style={{ flex: 1, margin: '0 0.75rem' }}>

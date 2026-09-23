@@ -107,25 +107,43 @@ router.post('/ping', analyticsLimiter, async (req, res) => {
   }
 });
 
+const RANGES = {
+  today: { label: 'Today', days: 1 },
+  yesterday: { label: 'Yesterday', days: 1 },
+  '7d': { label: 'Last 7 days', days: 7 },
+  '30d': { label: 'Last 30 days', days: 30 },
+  all: { label: 'All time', days: Infinity },
+};
+
+const utcDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+
 /**
- * GET /api/admin/analytics
+ * GET /api/admin/analytics?range=today|yesterday|7d|30d|all
  * Live + recent traffic summary for the admin dashboard.
  */
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const now = Date.now();
     const liveCutoff = new Date(now - LIVE_WINDOW_MS);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = utcDay(now);
+    const range = RANGES[req.query.range] ? req.query.range : '7d';
 
-    // Doc IDs are the UTC dates themselves — point reads for the last 7 days
+    // Doc IDs are the UTC dates themselves — point reads for bounded ranges
     // avoid an orderBy('__name__') that would need a composite index.
-    const dayKeys = Array.from({ length: 7 }, (_, i) =>
-      new Date(now - i * 86400000).toISOString().slice(0, 10));
+    // 'all' scans the whole collection: one doc per day stays cheap for a
+    // long time, and scanning is the only way to get exact all-time uniques.
+    const fetchDaily = range === 'all'
+      ? daily().get().then(s => s.docs)
+      : Promise.all(
+          (range === 'yesterday'
+            ? [utcDay(now - 86400000)]
+            : Array.from({ length: RANGES[range].days }, (_, i) => utcDay(now - i * 86400000))
+          ).map((k) => daily().doc(k).get()));
 
     const [liveSnap, recentSnap, dailyDocs] = await Promise.all([
       sessions().where('lastSeen', '>=', liveCutoff).get(),
       sessions().orderBy('lastSeen', 'desc').limit(15).get(),
-      Promise.all(dayKeys.map((k) => daily().doc(k).get())),
+      fetchDaily,
     ]);
 
     const liveSessions = liveSnap.docs.map(d => {
@@ -140,21 +158,29 @@ router.get('/', requireAdmin, async (req, res) => {
       };
     });
 
-    // Daily counters for the last 7 days
+    // Daily counters for the selected range. Range uniques are the union of
+    // per-day session-id maps, so multi-day ranges don't double-count.
     const days = {};
     const topPageCounts = {};
+    const rangeSessions = new Set();
     for (const doc of dailyDocs) {
       if (!doc.exists) continue;
       const d = doc.data();
-      const uniqueCount = Object.keys(d.sessions || {}).length;
+      const sessionIds = Object.keys(d.sessions || {});
+      sessionIds.forEach((id) => rangeSessions.add(id));
       days[doc.id] = {
         pageviews: d.pageviews || 0,
-        uniques: uniqueCount,
+        uniques: sessionIds.length,
       };
       for (const [path, count] of Object.entries(d.pages || {})) {
         topPageCounts[path] = (topPageCounts[path] || 0) + (count || 0);
       }
     }
+
+    const rangeTotals = {
+      pageviews: Object.values(days).reduce((s, d) => s + d.pageviews, 0),
+      uniques: rangeSessions.size,
+    };
 
     const topPages = Object.entries(topPageCounts)
       .sort((a, b) => b[1] - a[1])
@@ -181,7 +207,12 @@ router.get('/', requireAdmin, async (req, res) => {
         windowMinutes: LIVE_WINDOW_MS / 60000,
       },
       today: days[today] || { pageviews: 0, uniques: 0 },
-      last7Days: Object.entries(days)
+      range: {
+        key: range,
+        label: RANGES[range].label,
+        ...rangeTotals,
+      },
+      days: Object.entries(days)
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([date, v]) => ({ date, ...v })),
       topPages,

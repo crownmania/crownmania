@@ -445,3 +445,152 @@ export const RefreshButton = ({ onClick, loading }) => (
     <FaSyncAlt className={loading ? 'spinning' : ''} /> Refresh
   </RefreshBtn>
 );
+
+// ============================================
+// RANGE PICKER (UTC day boundaries)
+// ============================================
+
+export const RANGE_OPTIONS = [
+  { key: 'today', label: 'Today' },
+  { key: 'yesterday', label: 'Yesterday' },
+  { key: '7d', label: '7 days' },
+  { key: '30d', label: '30 days' },
+  { key: 'all', label: 'All time' },
+];
+
+/**
+ * Convert a range key to { from, to } ISO bounds for endpoints that accept
+ * date filters. 'all' returns {} (unbounded). Bounds are UTC day-aligned so
+ * they line up with the analytics daily buckets.
+ */
+export const rangeFromTo = (key) => {
+  const DAY = 86400000;
+  const now = Date.now();
+  const todayStart = new Date(now).setUTCHours(0, 0, 0, 0);
+  switch (key) {
+    case 'today':
+      return { from: new Date(todayStart).toISOString() };
+    case 'yesterday':
+      return {
+        from: new Date(todayStart - DAY).toISOString(),
+        to: new Date(todayStart).toISOString(),
+      };
+    case '7d':
+      return { from: new Date(todayStart - 6 * DAY).toISOString() };
+    case '30d':
+      return { from: new Date(todayStart - 29 * DAY).toISOString() };
+    default:
+      return {};
+  }
+};
+
+export const RangePicker = ({ value, onChange, options = RANGE_OPTIONS }) => (
+  <Select value={value} onChange={(e) => onChange(e.target.value)} aria-label="Date range">
+    {options.map((o) => (
+      <option key={o.key} value={o.key}>{o.label}</option>
+    ))}
+  </Select>
+);
+
+// ============================================
+// MINI BAR CHART
+// ============================================
+
+const BarsWrap = styled.div`
+  display: flex;
+  align-items: flex-end;
+  gap: ${props => props.$dense ? '2px' : '6px'};
+  height: ${props => props.$height || '120px'};
+  padding-top: 0.5rem;
+`;
+
+const BarCol = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+
+  .bar {
+    width: 100%;
+    max-width: 40px;
+    border-radius: 4px 4px 2px 2px;
+    background: linear-gradient(180deg, var(--vault-accent-bright, #6B8DD6), var(--vault-accent, #4169E1));
+    min-height: ${props => props.$hasValue ? '3px' : '1px'};
+    opacity: ${props => props.$hasValue ? 1 : 0.25};
+    transition: height 0.25s ease;
+  }
+
+  .label {
+    margin-top: 0.4rem;
+    font-family: var(--font-secondary);
+    font-size: 0.58rem;
+    color: rgba(255, 255, 255, 0.35);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+`;
+
+/**
+ * Minimal vertical bar chart.
+ * data: [{ key, label, value, title? }] — renders newest→oldest left→right as given.
+ */
+export const BarChart = ({ data, height = '120px' }) => {
+  const max = Math.max(...(data || []).map(d => d.value || 0), 1);
+  return (
+    <BarsWrap $height={height} $dense={(data?.length || 0) > 14}>
+      {(data || []).map((d) => (
+        <BarCol key={d.key} $hasValue={d.value > 0} title={d.title || `${d.label}: ${d.value}`}>
+          <div className="bar" style={{ height: `${(d.value / max) * 100}%` }} />
+          <div className="label">{d.label}</div>
+        </BarCol>
+      ))}
+    </BarsWrap>
+  );
+};
+
+export const TextArea = styled.textarea`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-family: var(--font-secondary);
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 90px;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--vault-accent);
+    box-shadow: 0 0 0 3px rgba(65, 105, 225, 0.15);
+  }
+
+  &::placeholder { color: rgba(255, 255, 255, 0.3); }
+`;
+
+export const Toolbar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+`;
+
+export const UnreadDot = styled.span`
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vault-accent-bright, #6B8DD6);
+  box-shadow: 0 0 8px rgba(107, 141, 214, 0.8);
+  margin-right: 0.45rem;
+  flex-shrink: 0;
+`;

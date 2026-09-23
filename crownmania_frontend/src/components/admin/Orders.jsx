@@ -6,7 +6,7 @@ import { adminRequest, AdminAuthError } from '../../services/adminApi';
 import {
   Panel, PanelTitle, StatusChip, TableWrap, Table, ClickableRow,
   LoadingRow, Spinner, EmptyState, ErrorBanner, RefreshButton, CopyValue,
-  Button, Input, Select,
+  Button, Input, Select, RangePicker, rangeFromTo,
   formatDate, formatMoney, summarizeItems, truncateMiddle,
 } from './shared';
 
@@ -339,16 +339,20 @@ const OrderDrawer = ({ orderId, onClose, notify, onAuthError, onShipped }) => {
 const Orders = ({ notify, onAuthError, openOrderId, onOrderOpened }) => {
   const [orders, setOrders] = useState(null);
   const [status, setStatus] = useState('all');
+  const [range, setRange] = useState('30d');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedId, setSelectedId] = useState(null);
 
-  const load = useCallback(async (statusFilter = status) => {
+  const load = useCallback(async (statusFilter = status, rangeKey = range) => {
     setLoading(true);
     setError('');
     try {
-      const qs = new URLSearchParams({ limit: '50' });
+      const qs = new URLSearchParams({ limit: '100' });
       if (statusFilter && statusFilter !== 'all') qs.set('status', statusFilter);
+      const { from, to } = rangeFromTo(rangeKey);
+      if (from) qs.set('from', from);
+      if (to) qs.set('to', to);
       const data = await adminRequest(`/api/admin/orders?${qs}`);
       setOrders(data.orders || []);
     } catch (e) {
@@ -358,9 +362,9 @@ const Orders = ({ notify, onAuthError, openOrderId, onOrderOpened }) => {
     } finally {
       setLoading(false);
     }
-  }, [status, onAuthError]);
+  }, [status, range, onAuthError]);
 
-  useEffect(() => { load(status); }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(status, range); }, [status, range]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Deep-link from Dashboard recent orders
   useEffect(() => {
@@ -385,6 +389,7 @@ const Orders = ({ notify, onAuthError, openOrderId, onOrderOpened }) => {
             <option key={sf} value={sf}>{sf === 'all' ? 'All statuses' : sf}</option>
           ))}
         </Select>
+        <RangePicker value={range} onChange={setRange} />
         <RefreshButton onClick={() => load()} loading={loading} />
       </Toolbar>
 

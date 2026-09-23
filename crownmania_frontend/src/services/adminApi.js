@@ -68,3 +68,32 @@ export async function adminRequest(path, { method = 'GET', body, auth = true } =
 
   return data;
 }
+
+/**
+ * Multipart POST to an admin endpoint (file uploads). Browser sets the
+ * Content-Type boundary — do not set it manually.
+ */
+export async function adminUpload(path, formData) {
+  const headers = {};
+  const token = getAdminToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  let res;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, { method: 'POST', headers, body: formData });
+  } catch {
+    throw new Error('Network error — could not reach the server.');
+  }
+
+  let data = null;
+  try { data = await res.json(); } catch { /* non-JSON response */ }
+
+  if (res.status === 401 || res.status === 403) {
+    clearAdminToken();
+    throw new AdminAuthError(data?.message || data?.error || 'Session expired. Please log in again.');
+  }
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || `Upload failed (${res.status})`);
+  }
+  return data;
+}

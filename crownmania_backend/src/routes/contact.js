@@ -1,6 +1,8 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { sgMail, EMAIL_CONFIG, sendBrandedAdminEmail, renderEmailShell, infoCard, escapeHtml, resolveAdminEmail } from '../config/email.js';
+import { db } from '../config/firebase.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 
@@ -32,6 +34,17 @@ router.post('/', contactLimiter, async (req, res) => {
 
     if (message.length > 2000) {
         return res.status(400).json({ error: 'Message too long (max 2000 characters).' });
+    }
+
+    // Persist for the admin inbox — best-effort; email delivery is the contract.
+    if (db) {
+        db.collection('contactMessages').add({
+            name: String(name).slice(0, 200),
+            email: String(email).slice(0, 300),
+            message: String(message).slice(0, 2000),
+            read: false,
+            createdAt: new Date(),
+        }).catch(err => logger.warn('Contact message persist failed:', err.message));
     }
 
     // Admin notification — name/email/message are user input; the helper

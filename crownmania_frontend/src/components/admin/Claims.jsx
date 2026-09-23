@@ -4,6 +4,7 @@ import { adminRequest, AdminAuthError } from '../../services/adminApi';
 import {
   Panel, PanelTitle, StatusChip, TableWrap, Table,
   LoadingRow, Spinner, EmptyState, ErrorBanner, RefreshButton, CopyValue,
+  RangePicker, rangeFromTo, toDate,
   formatDate, truncateMiddle,
 } from './shared';
 
@@ -119,6 +120,7 @@ const Claims = ({ notify, onAuthError }) => {
   const [codes, setCodes] = useState(null);
   const [summary, setSummary] = useState(null);
   const [collectibles, setCollectibles] = useState(null);
+  const [range, setRange] = useState('all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -160,7 +162,17 @@ const Claims = ({ notify, onAuthError }) => {
   }, [view, codes, collectibles, loadCodes, loadCollectibles]);
 
   const reload = () => (view === 'codes' ? loadCodes() : loadCollectibles());
-  const rows = view === 'codes' ? codes : collectibles;
+
+  // Client-side range filter — claimed codes use claimedAt, collectibles use createdAt.
+  const { from, to } = rangeFromTo(range);
+  const fromMs = from ? new Date(from).getTime() : -Infinity;
+  const toMs = to ? new Date(to).getTime() : Infinity;
+  const inRange = (ts) => {
+    const d = toDate(ts);
+    return !d || (d.getTime() >= fromMs && d.getTime() <= toMs);
+  };
+  const rows = (view === 'codes' ? codes : collectibles)
+    ?.filter((c) => inRange(view === 'codes' ? c.claimedAt : c.createdAt)) ?? null;
 
   return (
     <Panel>
@@ -173,6 +185,7 @@ const Claims = ({ notify, onAuthError }) => {
         <SubTab $active={view === 'codes'} onClick={() => setView('codes')}>Claimed Codes</SubTab>
         <SubTab $active={view === 'collectibles'} onClick={() => setView('collectibles')}>Collectibles</SubTab>
         <span style={{ flex: 1 }} />
+        <RangePicker value={range} onChange={setRange} />
         <RefreshButton onClick={reload} loading={loading} />
       </SubTabs>
 

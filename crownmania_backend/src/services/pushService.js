@@ -36,13 +36,13 @@ export async function sendPushToAll(title, body, data = {}) {
         const msgService = await getMessaging();
         if (!msgService) {
             logger.warn('[Push] Messaging not available — skipping push');
-            return;
+            return { sent: 0, total: 0, skipped: 'messaging_unavailable' };
         }
 
         const snapshot = await db.collection('pushTokens').get();
         if (snapshot.empty) {
             logger.info('[Push] No registered tokens — skipping');
-            return;
+            return { sent: 0, total: 0, skipped: 'no_tokens' };
         }
 
         const tokens = snapshot.docs.map(doc => doc.data().token);
@@ -86,8 +86,11 @@ export async function sendPushToAll(title, body, data = {}) {
             await batch.commit();
             logger.info(`[Push] Cleaned up ${invalidTokenIds.length} invalid tokens`);
         }
+
+        return { sent, total: tokens.length, pruned: invalidTokenIds.length };
     } catch (error) {
         logger.error('[Push] Failed to send notifications:', error.message);
+        return { sent: 0, total: 0, error: error.message };
     }
 }
 

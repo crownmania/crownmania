@@ -4,11 +4,13 @@ import { adminRequest, AdminAuthError } from '../../services/adminApi';
 import {
   Panel, PanelTitle, StatusChip, TableWrap, Table,
   LoadingRow, Spinner, EmptyState, ErrorBanner, RefreshButton, CopyValue,
+  RangePicker, rangeFromTo, Toolbar,
   formatDate, truncateMiddle,
 } from './shared';
 
 const Users = ({ notify, onAuthError }) => {
   const [users, setUsers] = useState(null);
+  const [range, setRange] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -16,7 +18,11 @@ const Users = ({ notify, onAuthError }) => {
     setLoading(true);
     setError('');
     try {
-      const data = await adminRequest('/api/admin/users?limit=100');
+      const qs = new URLSearchParams({ limit: '100' });
+      const { from, to } = rangeFromTo(range);
+      if (from) qs.set('from', from);
+      if (to) qs.set('to', to);
+      const data = await adminRequest(`/api/admin/users?${qs}`);
       setUsers(Array.isArray(data) ? data : (data.users || data.items || []));
     } catch (e) {
       if (e instanceof AdminAuthError) { onAuthError(e.message); return; }
@@ -25,7 +31,7 @@ const Users = ({ notify, onAuthError }) => {
     } finally {
       setLoading(false);
     }
-  }, [onAuthError]);
+  }, [range, onAuthError]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -36,9 +42,10 @@ const Users = ({ notify, onAuthError }) => {
         <span className="count">{users ? `${users.length} shown` : ''}</span>
       </PanelTitle>
 
-      <div style={{ marginBottom: '1rem' }}>
+      <Toolbar>
+        <RangePicker value={range} onChange={setRange} />
         <RefreshButton onClick={load} loading={loading} />
-      </div>
+      </Toolbar>
 
       {error && (
         <ErrorBanner><span>{error}</span><RefreshButton onClick={load} loading={loading} /></ErrorBanner>

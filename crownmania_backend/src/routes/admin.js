@@ -125,7 +125,25 @@ router.get('/stats', requireAdmin, async (req, res) => {
  */
 router.get('/collectibles', requireAdmin, async (req, res) => {
   try {
-    const { limit = 50, startAfter } = req.query;
+    const { limit = 50, startAfter, status } = req.query;
+
+    // Status filtering runs in memory: a (status, createdAt) composite index
+    // does not exist, and collectible counts are small enough to scan.
+    if (status && status !== 'all') {
+      const snapshot = await db.collection('collectibles')
+        .orderBy('createdAt', 'desc')
+        .get();
+      const filtered = snapshot.docs
+        .filter(doc => doc.data().status === status)
+        .slice(0, parseInt(limit))
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null
+        }));
+      return res.json({ collectibles: filtered, count: filtered.length });
+    }
+
     const collectibles = await adminService.getAllCollectibles(parseInt(limit), startAfter);
     res.json({ collectibles, count: collectibles.length });
   } catch (error) {
@@ -308,11 +326,9 @@ router.get('/audit-logs', requireAdmin, async (req, res) => {
   try {
     const { event, userId, from, to, limit = 100 } = req.query;
 
-    let query = db.collection('auditLogs');
-
-    if (event) {
-      query = query.where('event', '==', event);
-    }
+    // Only the timestamp range hits Firestore — event/userId are filtered in
+    // memory so no (event, timestamp) composite index is required.
+    let query = db.collection('auditLogs').orderBy('timestamp', 'desc');
 
     if (from) {
       query = query.where('timestamp', '>=', new Date(from));
@@ -322,15 +338,18 @@ router.get('/audit-logs', requireAdmin, async (req, res) => {
       query = query.where('timestamp', '<=', new Date(to));
     }
 
-    query = query.orderBy('timestamp', 'desc').limit(parseInt(limit));
+    // Over-fetch so in-memory filtering still returns up to `limit` rows.
+    const snapshot = await query.limit(event || userId ? 500 : parseInt(limit)).get();
 
-    const snapshot = await query.get();
-
-    const logs = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...maskSerialFields(doc.data()),
-      timestamp: doc.data().timestamp?.toDate().toISOString()
-    }));
+    const logs = snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...maskSerialFields(doc.data()),
+        timestamp: doc.data().timestamp?.toDate().toISOString()
+      }))
+      .filter(l => (!event || event === 'all' || l.event === event)
+        && (!userId || l.userId === userId))
+      .slice(0, parseInt(limit));
 
     res.json({ logs, count: logs.length });
   } catch (error) {
@@ -420,9 +439,16 @@ router.post('/content', requireAdmin, async (req, res) => {
  */
 router.get('/users', requireAdmin, async (req, res) => {
   try {
-    const { limit = 50 } = req.query;
+    const { limit = 50, from, to } = req.query;
 
-    const snapshot = await db.collection('users').limit(parseInt(limit)).get();
+    let query = db.collection('users');
+    if (from || to) {
+      if (from) query = query.where('createdAt', '>=', new Date(from));
+      if (to) query = query.where('createdAt', '<=', new Date(to));
+      query = query.orderBy('createdAt', 'desc');
+    }
+
+    const snapshot = await query.limit(parseInt(limit)).get();
 
     const users = snapshot.docs.map(doc => {
       const data = doc.data();
@@ -559,22 +585,26 @@ import Inventory from '../models/Inventory.js';
  */
 router.get('/orders', requireAdmin, async (req, res) => {
   try {
-    const { status, limit = 50, offset = 0 } = req.query;
+    const { status, from, to, limit = 50, offset = 0 } = req.query;
     let query = db.collection('orders').orderBy('createdAt', 'desc');
 
-    if (status) {
-      query = query.where('status', '==', status);
-    }
+    // createdAt is a single-field index — range filters need no composite
+    // index. Status is filtered in memory so status+date combos never hit
+    // the missing (status, createdAt) composite index.
+    if (from) query = query.where('createdAt', '>=', new Date(from));
+    if (to) query = query.where('createdAt', '<=', new Date(to));
 
     const snapshot = await query.limit(parseInt(limit)).offset(parseInt(offset)).get();
-    const orders = snapshot.docs.map(doc => {
-      const { allocatedSerials, ...rest } = doc.data();
-      return {
-        id: doc.id,
-        ...rest,
-        allocatedSerialCount: Array.isArray(allocatedSerials) ? allocatedSerials.length : 0
-      };
-    });
+    const orders = snapshot.docs
+      .map(doc => {
+        const { allocatedSerials, ...rest } = doc.data();
+        return {
+          id: doc.id,
+          ...rest,
+          allocatedSerialCount: Array.isArray(allocatedSerials) ? allocatedSerials.length : 0
+        };
+      })
+      .filter(o => !status || status === 'all' || o.status === status);
 
     res.json({ orders, count: orders.length });
   } catch (error) {
@@ -700,6 +730,300 @@ router.get('/inventory/count', requireAdmin, async (req, res) => {
   } catch (error) {
     logger.error('Error getting inventory count:', error);
     res.status(500).json({ error: 'Failed to get inventory count' });
+  }
+});
+
+// ============================================
+// PROTECTED: Sales Analytics
+// ============================================
+
+const SALES_RANGES = {
+  today: 'today',
+  yesterday: 'yesterday',
+  '7d': '7d',
+  '30d': '30d',
+  all: 'all',
+};
+const SALES_EXCLUDED_STATUSES = new Set(['pending', 'refunded', 'cancelled']);
+
+/**
+ * GET /api/admin/sales?range=today|yesterday|7d|30d|all
+ * Revenue + order counts bucketed per UTC day (per month for 'all').
+ */
+router.get('/sales', requireAdmin, async (req, res) => {
+  try {
+    const range = SALES_RANGES[req.query.range] || '30d';
+    const now = Date.now();
+    const DAY = 86400000;
+    const todayStart = new Date(now).setUTCHours(0, 0, 0, 0);
+    const [from, to] = {
+      today: [new Date(todayStart), null],
+      yesterday: [new Date(todayStart - DAY), new Date(todayStart)],
+      '7d': [new Date(todayStart - 6 * DAY), null],
+      '30d': [new Date(todayStart - 29 * DAY), null],
+      all: [null, null],
+    }[range];
+
+    // Single-field createdAt query — no composite index needed.
+    let query = db.collection('orders').orderBy('createdAt', 'desc');
+    if (from) query = query.where('createdAt', '>=', from);
+    if (to) query = query.where('createdAt', '<', to);
+
+    const snapshot = await query.get();
+    const bucketKey = range === 'all'
+      ? (d) => d.toISOString().slice(0, 7)
+      : (d) => d.toISOString().slice(0, 10);
+
+    const buckets = {};
+    const byStatus = {};
+    let revenue = 0;
+    let paidCount = 0;
+
+    for (const doc of snapshot.docs) {
+      const o = doc.data();
+      const status = o.status || 'unknown';
+      byStatus[status] = (byStatus[status] || 0) + 1;
+      if (SALES_EXCLUDED_STATUSES.has(status)) continue;
+
+      const at = o.createdAt?.toDate?.() || (o.createdAt ? new Date(o.createdAt) : null);
+      if (!at || isNaN(at)) continue;
+
+      const key = bucketKey(at);
+      if (!buckets[key]) buckets[key] = { key, revenue: 0, orders: 0 };
+      buckets[key].revenue += o.total || 0;
+      buckets[key].orders += 1;
+      revenue += o.total || 0;
+      paidCount += 1;
+    }
+
+    res.json({
+      range,
+      granularity: range === 'all' ? 'month' : 'day',
+      buckets: Object.values(buckets).sort((a, b) => a.key.localeCompare(b.key)),
+      totals: { revenue, orders: paidCount, allOrders: snapshot.size },
+      byStatus,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting sales analytics:', error);
+    res.status(500).json({ error: 'Failed to load sales analytics' });
+  }
+});
+
+// ============================================
+// PROTECTED: Contact Inbox
+// ============================================
+
+/**
+ * GET /api/admin/contact-messages?status=unread|read|all&from&to&limit
+ * Contact form submissions persisted by POST /api/contact.
+ */
+router.get('/contact-messages', requireAdmin, async (req, res) => {
+  try {
+    const { status, from, to, limit = 100 } = req.query;
+
+    let query = db.collection('contactMessages').orderBy('createdAt', 'desc');
+    if (from) query = query.where('createdAt', '>=', new Date(from));
+    if (to) query = query.where('createdAt', '<=', new Date(to));
+
+    const snapshot = await query.limit(500).get();
+    const unread = snapshot.docs.filter(d => !d.data().read).length;
+    const messages = snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null
+      }))
+      .filter(m => !status || status === 'all' || (status === 'unread' ? !m.read : !!m.read))
+      .slice(0, parseInt(limit));
+
+    res.json({ messages, count: messages.length, unread });
+  } catch (error) {
+    logger.error('Error listing contact messages:', error);
+    res.status(500).json({ error: 'Failed to list messages' });
+  }
+});
+
+/**
+ * POST /api/admin/contact-messages/:id/read
+ * Body: { read: boolean } — toggles read state on a message.
+ */
+router.post('/contact-messages/:id/read', requireAdmin, async (req, res) => {
+  try {
+    const read = req.body?.read !== false;
+    const ref = db.collection('contactMessages').doc(req.params.id);
+    const doc = await ref.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    await ref.update({ read, readAt: read ? new Date() : null, readBy: req.adminEmail });
+    res.json({ success: true, id: req.params.id, read });
+  } catch (error) {
+    logger.error('Error updating contact message:', error);
+    res.status(500).json({ error: 'Failed to update message' });
+  }
+});
+
+// ============================================
+// PROTECTED: Push Broadcasts
+// ============================================
+
+/**
+ * GET /api/admin/push
+ * Registered token count + recent broadcasts.
+ */
+router.get('/push', requireAdmin, async (req, res) => {
+  try {
+    const [tokensSnap, broadcastSnap] = await Promise.all([
+      db.collection('pushTokens').get(),
+      db.collection('pushBroadcasts').orderBy('createdAt', 'desc').limit(10).get(),
+    ]);
+
+    res.json({
+      tokens: tokensSnap.size,
+      broadcasts: broadcastSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null
+      })),
+    });
+  } catch (error) {
+    logger.error('Error getting push info:', error);
+    res.status(500).json({ error: 'Failed to load push info' });
+  }
+});
+
+/**
+ * POST /api/admin/push
+ * Body: { title, body } — broadcasts a push notification to all tokens.
+ */
+router.post('/push', requireAdmin, async (req, res) => {
+  try {
+    const title = String(req.body?.title || '').trim().slice(0, 80);
+    const body = String(req.body?.body || '').trim().slice(0, 240);
+    if (!title || !body) {
+      return res.status(400).json({ error: 'Title and body are required' });
+    }
+
+    const { sendPushToAll } = await import('../services/pushService.js');
+    const result = await sendPushToAll(title, body, { type: 'admin_broadcast' });
+    const sent = result?.sent ?? 0;
+    const total = result?.total ?? 0;
+
+    await db.collection('pushBroadcasts').add({
+      title, body, sent, total,
+      sentBy: req.adminEmail,
+      createdAt: new Date(),
+    });
+    await db.collection('auditLogs').add({
+      event: 'push_broadcast',
+      adminEmail: req.adminEmail,
+      title, sent, total,
+      timestamp: new Date(),
+    });
+
+    logger.info(`Push broadcast by ${req.adminEmail}: "${title}" → ${sent}/${total} tokens`);
+    res.json({ success: true, sent, total, skipped: result?.skipped });
+  } catch (error) {
+    logger.error('Error sending push broadcast:', error);
+    res.status(500).json({ error: 'Failed to send broadcast' });
+  }
+});
+
+// ============================================
+// PROTECTED: Forum Moderation
+// ============================================
+
+/**
+ * GET /api/admin/forum/posts
+ * All posts (newest first) for the moderation queue.
+ */
+router.get('/forum/posts', requireAdmin, async (req, res) => {
+  try {
+    const snapshot = await db.collection('forum_posts')
+      .orderBy('createdAt', 'desc')
+      .limit(200)
+      .get();
+
+    const posts = snapshot.docs.map(doc => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        content: d.content || '',
+        authorName: d.authorName || 'Anonymous',
+        likes: Number(d.likes) || 0,
+        dislikes: Number(d.dislikes) || 0,
+        replyCount: Number(d.replyCount) || 0,
+        createdAt: d.createdAt?.toMillis?.() || null,
+      };
+    });
+    res.json({ posts });
+  } catch (error) {
+    logger.error('Error listing forum posts:', error);
+    res.status(500).json({ error: 'Failed to load forum posts' });
+  }
+});
+
+/**
+ * DELETE /api/admin/forum/posts/:postId
+ * Removes a post plus its replies and votes subcollections.
+ */
+router.delete('/forum/posts/:postId', requireAdmin, async (req, res) => {
+  try {
+    const ref = db.collection('forum_posts').doc(req.params.postId);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    await db.recursiveDelete(ref);
+    await db.collection('auditLogs').add({
+      event: 'forum_post_deleted',
+      postId: req.params.postId,
+      adminEmail: req.adminEmail,
+      timestamp: new Date(),
+    });
+    logger.info(`Forum post ${req.params.postId} deleted by ${req.adminEmail}`);
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Error deleting forum post:', error);
+    res.status(500).json({ error: 'Failed to delete post' });
+  }
+});
+
+/**
+ * DELETE /api/admin/forum/posts/:postId/replies/:replyId
+ * Removes a single reply and decrements the parent reply count.
+ */
+router.delete('/forum/posts/:postId/replies/:replyId', requireAdmin, async (req, res) => {
+  try {
+    const { postId, replyId } = req.params;
+    const postRef = db.collection('forum_posts').doc(postId);
+    const replyRef = postRef.collection('forum_replies').doc(replyId);
+    const replySnap = await replyRef.get();
+    if (!replySnap.exists) {
+      return res.status(404).json({ error: 'Reply not found' });
+    }
+
+    await replyRef.delete();
+    const postSnap = await postRef.get();
+    if (postSnap.exists) {
+      await postRef.update({
+        replyCount: Math.max(0, (Number(postSnap.data().replyCount) || 1) - 1),
+      });
+    }
+
+    await db.collection('auditLogs').add({
+      event: 'forum_reply_deleted',
+      postId, replyId,
+      adminEmail: req.adminEmail,
+      timestamp: new Date(),
+    });
+    logger.info(`Forum reply ${replyId} on ${postId} deleted by ${req.adminEmail}`);
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Error deleting forum reply:', error);
+    res.status(500).json({ error: 'Failed to delete reply' });
   }
 });
 

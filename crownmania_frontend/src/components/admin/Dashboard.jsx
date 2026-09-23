@@ -7,6 +7,8 @@ import {
   EmptyState, ErrorBanner, RefreshButton, CopyValue,
   formatDate, formatMoney, summarizeItems, truncateMiddle,
 } from './shared';
+import SalesChart from './SalesChart';
+import HealthCard from './HealthCard';
 
 const ChipRow = styled.div`
   display: flex;
@@ -144,6 +146,8 @@ const Dashboard = ({ onAuthError, onSelectOrder }) => {
         </ChipRow>
       )}
 
+      <SalesChart onAuthError={onAuthError} />
+
       <TwoCol>
         <Panel>
           <PanelTitle>
@@ -202,6 +206,8 @@ const Dashboard = ({ onAuthError, onSelectOrder }) => {
           )}
         </Panel>
       </TwoCol>
+
+      <HealthCard />
 
       {s.timestamp && (
         <StatSub style={{ marginTop: '1.25rem', textAlign: 'right' }}>
