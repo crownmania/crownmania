@@ -99,6 +99,6 @@ export const cleanIdempotencyCache = () => {
 };
 
 // Clean cache every hour
-setInterval(cleanIdempotencyCache, 60 * 60 * 1000);
+setInterval(cleanIdempotencyCache, 60 * 60 * 1000).unref();
 
 export default idempotent;

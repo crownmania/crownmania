@@ -79,46 +79,6 @@ export const setSessionRefresher = (refresher) => {
   sessionRefresher = refresher;
 };
 
-/**
- * Request signing for sensitive operations
- */
-const signRequest = async (method, url, data = null, walletAddress = null) => {
-  if (!walletAddress) return null;
-
-  const timestamp = Date.now();
-  const nonce = Math.random().toString(36).substr(2, 15);
-
-  // Create signature payload
-  const payload = {
-    method: method.toUpperCase(),
-    path: url,
-    timestamp,
-    nonce,
-    walletAddress: walletAddress.toLowerCase(),
-  };
-
-  if (data) {
-    payload.dataHash = await hashData(JSON.stringify(data));
-  }
-
-  return {
-    timestamp,
-    nonce,
-    payload: btoa(JSON.stringify(payload)),
-  };
-};
-
-/**
- * Simple hash function for data integrity
- */
-const hashData = async (data) => {
-  const encoder = new TextEncoder();
-  const buffer = encoder.encode(data);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-};
-
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -158,21 +118,6 @@ api.interceptors.request.use(
 
     // Add request ID for tracing
     config.headers['X-Request-ID'] = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    // Sign sensitive requests if wallet address available
-    if (config.sensitive && config.walletAddress) {
-      const signature = await signRequest(
-        config.method,
-        config.url,
-        config.data,
-        config.walletAddress
-      );
-      if (signature) {
-        config.headers['X-Request-Signature'] = signature.payload;
-        config.headers['X-Request-Timestamp'] = signature.timestamp;
-        config.headers['X-Request-Nonce'] = signature.nonce;
-      }
-    }
 
     return config;
   },

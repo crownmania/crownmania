@@ -1,6 +1,16 @@
 // Load environment variables FIRST before any other imports
 import './env.js';
 
+// Optional Sentry — active only when SENTRY_DSN is configured
+import * as Sentry from '@sentry/node';
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 0.1,
+  });
+}
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -279,6 +289,10 @@ app.get('/health', async (req, res) => {
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
+
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 // Global error handler
 app.use((err, req, res, next) => {

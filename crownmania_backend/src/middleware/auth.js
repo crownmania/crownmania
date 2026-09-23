@@ -63,7 +63,7 @@ setInterval(() => {
       usedNonces.delete(nonce);
     }
   }
-}, 60 * 1000); // Clean every minute
+}, 60 * 1000).unref(); // Clean every minute; unref so this alone can't keep the process alive
 
 /**
  * Parse and validate the signed message format

@@ -164,7 +164,7 @@ const cleanupOldLogs = () => {
 };
 
 // Run cleanup job daily
-setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000);
+setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000).unref();
 
 // Add request context middleware
 export const addRequestContext = (req, res, next) => {

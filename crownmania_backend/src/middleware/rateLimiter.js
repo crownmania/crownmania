@@ -1,10 +1,120 @@
 import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
+import IORedis from 'ioredis';
 import logger from '../config/logger.js';
 
 /**
  * Rate limiting configuration for different API endpoints
  * All limits are per IP address
  */
+
+// ── Redis-backed store with in-memory fallback ──
+// Redis keeps counters consistent across deploys and multiple instances.
+// If Redis is unavailable the limiter degrades to per-process memory instead
+// of failing requests — protection weakens but the store stays up.
+let redisClient = null;
+let redisDisabled = false;
+let redisCooldownUntil = 0;
+
+function getRedis() {
+  // Redis is opt-in via REDIS_URL — without it the limiters run in pure
+  // in-memory mode, which keeps tests and local dev free of connection
+  // attempts against a socket that doesn't exist.
+  if (!process.env.REDIS_URL) return null;
+  if (redisDisabled || Date.now() < redisCooldownUntil) return null;
+  if (!redisClient) {
+    try {
+      redisClient = new IORedis(process.env.REDIS_URL, {
+        lazyConnect: true,
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+        retryStrategy: () => null,
+      });
+      redisClient.connect().catch(() => {});
+      redisClient.on('error', () => {
+        redisCooldownUntil = Date.now() + 30_000;
+      });
+    } catch {
+      redisDisabled = true;
+      return null;
+    }
+  }
+  return redisClient;
+}
+
+// Minimal express-rate-limit store contract used when Redis is down.
+class MemoryStore {
+  constructor() { this.hits = new Map(); this.windowMs = 60_000; }
+  init(options) { this.windowMs = options.windowMs; }
+  increment(key) {
+    const now = Date.now();
+    let entry = this.hits.get(key);
+    if (!entry || entry.resetTime <= now) {
+      entry = { totalHits: 0, resetTime: new Date(now + this.windowMs) };
+      this.hits.set(key, entry);
+    }
+    entry.totalHits += 1;
+    return { totalHits: entry.totalHits, resetTime: entry.resetTime };
+  }
+  decrement(key) {
+    const entry = this.hits.get(key);
+    if (entry) entry.totalHits = Math.max(0, entry.totalHits - 1);
+  }
+  resetKey(key) { this.hits.delete(key); }
+}
+
+class HybridStore {
+  constructor(prefix) {
+    this.prefix = `rl:${prefix}:`;
+    this.fallback = new MemoryStore();
+    this.redis = null;
+  }
+  init(options) { this.fallback.init(options); }
+  // RedisStore must only be built once the socket is ready — its constructor
+  // eagerly loads the Lua script and ioredis throws synchronously while the
+  // stream is unwritable.
+  #tryRedis() {
+    const client = getRedis();
+    if (!client || client.status !== 'ready') return false;
+    if (!this.redis) {
+      try {
+        this.redis = new RedisStore({
+          prefix: this.prefix,
+          sendCommand: (...args) => client.call(...args),
+        });
+      } catch {
+        this.redis = null;
+        return false;
+      }
+    }
+    return true;
+  }
+  async increment(key) {
+    if (this.#tryRedis()) {
+      try {
+        return await this.redis.increment(key);
+      } catch {
+        this.redis = null;
+        redisCooldownUntil = Date.now() + 30_000;
+      }
+    }
+    return this.fallback.increment(key);
+  }
+  async decrement(key) {
+    if (this.#tryRedis()) {
+      try { await this.redis.decrement(key); return; } catch { this.redis = null; }
+    }
+    this.fallback.decrement(key);
+  }
+  async resetKey(key) {
+    if (this.#tryRedis()) {
+      try { await this.redis.resetKey(key); return; } catch { this.redis = null; }
+    }
+    this.fallback.resetKey(key);
+  }
+}
+
+const store = (name) => new HybridStore(name);
 
 // Serials / claim codes are bearer credentials — log only a prefix.
 const maskCode = (code) => {
@@ -14,6 +124,7 @@ const maskCode = (code) => {
 
 // General API rate limiter
 export const apiLimiter = rateLimit({
+  store: store('apiLimiter'),
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
@@ -31,6 +142,7 @@ export const apiLimiter = rateLimit({
 
 // Stricter rate limiter for authentication attempts
 export const authLimiter = rateLimit({
+  store: store('authLimiter'),
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // Limit each IP to 5 failed attempts per hour
   standardHeaders: true,
@@ -48,6 +160,7 @@ export const authLimiter = rateLimit({
 
 // Enhanced rate limiter for serial number verification
 export const serialNumberLimiter = rateLimit({
+  store: store('serialNumberLimiter'),
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10, // Limit each IP to 10 verification attempts per hour
   standardHeaders: true,
@@ -72,6 +185,7 @@ export const serialNumberLimiter = rateLimit({
 
 // Stricter rate limiter for claim attempts (post-verification)
 export const claimLimiter = rateLimit({
+  store: store('claimLimiter'),
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: 50, // Limit each IP to 50 claim attempts per day (temporarily increased for testing)
   standardHeaders: true,
@@ -92,6 +206,7 @@ export const claimLimiter = rateLimit({
 
 // Rate limiter for failed verification attempts (more lenient)
 export const failedVerificationLimiter = rateLimit({
+  store: store('failedVerificationLimiter'),
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 3, // Allow 3 failed attempts per 15 minutes
   standardHeaders: true,
@@ -114,6 +229,7 @@ export const failedVerificationLimiter = rateLimit({
 
 // Rate limiter for NFT minting operations
 export const mintingLimiter = rateLimit({
+  store: store('mintingLimiter'),
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: 25, // Limit each IP to 25 minting operations per day
   standardHeaders: true,
@@ -132,6 +248,7 @@ export const mintingLimiter = rateLimit({
 // SECURITY FIX (S6): Keys on destination email + IP so an attacker cannot
 // spam a victim's inbox by rotating serial numbers or IPs.
 export const emailVerificationLimiter = rateLimit({
+  store: store('emailVerificationLimiter'),
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3, // Max 3 verification emails per (email, IP) per hour
   standardHeaders: true,
@@ -158,6 +275,7 @@ export const emailVerificationLimiter = rateLimit({
 // 5s for up to 3 minutes after a claim (~36 requests), so this must stay
 // loose enough for a few real polls while still blocking enumeration.
 export const transferStatusLimiter = rateLimit({
+  store: store('transferStatusLimiter'),
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 120, // ~3 full polling sessions per hour
   standardHeaders: true,
@@ -177,6 +295,7 @@ export const transferStatusLimiter = rateLimit({
 // Rate limiter for admin OTP login requests
 // Keys on email + IP so an attacker cannot spam the admin inbox by rotating IPs.
 export const adminLoginLimiter = rateLimit({
+  store: store('adminLoginLimiter'),
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // Max 5 OTP emails per (email, IP) per hour
   standardHeaders: true,
@@ -200,6 +319,7 @@ export const adminLoginLimiter = rateLimit({
 
 // Rate limiter for order creation
 export const orderLimiter = rateLimit({
+  store: store('orderLimiter'),
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: 50, // Limit each IP to 50 orders per day
   standardHeaders: true,

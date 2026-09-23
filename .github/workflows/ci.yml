@@ -10,38 +10,35 @@ jobs:
   backend:
     name: Backend Tests & Linting
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: crownmania_backend
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: crownmania_backend/package-lock.json
-      
+          cache-dependency-path: package-lock.json
+
+      # Workspaces share one root lockfile — always install from the root.
       - name: Install dependencies
-        run: npm ci
-      
+        run: npm ci --legacy-peer-deps
+
       - name: Run linting
-        run: npm run lint --if-present
-      
+        run: npm run lint --if-present -w crownmania_backend
+
       - name: Run unit tests
-        run: npx jest --testPathPattern=tests/unit --passWithNoTests
+        run: npm test -w crownmania_backend -- --testPathPattern=tests/unit --passWithNoTests
         env:
           NODE_ENV: test
-          NODE_OPTIONS: --experimental-vm-modules
-      
+
       - name: Run integration tests
-        run: npx jest --testPathPattern=tests/integration --passWithNoTests
+        run: npm test -w crownmania_backend -- --testPathPattern=tests/integration --passWithNoTests
         env:
           NODE_ENV: test
-          NODE_OPTIONS: --experimental-vm-modules
-      
+
       - name: Secret scanning
+        working-directory: crownmania_backend
         run: |
           echo "Scanning for leaked secrets..."
           # Check for inline secrets in source code
@@ -63,25 +60,23 @@ jobs:
           echo "No secrets found in source code"
 
   frontend:
-    name: Frontend Build & Linting
+    name: Frontend Build, Test & Linting
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: crownmania_frontend
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: crownmania_frontend/package-lock.json
-      
+          cache-dependency-path: package-lock.json
+
       - name: Install dependencies
-        run: npm ci
-      
+        run: npm ci --legacy-peer-deps
+
       - name: Write production env file
+        working-directory: crownmania_frontend
         run: |
           cat > .env.production <<'EOF'
           VITE_API_URL=https://crownmania-backend-production.up.railway.app
@@ -98,19 +93,22 @@ jobs:
           VITE_NFT_CONTRACT_ADDRESS=0x4785DBa85de01B0DB84269F3fd471dDd8461623C
           VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
           EOF
-      
+
       - name: Build
-        run: npm run build
-      
+        run: npm run build -w crownmania_frontend
+
+      - name: Run tests
+        run: npm test -w crownmania_frontend
+
       - name: Run linting
-        run: npm run lint --if-present
+        run: npm run lint --if-present -w crownmania_frontend
 
   env-check:
     name: Security Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Check no .env files committed
         run: |
           echo "Checking for committed .env files..."
@@ -121,18 +119,18 @@ jobs:
             exit 1
           fi
           echo "No .env files found (good!)"
-      
+
       - name: Check .gitignore includes .env
         run: |
           if ! grep -q "^\.env$" .gitignore 2>/dev/null; then
             echo "WARNING: .env not in root .gitignore"
           fi
           echo "Gitignore check complete"
-      
+
       - name: Dependency audit
         run: |
-          cd crownmania_backend && npm audit --audit-level=high || echo "Backend audit complete"
-          cd ../crownmania_frontend && npm audit --audit-level=high || echo "Frontend audit complete"
+          npm audit --audit-level=high -w crownmania_backend || echo "Backend audit complete"
+          npm audit --audit-level=high -w crownmania_frontend || echo "Frontend audit complete"
 
       - name: Check for hardcoded credentials
         run: |

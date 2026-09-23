@@ -76,9 +76,27 @@ with it); `sips --padToHeightWidth 630 1200 --padColor FFFFFF` is enough.
 Checkout goes through `src/utils/checkout.js`; prices always resolve from
 `PRODUCT_CATALOG` in `crownmania_backend/src/routes/stripe.js`, never the client.
 
+## CI & deploy automation
+
+- `.github/workflows/ci.yml` — tests/lint/secret-scan on push + PR to `main`.
+  Installs with `npm ci --legacy-peer-deps` from the **repo root** (workspaces
+  share one lockfile; there is no per-workspace lockfile — do not create one).
+- `.github/workflows/deploy.yml` — manual `workflow_dispatch` deploy (backend →
+  Railway, frontend → Firebase Hosting). Needs repo secrets `RAILWAY_TOKEN` and
+  `FIREBASE_SERVICE_ACCOUNT` to actually run; without them the jobs fail loudly.
+  To auto-deploy on merge, add `push: { branches: [main] }` to its `on:` block
+  once the secrets are configured.
+- Optional monitoring: set `SENTRY_DSN` (backend env) / `VITE_SENTRY_DSN`
+  (frontend env). Both are inert when unset.
+- There is no staging environment — every deploy goes straight to the live
+  store. Cheap staging: create a second Railway service + Firebase Hosting
+  preview channel pointed at a `staging` branch.
+
 ## Verification
 
 - `node --check <file>` for syntax on changed backend files
+- `npm test -w crownmania_backend` — Jest suite (integration tests mock infra)
+- `npm test -w crownmania_frontend` / `npm run build -w crownmania_frontend`
 - `node scripts/checkOrder.js` — recent orders + inventory counts
 - CI (`.github/workflows/ci.yml`) runs backend tests/lint on push to `main`
 

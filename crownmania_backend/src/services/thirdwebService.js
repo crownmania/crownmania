@@ -1,12 +1,41 @@
 // Thirdweb & Ethers NFT Transfer Service
 // For transferring pre-minted NFTs using Thirdweb Engine API or Ethers.js
-import { ThirdwebSDK } from "@thirdweb-dev/sdk";
+import { createThirdwebClient, getContract, readContract, sendTransaction, waitForReceipt } from "thirdweb";
+import { privateKeyToAccount } from "thirdweb/wallets";
+import { polygon, polygonAmoy } from "thirdweb/chains";
+import { claimTo, getOwnedNFTs, getNFT, transferFrom } from "thirdweb/extensions/erc721";
 import { ethers } from "ethers";
 import logger from '../config/logger.js';
 
 const POLYGON_CHAIN_ID = process.env.POLYGON_CHAIN_ID || "137";
 const IS_TESTNET = parseInt(POLYGON_CHAIN_ID) === 80002;
-const SDK_NETWORK = IS_TESTNET ? "amoy" : "polygon";
+const CHAIN = IS_TESTNET ? polygonAmoy : polygon;
+
+const getThirdwebClient = () => {
+    const secretKey = process.env.THIRDWEB_SECRET_KEY;
+    return secretKey ? createThirdwebClient({ secretKey }) : null;
+};
+
+const getNftContract = (client, contractAddress) => getContract({
+    client,
+    chain: CHAIN,
+    address: contractAddress
+});
+
+// Parse the minted token ID out of a transaction receipt's Transfer events
+const parseMintedTokenId = (receipt) => {
+    if (!receipt?.logs) return null;
+    const transferIface = new ethers.utils.Interface(['event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)']);
+    for (const log of receipt.logs) {
+        try {
+            const parsed = transferIface.parseLog(log);
+            if (parsed?.name === 'Transfer') {
+                return parsed.args.tokenId.toString();
+            }
+        } catch { /* skip */ }
+    }
+    return null;
+};
 
 // Claim (mint + send) NFT from DropERC721 lazy-mint contract
 // This is the correct operation for lazy-mint drops where tokens don't exist until claimed
@@ -22,38 +51,29 @@ export const claimNFTToWallet = async (recipientWallet, quantity = 1) => {
 
         logger.info(`Claiming NFT for wallet ${recipientWallet} (quantity: ${quantity})`);
 
-        // Method 1: Thirdweb SDK (if secret key available)
-        if (privateKey && secretKey) {
+        // Method 1: Thirdweb SDK v5 (if secret key available)
+        const client = getThirdwebClient();
+        if (privateKey && client) {
             try {
-                const sdk = ThirdwebSDK.fromPrivateKey(privateKey, SDK_NETWORK, { secretKey });
-                const contract = await sdk.getContract(contractAddress);
+                const contract = getNftContract(client, contractAddress);
+                const account = privateKeyToAccount({ client, privateKey });
 
                 // Read the token ID that will be minted as a fallback if event parsing fails
                 let expectedTokenId = null;
                 try {
-                    expectedTokenId = (await contract.call('nextTokenIdToClaim')).toString();
+                    expectedTokenId = (await readContract({
+                        contract,
+                        method: 'function nextTokenIdToClaim() view returns (uint256)'
+                    })).toString();
                 } catch (predictErr) {
                     logger.warn('Could not predict next token ID:', predictErr.message);
                 }
 
-                const tx = await contract.erc721.claim(recipientWallet, quantity);
+                const transaction = claimTo({ contract, to: recipientWallet, quantity: BigInt(quantity) });
+                const { transactionHash } = await sendTransaction({ transaction, account });
+                const receipt = await waitForReceipt({ client, chain: CHAIN, transactionHash });
 
-                const receipt = tx.receipt;
-                let mintedTokenId = null;
-
-                // Parse Transfer events to find minted token ID
-                if (receipt?.logs) {
-                    const transferIface = new ethers.utils.Interface(['event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)']);
-                    for (const log of receipt.logs) {
-                        try {
-                            const parsed = transferIface.parseLog(log);
-                            if (parsed?.name === 'Transfer') {
-                                mintedTokenId = parsed.args.tokenId.toString();
-                                break;
-                            }
-                        } catch { /* skip */ }
-                    }
-                }
+                let mintedTokenId = parseMintedTokenId(receipt);
 
                 if (!mintedTokenId && expectedTokenId) {
                     logger.warn(`Transfer event not parsed for sdk-claim; using predicted token ID ${expectedTokenId}`);
@@ -62,7 +82,7 @@ export const claimNFTToWallet = async (recipientWallet, quantity = 1) => {
 
                 return {
                     success: true,
-                    transactionHash: receipt?.transactionHash,
+                    transactionHash,
                     tokenId: mintedTokenId,
                     contractAddress,
                     recipient: recipientWallet,
@@ -144,18 +164,7 @@ export const claimNFTToWallet = async (recipientWallet, quantity = 1) => {
 
             const receipt = await tx.wait(1);
 
-            // Parse Transfer event for token ID
-            const transferIface = new ethers.utils.Interface(['event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)']);
-            let mintedTokenId = null;
-            for (const log of receipt.logs) {
-                try {
-                    const parsed = transferIface.parseLog(log);
-                    if (parsed?.name === 'Transfer') {
-                        mintedTokenId = parsed.args.tokenId.toString();
-                        break;
-                    }
-                } catch { /* skip */ }
-            }
+            let mintedTokenId = parseMintedTokenId(receipt);
 
             if (!mintedTokenId && expectedTokenId) {
                 logger.warn(`Transfer event not parsed for ethers-claim; using predicted token ID ${expectedTokenId}`);
@@ -239,16 +248,23 @@ export const transferNFTToWallet = async (recipientWallet, tokenId = null) => {
             };
         }
 
-        // Fallback 1: Use Thirdweb SDK with private key if SDK secretKey is available
-        if (privateKey && secretKey) {
+        // Fallback 1: Use Thirdweb SDK v5 with private key if secretKey is available
+        const client = getThirdwebClient();
+        if (privateKey && client) {
             try {
-                const sdk = ThirdwebSDK.fromPrivateKey(privateKey, SDK_NETWORK, { secretKey });
-                const contract = await sdk.getContract(contractAddress);
-                const tx = await contract.erc721.transfer(recipientWallet, tokenId);
+                const contract = getNftContract(client, contractAddress);
+                const account = privateKeyToAccount({ client, privateKey });
+                const transaction = transferFrom({
+                    contract,
+                    from: account.address,
+                    to: recipientWallet,
+                    tokenId: BigInt(tokenId)
+                });
+                const { transactionHash } = await sendTransaction({ transaction, account });
 
                 return {
                     success: true,
-                    transactionHash: tx.receipt?.transactionHash,
+                    transactionHash,
                     tokenId: tokenId.toString(),
                     contractAddress: contractAddress,
                     recipient: recipientWallet,
@@ -305,22 +321,20 @@ export const getAvailableNFTs = async () => {
     try {
         const contractAddress = process.env.THIRDWEB_NFT_CONTRACT;
         const ownerWallet = process.env.NFT_OWNER_WALLET;
-        const secretKey = process.env.THIRDWEB_SECRET_KEY;
+        const client = getThirdwebClient();
 
-        if (!secretKey || !contractAddress || !ownerWallet) {
+        if (!client || !contractAddress || !ownerWallet) {
             logger.warn('Missing Thirdweb config for getAvailableNFTs');
             return [];
         }
 
-        // Use read-only SDK
-        const sdk = new ThirdwebSDK(SDK_NETWORK, { secretKey });
-        const contract = await sdk.getContract(contractAddress);
+        const contract = getNftContract(client, contractAddress);
 
         // Get all NFTs owned by the owner wallet (these are available for claiming)
-        const ownedTokens = await contract.erc721.getOwned(ownerWallet);
+        const ownedTokens = await getOwnedNFTs({ contract, owner: ownerWallet });
 
         return ownedTokens.map(t => ({
-            tokenId: t.metadata.id,
+            tokenId: t.id.toString(),
             name: t.metadata.name,
             image: t.metadata.image,
             description: t.metadata.description
@@ -335,20 +349,19 @@ export const getAvailableNFTs = async () => {
 export const checkNFTOwnership = async (walletAddress) => {
     try {
         const contractAddress = process.env.THIRDWEB_NFT_CONTRACT;
-        const secretKey = process.env.THIRDWEB_SECRET_KEY;
+        const client = getThirdwebClient();
 
-        if (!secretKey || !contractAddress) {
+        if (!client || !contractAddress) {
             return { owned: false, tokens: [] };
         }
 
-        const sdk = new ThirdwebSDK(SDK_NETWORK, { secretKey });
-        const contract = await sdk.getContract(contractAddress);
-        const ownedTokens = await contract.erc721.getOwned(walletAddress);
+        const contract = getNftContract(client, contractAddress);
+        const ownedTokens = await getOwnedNFTs({ contract, owner: walletAddress });
 
         return {
             owned: ownedTokens.length > 0,
             tokens: ownedTokens.map(t => ({
-                tokenId: t.metadata.id,
+                tokenId: t.id.toString(),
                 name: t.metadata.name,
                 image: t.metadata.image
             }))
@@ -363,18 +376,17 @@ export const checkNFTOwnership = async (walletAddress) => {
 export const getNFTMetadata = async (tokenId) => {
     try {
         const contractAddress = process.env.THIRDWEB_NFT_CONTRACT;
-        const secretKey = process.env.THIRDWEB_SECRET_KEY;
+        const client = getThirdwebClient();
 
-        if (!secretKey || !contractAddress) {
+        if (!client || !contractAddress) {
             return null;
         }
 
-        const sdk = new ThirdwebSDK(SDK_NETWORK, { secretKey });
-        const contract = await sdk.getContract(contractAddress);
-        const nft = await contract.erc721.get(tokenId);
+        const contract = getNftContract(client, contractAddress);
+        const nft = await getNFT({ contract, tokenId: BigInt(tokenId), includeOwner: true });
 
         return {
-            tokenId: nft.metadata.id,
+            tokenId: nft.id.toString(),
             name: nft.metadata.name,
             description: nft.metadata.description,
             image: nft.metadata.image,
