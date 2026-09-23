@@ -94,6 +94,11 @@ await notifications.sendClaimAttemptEmail({
 });
 save('admin-claim-attempt');
 
+await email.sendAdminAlertEmail('Fulfillment failure', {
+  orderId: ORDER_ID, error: 'Printify API timeout after 30s', attempt: 3
+});
+save('admin-alert');
+
 // Admin login OTP + wallet 2FA code use the shared renderCodeEmail renderer —
 // preview it directly since triggering the services writes Firestore state.
 {

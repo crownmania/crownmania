@@ -53,6 +53,13 @@ export { sgMail, EMAIL_CONFIG };
  */
 const BRAND = {
   logoUrl: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Fcrownmania_logo_white.png?alt=media',
+  // Rendered from email-assets/wordmark-render.html via scripts/uploadEmailAssets.js —
+  // the real Designer font + hero glow, so the wordmark matches the site exactly.
+  wordmarkUrl: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/images%2Femail-wordmark.png?alt=media',
+  // Same file the site ships; the bucket's CORS is *, which lets Apple Mail's
+  // @font-face fetch succeed. Clients without web-font support (Gmail, Outlook)
+  // fall back to Arial Black Italic — same bold slanted-caps silhouette.
+  designerFontUrl: 'https://firebasestorage.googleapis.com/v0/b/sonorous-crane-440603-s6.firebasestorage.app/o/fonts%2FDesigner.otf?alt=media',
   bgOuter: '#000000',
   bgPanel: '#000000',
   bgCard: '#0B0F16',
@@ -62,6 +69,7 @@ const BRAND = {
   text: '#FFFFFF',
   textMuted: '#C7CEDA',
   textFaint: '#8A94A6',
+  tagline: '#9A9A9A', // rgba(255,255,255,0.6) composited on black — hex so Gmail mobile keeps it
   border: '#1B2740'
 };
 
@@ -95,10 +103,11 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/'/g, '&#39;');
 
 /**
- * Wrap body content in the shared Crownmania email shell: logo, wordmark,
- * title and footer. Table-based so Outlook renders it, and the wordmark is
- * live text so the header still reads when images are blocked (which is the
- * default in many clients).
+ * Wrap body content in the shared Crownmania email shell. The header mirrors
+ * the site hero (Landing.jsx): glowing CROWNMANIA wordmark, tagline, crown.
+ * The wordmark is an image rendered from the real Designer font so it looks
+ * identical in every client — including Gmail and Outlook, which strip
+ * @font-face; the crown below it doubles as the images-off brand cue.
  *
  * @param {object} opts - { preheader, title, subtitle, bodyHtml }
  */
@@ -110,6 +119,16 @@ const renderEmailShell = ({ preheader = '', title, subtitle = '', bodyHtml }) =>
 <meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark">
 <title>${escapeHtml(title)}</title>
+<style>
+  /* Same Designer face the site ships; declared as the italic face so clients
+     don't synthesize a second slant on top of its naturally oblique glyphs.
+     Ignored by Gmail/Outlook, honoured by Apple Mail. */
+  @font-face {
+    font-family: 'Designer';
+    font-style: italic;
+    src: url('${BRAND.designerFontUrl}') format('opentype');
+  }
+</style>
 </head>
 <body style="margin:0; padding:0; background-color:${BRAND.bgOuter};">
   <div style="display:none; max-height:0; overflow:hidden; opacity:0;">${escapeHtml(preheader)}</div>
@@ -118,19 +137,22 @@ const renderEmailShell = ({ preheader = '', title, subtitle = '', bodyHtml }) =>
       <td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px; background-color:${BRAND.bgPanel}; border:1px solid ${BRAND.border}; border-radius:16px; overflow:hidden;">
           <tr>
-            <td align="center" style="padding:32px 32px 8px 32px;">
-              <img src="${BRAND.logoUrl}" width="62" height="80" alt="Crownmania"
-                   style="display:block; width:62px; height:auto; border:0; outline:none; text-decoration:none;">
-              <div style="margin-top:14px; font-family:'Arial Black',Arial,Helvetica,sans-serif; font-size:22px; font-weight:900; letter-spacing:0.26em; color:${BRAND.text}; text-transform:uppercase;">
-                Crownmania
+            <td align="center" style="padding:34px 32px 26px 32px; background-color:${BRAND.bgPanel}; background:radial-gradient(ellipse at center 0%, rgba(65,105,225,0.14), rgba(0,0,0,0) 70%);">
+              <a href="${siteUrl()}" style="text-decoration:none;">
+                <img src="${BRAND.wordmarkUrl}" width="300" height="98" alt="CROWNMANIA"
+                     style="display:block; width:300px; height:auto; border:0; outline:none; text-decoration:none; font-family:'Arial Black',Arial,sans-serif; font-size:16px; font-style:italic; letter-spacing:0.15em; color:${BRAND.text};">
+              </a>
+              <div style="margin-top:2px; font-family:Arial,Helvetica,sans-serif; font-size:8px; letter-spacing:0.3em; text-transform:uppercase; color:${BRAND.tagline};">
+                Revolutionizing Collectibles, Connecting The World
               </div>
-              <div style="margin-top:6px; height:2px; width:64px; background-color:${BRAND.accent};"></div>
+              <img src="${BRAND.logoUrl}" width="38" height="49" alt=""
+                   style="display:block; margin:16px auto 0 auto; width:38px; height:auto; border:0; outline:none; text-decoration:none;">
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding:22px 32px 0 32px;">
-              <h1 style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:21px; font-weight:700; color:${BRAND.text};">${escapeHtml(title)}</h1>
-              ${subtitle ? `<p style="margin:8px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:13px; color:${BRAND.textMuted};">${escapeHtml(subtitle)}</p>` : ''}
+            <td align="center" style="padding:24px 32px 0 32px;">
+              <h1 style="margin:0; font-family:'Designer','Arial Black',Arial,sans-serif; font-size:22px; font-weight:700; font-style:italic; letter-spacing:0.15em; text-transform:uppercase; color:${BRAND.text}; text-shadow:0 0 10px rgba(255,255,255,0.4), 0 0 30px rgba(255,255,255,0.15);">${escapeHtml(title)}</h1>
+              ${subtitle ? `<p style="margin:10px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:13px; color:${BRAND.textMuted};">${escapeHtml(subtitle)}</p>` : ''}
             </td>
           </tr>
           <tr>
@@ -539,13 +561,22 @@ export const sendAdminAlertEmail = async (subject, details) => {
   const adminEmail = resolveAdminEmail();
   const detailText = typeof details === 'string' ? details : JSON.stringify(details, null, 2);
 
+  const html = renderEmailShell({
+    preheader: `Operational alert: ${subject}`,
+    title: 'Operational Alert',
+    subtitle: subject,
+    bodyHtml: infoCard(`
+      <pre style="margin:0; font-family:'Courier New',monospace; font-size:12px; line-height:1.6; color:${BRAND.textMuted}; white-space:pre-wrap; word-break:break-word;">${escapeHtml(detailText)}</pre>`)
+      + `<p style="margin:18px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:11px; color:${BRAND.textFaint}; text-align:center;">${new Date().toISOString()}</p>`
+  });
+
   try {
     await sgMail.send({
       to: adminEmail,
       from: EMAIL_CONFIG.from,
       subject: `[CROWNMANIA ALERT] ${subject}`,
       text: `Operational alert:\n\n${detailText}\n\nTime: ${new Date().toISOString()}`,
-      html: `<div style="font-family: monospace; white-space: pre-wrap;"><h3>⚠️ ${subject}</h3><pre>${detailText}</pre><p>Time: ${new Date().toISOString()}</p></div>`
+      html
     });
   } catch (error) {
     console.error('Failed to send admin alert email:', error);

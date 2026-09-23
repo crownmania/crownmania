@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<!-- Renders the CROWNMANIA wordmark exactly as the site hero does
+     (Landing.jsx MainTitle: Designer font, 0.15em spacing, white glow).
+     Screenshot with headless Chrome on a transparent background. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: 'Designer';
+    src: url('../../crownmania_frontend/public/fonts/Designer.otf') format('opentype');
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #wm {
+    font-family: 'Designer', sans-serif;
+    font-size: 60px; /* matches the site hero clamp max (~3.96rem) */
+    color: #ffffff;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    line-height: 1.1;
+    white-space: nowrap;
+    padding-left: 0.15em; /* optically re-centers the trailing letter-space */
+    text-shadow:
+      0 0 10px rgba(255, 255, 255, 0.5),
+      0 0 30px rgba(255, 255, 255, 0.3),
+      0 0 60px rgba(255, 255, 255, 0.15),
+      0 0 80px rgba(255, 255, 255, 0.08);
+  }
+  /* measurement mode: ?measure writes "WxH" into the DOM for --dump-dom */
+  #m { font: 12px monospace; color: #fff; }
+</style>
+</head>
+<body>
+<span id="wm">CROWNMANIA</span>
+<script>
+  if (location.search.includes('measure')) {
+    document.fonts.ready.then(() => {
+      const r = document.getElementById('wm').getBoundingClientRect();
+      document.body.innerHTML =
+        '<div id="m">' + Math.ceil(r.width) + 'x' + Math.ceil(r.height) + '</div>';
+    });
+  }
+</script>
+</body>
+</html>
