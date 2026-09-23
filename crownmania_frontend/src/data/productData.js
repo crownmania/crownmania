@@ -13,7 +13,7 @@ export const PRODUCTS = [
         slug: 'lildurk',
         name: 'Lil Durk Collectible Figure',
         type: 1,
-        price: '$300.00',
+        price: '$150.00',
         description: `The Lil Durk 10-inch Resin Figure is a premium collectible made for true fans. Crafted from high-quality resin, this figure features detailed sculpting and a solid, display-ready build.
 
 Designed to capture Lil Durk's signature style and presence, it's the perfect piece for shelves, desks, or display cases.

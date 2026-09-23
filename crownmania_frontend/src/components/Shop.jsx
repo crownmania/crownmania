@@ -272,7 +272,7 @@ export default function Shop() {
 
             <CardBody>
               <ProductTitle>{product.name || 'Available Soon'}</ProductTitle>
-              <ProductPrice>{product.comingSoon ? '—' : product.price || '$300.00'}</ProductPrice>
+              <ProductPrice>{product.comingSoon ? '—' : product.price || '$150.00'}</ProductPrice>
 
               <ActionBar>
                 <ActionButton
