@@ -7,6 +7,63 @@ console check nobody has done yet.
 The store is live and has taken real orders. What follows is what is actually
 configured, plus what is genuinely still missing.
 
+## Things That Still Need To Be Fixed
+
+Consolidated backlog as of 2026-09-23. Ordered roughly by priority.
+
+### Needs a live test / verification
+
+- [ ] **Live claim test for the thirdweb v5 mint path** — `thirdwebService.js`
+      was migrated off deprecated `@thirdweb-dev/sdk` v4 to `thirdweb` v5.
+      Backend tests mock the service, so only a real claim proves the new
+      `claimTo` + `sendTransaction` path on-chain. The ethers.js fallback is
+      intact and covers failures, but confirm the primary path with one real
+      claim (or Amoy testnet) before relying on it at volume.
+- [ ] Scheduled Firestore backups enabled (Firebase Console → Firestore → Backups)
+- [ ] End-to-end claim → perk unlock on prod (`/vault` serial → NFT → exclusive
+      content) — the signing bug is fixed in code but not yet exercised live
+- [ ] Refund flow → confirm serials release back to inventory
+- [ ] Fulfillment failure path → dead-letter queue + admin alert
+- [ ] Mark-shipped flow → tracking email arrives and link works
+
+### Operations / config (not code)
+
+- [ ] `git push` — 11+ local commits not yet on GitHub; CI has never run on them
+- [ ] Set `SENTRY_DSN` (backend) + `VITE_SENTRY_DSN` (frontend) to activate monitoring
+- [ ] Add `RAILWAY_TOKEN` + `FIREBASE_SERVICE_ACCOUNT` repo secrets to enable
+      `.github/workflows/deploy.yml`; flip its trigger to `push: [main]` for auto-deploy
+- [ ] Stripe Dashboard: business type Individual → Company (LLC name + EIN) so
+      checkout stops showing the owner's personal name; legal pages should name
+      the LLC too
+- [ ] Webhook URL still points at `*.up.railway.app` instead of `api.crownmania.com`
+- [ ] Uptime monitor pinging `/health` + downtime alerting
+- [ ] DMARC `p=none` → `p=quarantine` once Resend traffic looks clean
+- [ ] Confirm Resend domain shows **Verified** in dashboard
+- [ ] Remove unused `SENDGRID_API_KEY` from Railway vars
+- [ ] Twilio SMS path is configured-but-unused — `smsService` no-ops without
+      creds; decide whether to keep or strip
+
+### Code health (low priority, non-breaking)
+
+- [ ] ~37 `logger.error('msg:', err.message)` call sites use winston splat —
+      error messages get swallowed into metadata. Interpolate into the string.
+- [ ] ~90 frontend / ~92 backend `npm audit` findings remain — all deep
+      transitive deps requiring risky major bumps (firebase-tools, hardhat-era
+      packages). At the practical floor without a dedicated upgrade project.
+- [ ] `ANALYTICS_SALT` has a hardcoded fallback — weak IP hashing if unset in prod
+- [ ] In-memory stores besides rate limits (claim nonces, profile sessions)
+      still reset on deploy and won't share across multiple Railway instances
+- [ ] Backend `console.log`/`console.error` in a few files → move to winston logger
+- [ ] Frontend bundle ~4.2 MB main chunk — code-split three.js/Vault for load time
+- [ ] `sendVerificationEmail` + `POST /api/verification/request-email-verification`
+      are dead code (no frontend caller) — remove or wire
+- [ ] Product catalog is hardcoded in `stripe.js` — new figure = redeploy;
+      consider Firestore-backed catalog if the line grows
+- [ ] ethers v5-style calls in backend worker while frontend uses v6 — two API
+      generations to maintain; consolidate on v6 in a dedicated pass
+- [ ] No staging environment — every change goes to the live store (cheap fix:
+      second Railway service + Firebase preview channel on a `staging` branch)
+
 ## Deploy Runbook (read this first)
 
 **Backend — `railway up` must be run from the repo root**, not from
@@ -54,7 +111,9 @@ deployments. A new deployment ID never means lost secrets.
 ### Firebase
 - [x] `FIREBASE_STORAGE_BUCKET` — set
 - [x] Service account key deployed — `/health` reports `firebase: connected`
-- [ ] **UNVERIFIED** Firestore security rules deployed (`firebase deploy --only firestore:rules`)
+- [x] Firestore security rules deployed — deny-all rules confirmed live on the
+      named `crownmania` database (`firebase deploy --only firestore:rules`
+      reported already up-to-date on 2026-09-23)
 - [ ] **UNVERIFIED** Scheduled Firestore backups enabled (Firebase Console → Firestore → Backups)
 
 ### Email — Resend (NOT SendGrid)
@@ -125,8 +184,10 @@ it is not required.
       subdomain is ever detached.
 
 ## Error Monitoring
+- [x] Sentry wired in backend (`@sentry/node`, env-gated) and frontend
+      (`@sentry/react`, env-gated) — both inert until DSNs are set
 - [ ] `SENTRY_DSN` not set on the backend — no error monitoring in production
-- [ ] Add Sentry to the frontend
+- [ ] `VITE_SENTRY_DSN` not set on the frontend
 - [ ] Alert routing (email/Slack) for critical errors
 
 ## Order Fulfillment & Operations
@@ -191,7 +252,9 @@ Do not reintroduce serials or per-order claim links into the confirmation email.
 - [ ] Refund in Stripe Dashboard → confirm serials released back to inventory
 - [ ] Fulfillment failure (empty inventory) → dead-letter queue entry + admin alert
 - [ ] Mark an order shipped → confirm the tracking email arrives and the link works
-- [ ] Customer order lookup by email
+- [x] Customer order lookup by email — live at `/track-order` behind a
+      six-digit email-code challenge (generic responses prevent enumeration;
+      returns order-safe fields only)
 
 ## Legal Pages
 - [x] Terms of Service — `/terms-of-service`
