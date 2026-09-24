@@ -9,7 +9,13 @@ import logger from '../config/logger.js';
 
 const POLYGON_CHAIN_ID = process.env.POLYGON_CHAIN_ID || "137";
 const IS_TESTNET = parseInt(POLYGON_CHAIN_ID) === 80002;
-const CHAIN = IS_TESTNET ? polygonAmoy : polygon;
+// Prefer our own RPC (Alchemy) over thirdweb's public proxy — it has higher
+// limits and does not depend on the secret key's origin restrictions.
+const CHAIN = (() => {
+    const base = IS_TESTNET ? polygonAmoy : polygon;
+    const rpc = process.env.POLYGON_RPC_URL || process.env.ALCHEMY_RPC_URL;
+    return rpc ? { ...base, rpc } : base;
+})();
 
 const getThirdwebClient = () => {
     const secretKey = process.env.THIRDWEB_SECRET_KEY;
