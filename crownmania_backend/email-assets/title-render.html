@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!-- Renders one email heading ("ORDER CONFIRMED", etc.) as a transparent PNG:
+     real Designer font + hero glow. Params: ?text=...&color=%23fff&size=22
+     Append &measure to output "WxH" instead of rendering. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: 'Designer';
+    src: url('../../crownmania_frontend/public/fonts/Designer.otf') format('opentype');
+  }
+  html, body { margin:0; padding:0; background:transparent; overflow:hidden; }
+  /* No flexbox centring — headless Chrome enforces a minimum viewport width,
+     so a centred element can land outside the screenshot's left region.
+     Fixed padding pins the text at a known offset instead. */
+  body { padding:60px; } /* overridden by ?pad= */
+  #t {
+    display:inline-block;
+    font-family: 'Designer', sans-serif;
+    font-style: italic;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    line-height: 1.25;
+    white-space: nowrap;
+    padding-left: 0.15em;
+    text-shadow:
+      0 0 10px rgba(255,255,255,0.4),
+      0 0 30px rgba(255,255,255,0.18);
+  }
+  #t.plain { text-shadow: none; letter-spacing: 0.06em; font-family: Arial, Helvetica, sans-serif; }
+  #m { font: 12px monospace; color: #fff; }
+</style>
+</head>
+<body>
+<span id="t"></span>
+<script>
+  const q = new URLSearchParams(location.search);
+  const el = document.getElementById('t');
+  el.textContent = q.get('text') || 'TITLE';
+  el.style.color = q.get('color') || '#ffffff';
+  el.style.fontSize = (q.get('size') || '22') + 'px';
+  if (q.get('plain')) el.classList.add('plain');
+  document.body.style.padding = (q.get('pad') || '60') + 'px';
+  if (q.has('measure')) {
+    document.fonts.ready.then(() => {
+      const r = el.getBoundingClientRect();
+      document.body.innerHTML = '<div id="m">' + Math.ceil(r.width) + 'x' + Math.ceil(r.height) + '</div>';
+    });
+  }
+</script>
+</body>
+</html>

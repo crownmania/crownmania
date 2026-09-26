@@ -170,8 +170,8 @@ async function sendContentDropNotification(drop, user, prefs) {
           title: 'New Content Drop',
           subtitle: 'Exclusive to verified collectors',
           bodyHtml: `
-            <p style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:16px; font-weight:700; color:#FFFFFF; text-align:center;">${escapeHtml(drop.title)}</p>
-            ${drop.description ? `<p style="margin:14px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.7; color:#C7CEDA; text-align:center;">${escapeHtml(drop.description)}</p>` : ''}
+            <p class="cm-w" style="margin:0; font-family:Arial,Helvetica,sans-serif; font-size:16px; font-weight:700; color:#B4BBC7; text-align:center;">${escapeHtml(drop.title)}</p>
+            ${drop.description ? `<p class="cm-mut" style="margin:14px 0 0 0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.7; color:#99A2B0; text-align:center;">${escapeHtml(drop.description)}</p>` : ''}
             ${ctaButton(`${process.env.FRONTEND_URL || 'https://crownmania.com'}/vault`, 'Open The Vault')}`
         }),
       }).catch(err => console.error('Content drop email failed:', err.message))

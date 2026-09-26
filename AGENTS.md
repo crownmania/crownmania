@@ -46,7 +46,10 @@ Do not use `npm run deploy` in `crownmania_frontend`: it resolves `firebase` to
 a corrupt local `firebase-tools` in that workspace's `node_modules` and dies on
 a missing `lib/templates/hosting/init.js` before deploying. Credentials also
 expire periodically — `firebase login --reauth` fixes
-`Authentication Error: Your credentials are no longer valid`. `crownmania.com` and
+`Authentication Error: Your credentials are no longer valid`. Non-interactive
+alternative (verified working): after `firebase logout`, deploys succeed with
+`GOOGLE_APPLICATION_CREDENTIALS=crownmania_backend/src/config/serviceAccountKey.json`
+since the backend service account already has deploy rights on this project. `crownmania.com` and
 `sonorous-crane-440603-s6.web.app` are the same site.
 
 Firebase Hosting rewrites unknown paths to `index.html`, so a `200` does not

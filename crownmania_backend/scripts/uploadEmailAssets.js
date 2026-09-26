@@ -20,14 +20,37 @@ const root = path.join(__dirname, '..');
 const ASSETS = [
   {
     local: path.join(root, 'email-assets/crownmania-wordmark.png'),
-    dest: 'images/email-wordmark.png',
+    // Versioned filename — mail image proxies (Gmail) cache aggressively, so
+    // never overwrite a URL emails already reference; bump the version instead.
+    dest: 'images/email-wordmark-v6.png',
     contentType: 'image/png'
   },
   {
     local: path.join(root, '../crownmania_frontend/public/fonts/Designer.otf'),
     dest: 'fonts/Designer.otf',
     contentType: 'font/otf'
+  },
+  {
+    // 1×1 black PNG used as a tiled background-image — Gmail's dark-mode
+    // inversion rewrites background-color but cannot alter image pixels,
+    // so this guarantees the email background stays black everywhere.
+    local: path.join(root, 'email-assets/black-1x1.png'),
+    dest: 'images/email-black-v2.png',
+    contentType: 'image/png'
+  },
+  {
+    // 1×1 #0B0F16 — infoCard surface, locked against Gmail's inversion
+    local: path.join(root, 'email-assets/card-1x1.png'),
+    dest: 'images/email-card-v1.png',
+    contentType: 'image/png'
+  },
+  {
+    // 1×1 #E9ECF4 — CTA button surface, locked against Gmail's inversion
+    local: path.join(root, 'email-assets/btn-1x1.png'),
+    dest: 'images/email-btn-v1.png',
+    contentType: 'image/png'
   }
+  // Titles/button labels are rendered + uploaded by renderEmailTitleImages.js
 ];
 
 const publicUrl = (bucketName, dest) =>

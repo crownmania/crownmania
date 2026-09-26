@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<!-- Renders the CROWNMANIA wordmark exactly as the site hero does
-     (Landing.jsx MainTitle: Designer font, 0.15em spacing, white glow).
+<!-- Renders the Crownmania email header lockup: glowing CROWNMANIA wordmark
+     + crown, exactly as the site hero does (Landing.jsx), on a subtle dark
+     "vault plate". The plate is baked in so the lockup stays visible even in
+     mail clients that invert the email's background colour (Gmail dark mode).
      Screenshot with headless Chrome on a transparent background. -->
 <html>
 <head>
@@ -23,6 +25,14 @@
     align-items: center;
     justify-content: center;
   }
+  #plate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Fully transparent — the logo floats on whatever background the client
+       renders. The email's own anti-inversion rules keep that dark. */
+    background: transparent;
+  }
   #wm {
     font-family: 'Designer', sans-serif;
     font-size: 60px; /* matches the site hero clamp max (~3.96rem) */
@@ -38,16 +48,38 @@
       0 0 60px rgba(255, 255, 255, 0.15),
       0 0 80px rgba(255, 255, 255, 0.08);
   }
-  /* measurement mode: ?measure writes "WxH" into the DOM for --dump-dom */
+  #crown {
+    width: 44px;  /* site hero uses 48px at ~63px title — scaled to 60px title */
+    height: auto;
+    margin-bottom: 22px; /* crown sits above the wordmark */
+    opacity: 0.9;
+    filter:
+      drop-shadow(0 0 8px rgba(255, 255, 255, 0.25))
+      drop-shadow(0 0 20px rgba(255, 255, 255, 0.1));
+  }
+  #tagline {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: #9A9A9A;
+    margin-top: 18px;
+    white-space: nowrap;
+    padding-left: 0.32em; /* optically re-centers the trailing letter-space */
+  }
   #m { font: 12px monospace; color: #fff; }
 </style>
 </head>
 <body>
-<span id="wm">CROWNMANIA</span>
+<div id="plate">
+  <img id="crown" src="../../crownmania_frontend/src/assets/crown_logo_white.svg" alt="">
+  <span id="wm">CROWNMANIA</span>
+  <div id="tagline">Revolutionizing Collectibles, Connecting The World</div>
+</div>
 <script>
   if (location.search.includes('measure')) {
     document.fonts.ready.then(() => {
-      const r = document.getElementById('wm').getBoundingClientRect();
+      const r = document.getElementById('plate').getBoundingClientRect();
       document.body.innerHTML =
         '<div id="m">' + Math.ceil(r.width) + 'x' + Math.ceil(r.height) + '</div>';
     });

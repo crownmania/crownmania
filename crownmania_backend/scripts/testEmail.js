@@ -1,15 +1,23 @@
+/**
+ * Send a REAL branded order-confirmation email to the ops inbox so template
+ * changes can be eyeballed in an actual mail client before deploying.
+ * Renders through the same production path (renderEmailShell + hosted assets).
+ *
+ * Usage: node scripts/testEmail.js [recipient]
+ *   recipient defaults to the resolved admin/ops email.
+ */
 import 'dotenv/config';
-import { sgMail, EMAIL_CONFIG } from '../src/config/email.js';
+import { sendOrderConfirmationEmail, resolveAdminEmail } from '../src/config/email.js';
+
+const to = process.argv[2] || resolveAdminEmail();
 
 try {
-  const result = await sgMail.send({
-    to: process.env.ADMIN_ALERT_EMAIL || 'crown@crownmania.com',
-    from: EMAIL_CONFIG.from,
-    subject: 'Crownmania — Resend test email',
-    text: 'If you are reading this, Resend is working correctly.',
-    html: '<p>If you are reading this, <strong>Resend is working correctly</strong>.</p>'
+  const result = await sendOrderConfirmationEmail(to, {
+    orderId: 'ORD-TESTEMAIL-preview',
+    items: [{ name: 'Lil Durk Collectible Figure', quantity: 1 }],
+    total: 200
   });
-  console.log('✅ Email sent! ID:', result?.id);
+  console.log(`✅ Branded test email sent to ${to} — Resend id: ${result?.id}`);
 } catch (err) {
   console.error('❌ Email failed:', err.message);
 }
