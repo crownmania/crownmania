@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { FaPaperPlane } from 'react-icons/fa';
+import crownLogo from '../assets/crown_logo_white.svg';
 
 const ContactSection = styled.section`
   min-height: 100vh;
@@ -223,7 +224,11 @@ export default function Contact() {
             animate={{ opacity: 1, scale: 1 }}
             style={{ textAlign: 'center', padding: '2rem 0' }}
           >
-            <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>👑</div>
+            <img
+              src={crownLogo}
+              alt="Crownmania"
+              style={{ width: 52, height: 'auto', display: 'block', margin: '0 auto 1.5rem' }}
+            />
             <h3 style={{ fontFamily: 'var(--font-primary)', color: 'white', marginBottom: '0.75rem', fontSize: '1.5rem' }}>MESSAGE SENT</h3>
             <p style={{ fontFamily: 'var(--font-secondary)', color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', lineHeight: 1.7 }}>
               We've received your message. Expect a reply within 1–2 business days.
