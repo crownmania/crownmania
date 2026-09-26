@@ -1391,6 +1391,90 @@ transition: filter 0.5s ease;
 filter: ${props => props.$locked ? 'grayscale(100%) brightness(0.95)' : 'none'};
 `;
 
+const hudBlink = keyframes`
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.15; }
+`;
+
+// Hologram HUD overlay for the 3D viewer — same visual language as the
+// /verify authentication stage, tinted by the active vault theme.
+const HudOverlay = styled.div`
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 5;
+`;
+
+const HudCorner = styled.span`
+position: absolute;
+width: 18px;
+height: 18px;
+border: 2px solid ${p => p.$tone};
+opacity: 0.6;
+${p => p.$pos === 'tl' && css`top: 8px; left: 8px; border-right: 0; border-bottom: 0;`}
+${p => p.$pos === 'tr' && css`top: 8px; right: 8px; border-left: 0; border-bottom: 0;`}
+${p => p.$pos === 'bl' && css`bottom: 8px; left: 8px; border-right: 0; border-top: 0;`}
+${p => p.$pos === 'br' && css`bottom: 8px; right: 8px; border-left: 0; border-top: 0;`}
+`;
+
+const HudChip = styled.div`
+position: absolute;
+top: 14px;
+right: 34px;
+display: inline-flex;
+align-items: center;
+gap: 0.4rem;
+padding: 0.28rem 0.6rem;
+border: 1px solid ${p => p.$tone}77;
+border-radius: 3px;
+background: ${p => p.$tone}18;
+color: ${p => p.$tone};
+font-family: 'Courier New', ui-monospace, monospace;
+font-size: 0.55rem;
+font-weight: 700;
+letter-spacing: 0.12em;
+text-transform: uppercase;
+white-space: nowrap;
+
+&::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: ${p => p.$tone};
+  box-shadow: 0 0 7px ${p => p.$tone};
+  animation: ${hudBlink} 1.1s steps(1) infinite;
+}
+`;
+
+const HudScanBar = styled.div`
+position: absolute;
+left: 0;
+right: 0;
+top: 0;
+height: 2px;
+background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+box-shadow: 0 0 14px #00e5ff;
+animation: ${scanBeam} 3s linear infinite;
+`;
+
+const HudReadout = styled.div`
+position: absolute;
+left: 0;
+right: 0;
+bottom: 10px;
+text-align: center;
+font-family: 'Courier New', ui-monospace, monospace;
+font-size: 0.52rem;
+letter-spacing: 0.14em;
+text-transform: uppercase;
+color: ${p => p.$tone};
+text-shadow: 0 0 12px ${p => p.$tone}88;
+opacity: 0.9;
+padding: 0 0.5rem;
+pointer-events: none;
+`;
+
 const LoadingSpinner = styled.div`
   position: absolute;
   top: 50%;
@@ -1846,6 +1930,15 @@ export default function Vault() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferAddress, setTransferAddress] = useState('');
 
+  // 3D viewer hologram lifecycle:
+  //   'idle' — panel not yet scrolled into view; the figure sits as a ghost
+  //   'holo' — visible; holding on the wireframe for a beat before reveal
+  //   'live' — materialization has been triggered (glitch → sweep → resolve)
+  const [viewerIntro, setViewerIntro] = useState('idle');
+  const [viewerMaterialized, setViewerMaterialized] = useState(false);
+  const modelCanvasRef = useRef(null);
+  const introTimerRef = useRef(null);
+
   // Transfer Modal — multi-step state
   const [transferStep, setTransferStep] = useState(1); // 1=dest, 2=2fa, 3=confirm, 4=processing, 5=result
   const [transferDestination, setTransferDestination] = useState('');
@@ -1934,6 +2027,33 @@ export default function Vault() {
     const timer = setTimeout(() => setInfoPopup(null), 10000);
     return () => clearTimeout(timer);
   }, [infoPopup]);
+
+  // Scroll-triggered reveal: when the 3D panel first enters the viewport the
+  // figure holds as a hologram for a beat, then materializes into its real
+  // textures (greyscale while unverified, full colour once verified).
+  useEffect(() => {
+    const el = modelCanvasRef.current;
+    if (!el || viewerIntro !== 'idle') return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        observer.disconnect();
+        setViewerIntro('holo');
+      }
+    }, { threshold: 0.35 });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [viewerIntro, isComingSoonSelected]);
+
+  // Hold the ghost for a beat once revealed, then trigger materialization.
+  // Separate effect — if the timer lived in the observer effect's cleanup it
+  // would be cancelled the moment 'holo' landed, and the reveal never ran.
+  useEffect(() => {
+    if (viewerIntro !== 'holo') return;
+    introTimerRef.current = setTimeout(() => setViewerIntro('live'), 1500);
+    return () => clearTimeout(introTimerRef.current);
+  }, [viewerIntro]);
 
   // ============================================
   // LOCAL STORAGE OPERATIONS
@@ -2187,6 +2307,20 @@ export default function Vault() {
     return { label: 'SILVER', icon: '🥈', className: 'rarity-silver' };
   };
   const rarityTier = getRarityTier(displayEdition);
+
+  // 3D viewer hologram state: ghost until the scroll-triggered reveal lands.
+  const viewerHologram = viewerIntro !== 'live';
+  const hudTone = !viewerMaterialized
+    ? '#00e5ff'
+    : isAssetVerified ? '#4ade80' : '#fbbf24';
+  const hudLabel = !viewerMaterialized
+    ? (viewerIntro === 'live' ? 'MATERIALIZING' : 'PROJECTING')
+    : isAssetVerified ? 'VERIFIED' : 'UNVERIFIED';
+  const hudReadout = !viewerMaterialized
+    ? 'CONTAINMENT FIELD ACTIVE — WIREFRAME PROXY'
+    : isAssetVerified
+      ? 'DIGITAL TWIN MATERIALIZED — OWNERSHIP VERIFIED'
+      : 'DIGITAL TWIN MATERIALIZED — OWNERSHIP PENDING';
 
   const handleConnect = async () => {
     await login();
@@ -3326,8 +3460,11 @@ export default function Vault() {
                     </ActionButton>
                   </div>
                 </ModelHeader>
-                <ModelCanvas $locked={isVaultLocked && !isAssetVerified}>
-                  {/* If WebGL is unavailable or the HDRI fails to load, fail
+                <ModelCanvas
+                  $locked={isVaultLocked && !isAssetVerified}
+                  ref={modelCanvasRef}
+                >
+                  {/* If WebGL is unavailable or the model fails to load, fail
                       just the canvas — the rest of the Vault stays usable. */}
                   <ErrorBoundary fallback={null}>
                     <Suspense fallback={
@@ -3336,9 +3473,23 @@ export default function Vault() {
                         <span>LOADING 3D MODEL...</span>
                       </LoadingSpinner>
                     }>
-                      <VaultModelViewer isUnlocked={!isVaultLocked || isAssetVerified} />
+                      <VaultModelViewer
+                        isUnlocked={!isVaultLocked || isAssetVerified}
+                        hologram={viewerHologram}
+                        showStage
+                        onMaterialized={() => setViewerMaterialized(true)}
+                      />
                     </Suspense>
                   </ErrorBoundary>
+                  <HudOverlay>
+                    <HudCorner $pos="tl" $tone={hudTone} />
+                    <HudCorner $pos="tr" $tone={hudTone} />
+                    <HudCorner $pos="bl" $tone={hudTone} />
+                    <HudCorner $pos="br" $tone={hudTone} />
+                    {!viewerMaterialized && <HudScanBar />}
+                    <HudChip $tone={hudTone}>{hudLabel}</HudChip>
+                    <HudReadout $tone={hudTone}>{hudReadout}</HudReadout>
+                  </HudOverlay>
                 </ModelCanvas>
               </ModelViewerPanel>
             </>

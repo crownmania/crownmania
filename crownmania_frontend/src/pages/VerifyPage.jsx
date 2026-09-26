@@ -1,148 +1,332 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaShieldAlt, FaCheckCircle, FaExclamationTriangle, FaWallet, FaArrowRight, FaLock, FaUser, FaShare, FaLink, FaCopy, FaCertificate, FaExternalLinkAlt } from 'react-icons/fa';
+import {
+    FaShieldAlt, FaCheckCircle, FaTimesCircle, FaWallet, FaArrowRight,
+    FaShare, FaCertificate, FaExternalLinkAlt, FaCube,
+} from 'react-icons/fa';
 import confetti from 'canvas-confetti';
 import useWeb3Auth from '../hooks/useWeb3Auth';
 import { verificationAPI } from '../services/api';
+import ErrorBoundary from '../components/common/ErrorBoundary';
 
-const VerifyContainer = styled.div`
-  min-height: 100vh;
+const VaultModelViewer = lazy(() => import('../components/3d/VaultModelViewer'));
+
+const SERIES_NAME = 'FREE THE VOICE';
+const HOLO = '#00e5ff';
+const NFT_CONTRACT = import.meta.env.VITE_NFT_CONTRACT_ADDRESS || '0x4785DBa85de01B0DB84269F3fd471dDd8461623C';
+
+// ============================================================
+// STATUS MODEL
+// Every UI surface (chip, readout, telemetry, progress rail)
+// reads from this one table so they can never disagree.
+// ============================================================
+const STATUS_META = {
+    verifying: { label: 'SCANNING', tone: HOLO, readout: 'INTERROGATING SECURITY LEDGER', step: 1, busy: true },
+    verified_unclaimed: { label: 'AUTHENTIC // UNCLAIMED', tone: '#fbbf24', readout: 'GENUINE ARTICLE DETECTED — OWNERSHIP UNBOUND', step: 2, busy: false },
+    claiming: { label: 'BINDING', tone: HOLO, readout: 'WRITING OWNERSHIP RECORD', step: 3, busy: true },
+    delivering: { label: 'DELIVERING', tone: HOLO, readout: 'OWNERSHIP BOUND — MATERIALIZING DIGITAL TWIN', step: 3, busy: true },
+    ownership_verified: { label: 'CLAIMED', tone: '#4ade80', readout: 'OWNERSHIP CONFIRMED — ASSET MATERIALIZED', step: 4, busy: false },
+    verified_claimed: { label: 'ALREADY CLAIMED', tone: '#fbbf24', readout: 'THIS ARTICLE IS BOUND TO ANOTHER WALLET', step: 4, busy: false },
+    invalid: { label: 'NO MATCH', tone: '#ef4444', readout: 'CODE NOT PRESENT IN SECURITY LEDGER', step: 1, busy: false },
+};
+
+const STEPS = ['SCAN', 'IDENTIFY', 'CLAIM', 'BOUND'];
+
+// ============================================================
+// MOTION
+// ============================================================
+const sweep = keyframes`
+  0%   { transform: translateY(-10%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(1000%); opacity: 0; }
+`;
+
+const gridDrift = keyframes`
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 60px, 0 60px; }
+`;
+
+const flicker = keyframes`
+  0%, 100% { opacity: 0.85; }
+  47% { opacity: 0.85; }
+  48% { opacity: 0.35; }
+  49% { opacity: 0.9; }
+  62% { opacity: 0.5; }
+  63% { opacity: 0.88; }
+`;
+
+const blink = keyframes`
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.15; }
+`;
+
+const railPulse = keyframes`
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+`;
+
+// ============================================================
+// LAYOUT
+// ============================================================
+const Shell = styled.div`
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+  color: #fff;
+  font-family: var(--font-secondary, 'Inter', sans-serif);
+
+  @media (max-width: 768px) {
+    padding: 0.75rem 0.65rem 3rem;
+  }
+`;
+
+const Mono = css`
+  font-family: 'Courier New', ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+`;
+
+// ---------- Stage ----------
+const Stage = styled.div`
+  position: relative;
+  height: clamp(340px, 52vh, 560px);
+  border: 1px solid ${p => p.$tone}44;
+  border-radius: 18px 18px 4px 4px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 100%, ${p => p.$tone}22, transparent 70%),
+    radial-gradient(ellipse at 50% 30%, rgba(10, 20, 40, 0.85), #000 75%);
+  box-shadow: 0 0 60px ${p => p.$tone}18, inset 0 0 90px rgba(0, 0, 0, 0.9);
+
+  @media (max-width: 768px) {
+    height: clamp(300px, 44vh, 400px);
+  }
+`;
+
+const StageGrid = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(to bottom, ${p => p.$tone}14 1px, transparent 1px),
+    linear-gradient(to right, ${p => p.$tone}0e 1px, transparent 1px);
+  background-size: 100% 60px, 60px 100%;
+  animation: ${gridDrift} 6s linear infinite;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, #000 20%, transparent 85%);
+`;
+
+const CanvasSlot = styled.div`
+  position: absolute;
+  inset: 0;
+`;
+
+const Overlay = styled.div`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+`;
+
+const Corner = styled.span`
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 2px solid ${p => p.$tone};
+  opacity: 0.7;
+  ${p => p.$pos === 'tl' && css`top: 10px; left: 10px; border-right: 0; border-bottom: 0;`}
+  ${p => p.$pos === 'tr' && css`top: 10px; right: 10px; border-left: 0; border-bottom: 0;`}
+  ${p => p.$pos === 'bl' && css`bottom: 10px; left: 10px; border-right: 0; border-top: 0;`}
+  ${p => p.$pos === 'br' && css`bottom: 10px; right: 10px; border-left: 0; border-top: 0;`}
+`;
+
+const ScanBar = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, ${HOLO}, transparent);
+  box-shadow: 0 0 18px ${HOLO};
+  animation: ${sweep} 3.2s linear infinite;
+`;
+
+const StageTop = styled.div`
+  position: absolute;
+  top: 14px;
+  left: 46px;
+  right: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  ${Mono};
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.45);
+`;
+
+const StatusChip = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid ${p => p.$tone}77;
+  border-radius: 3px;
+  background: ${p => p.$tone}18;
+  color: ${p => p.$tone};
+  ${Mono};
+  font-size: 0.6rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: ${p => p.$tone};
+    box-shadow: 0 0 8px ${p => p.$tone};
+    animation: ${blink} 1.1s steps(1) infinite;
+  }
+`;
+
+const Telemetry = styled.div`
+  position: absolute;
+  bottom: 54px;
+  ${p => p.$side === 'left' ? 'left: 18px;' : 'right: 18px; text-align: right;'}
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  animation: ${flicker} 7s linear infinite;
+
+  @media (max-width: 640px) {
+    display: ${p => p.$side === 'right' ? 'none' : 'flex'};
+    bottom: 58px;
+    gap: 0.35rem;
+  }
+`;
+
+const TelemetryItem = styled.div`
+  ${Mono};
+  font-size: 0.55rem;
+  line-height: 1.35;
+
+  span {
+    display: block;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.5rem;
+  }
+
+  strong {
+    color: ${p => p.$tone || 'rgba(255,255,255,0.8)'};
+    font-weight: 700;
+    font-size: 0.62rem;
+    word-break: break-all;
+  }
+`;
+
+const Readout = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  text-align: center;
+  ${Mono};
+  font-size: 0.6rem;
+  color: ${p => p.$tone};
+  text-shadow: 0 0 14px ${p => p.$tone}88;
+  padding: 0 1rem;
+`;
+
+const ProgressRail = styled.div`
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 6px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 25%;
+    background: linear-gradient(90deg, transparent, ${p => p.$tone}, transparent);
+    animation: ${railPulse} 1.4s linear infinite;
+  }
+`;
+
+const StageFallback = styled.div`
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  color: white;
-  position: relative;
-  z-index: 1;
+  gap: 0.8rem;
+  ${Mono};
+  font-size: 0.62rem;
+  color: ${HOLO};
+  opacity: 0.75;
+
+  svg { font-size: 1.6rem; }
 `;
 
-const ContentCard = styled(motion.div)`
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(20px);
+// ---------- Console ----------
+const StepRail = styled.div`
+  display: flex;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 0;
+  background: rgba(4, 8, 16, 0.85);
+`;
+
+const Step = styled.div`
+  flex: 1;
+  padding: 0.6rem 0.4rem;
+  text-align: center;
+  ${Mono};
+  font-size: 0.55rem;
+  color: ${p => p.$state === 'done' ? 'rgba(255,255,255,0.4)' : p.$state === 'active' ? p.$tone : 'rgba(255,255,255,0.18)'};
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+
+  &:last-child { border-right: 0; }
+
+  ${p => p.$state === 'active' && css`
+    background: ${p.$tone}12;
+    text-shadow: 0 0 12px ${p.$tone}aa;
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 2px;
+      background: ${p.$tone};
+      box-shadow: 0 0 10px ${p.$tone};
+    }
+  `}
+`;
+
+const Console = styled.div`
+  position: relative;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 3rem;
-  border-radius: 20px;
-  max-width: 600px;
-  width: 100%;
+  border-top: 0;
+  border-radius: 0 0 18px 18px;
+  background: linear-gradient(180deg, rgba(6, 10, 20, 0.92), rgba(0, 0, 0, 0.92));
+  backdrop-filter: blur(18px);
+  padding: 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
 
   @media (max-width: 768px) {
-    padding: 2rem;
+    padding: 1.5rem 1.1rem 2rem;
   }
-`;
-
-const ProductImage = styled.img`
-  width: 200px;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  
-  @media (max-width: 480px) {
-    width: 150px;
-    height: 150px;
-  }
-`;
-
-const Title = styled.h1`
-  font-family: 'Designer', sans-serif;
-  font-size: clamp(1.5rem, 4vw, 2.5rem);
-  margin-bottom: 1rem;
-  background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-`;
-
-const ProductName = styled.h2`
-  font-family: 'Designer', sans-serif;
-  font-size: 1.5rem;
-  color: #ffd700;
-  margin-bottom: 0.5rem;
-`;
-
-const EditionInfo = styled.p`
-  font-size: 0.9rem;
-  color: #a5b4fc;
-  margin-bottom: 0.5rem;
-`;
-
-const SeriesLabel = styled.p`
-  font-size: 0.85rem;
-  color: #fbbf24;
-  margin-bottom: 1rem;
-  font-weight: 500;
-`;
-
-const SERIES_NAME = 'FREE THE VOICE';
-
-const VerificationBadge = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.2), rgba(34, 197, 94, 0.1));
-  border: 1px solid rgba(74, 222, 128, 0.4);
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  color: #4ade80;
-  margin: 0.5rem 0 1rem;
-  
-  svg {
-    font-size: 1rem;
-  }
-`;
-
-const BlockchainLink = styled.a`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: #a5b4fc;
-  font-size: 0.8rem;
-  text-decoration: none;
-  margin-top: 0.5rem;
-  opacity: 0.8;
-  transition: opacity 0.2s, color 0.2s;
-  
-  &:hover {
-    opacity: 1;
-    color: #818cf8;
-    text-decoration: underline;
-  }
-  
-  svg {
-    font-size: 0.7rem;
-  }
-`;
-
-const SerialDisplay = styled.div`
-  font-family: 'Courier New', monospace;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.8rem 1.5rem;
-  border-radius: 8px;
-  border: 1px dashed rgba(255, 255, 255, 0.3);
-  margin: 1.5rem 0;
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-  color: #a5b4fc;
-  word-break: break-all;
-`;
-
-const StatusIcon = styled(motion.div)`
-  font-size: 4rem;
-  margin-bottom: 1.5rem;
-  
-  &.valid { color: #4ade80; }
-  &.invalid { color: #ef4444; }
-  &.checking { color: #a5b4fc; }
-  &.claimed { color: #fbbf24; }
 `;
 
 const StateContainer = styled(motion.div)`
@@ -152,85 +336,135 @@ const StateContainer = styled(motion.div)`
   width: 100%;
 `;
 
+const Title = styled.h1`
+  font-family: var(--font-primary, 'Designer'), sans-serif;
+  font-size: clamp(1.35rem, 3.6vw, 2.1rem);
+  letter-spacing: 0.06em;
+  margin: 0.25rem 0 0.75rem;
+  background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+`;
+
 const Message = styled.p`
-  font-size: 1.1rem;
+  font-size: 1rem;
   line-height: 1.6;
-  opacity: 0.9;
-  margin-bottom: 1.5rem;
-  max-width: 400px;
+  opacity: 0.8;
+  margin-bottom: 1.25rem;
+  max-width: 420px;
+`;
+
+const ProductName = styled.h2`
+  font-family: var(--font-primary, 'Designer'), sans-serif;
+  font-size: 1.3rem;
+  color: #ffd700;
+  margin-bottom: 0.35rem;
+`;
+
+const SeriesLabel = styled.p`
+  ${Mono};
+  font-size: 0.6rem;
+  color: #fbbf24;
+  margin-bottom: 1rem;
+  opacity: 0.85;
+`;
+
+const VerificationBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.18), rgba(34, 197, 94, 0.08));
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  padding: 0.4rem 0.9rem;
+  border-radius: 3px;
+  ${Mono};
+  font-size: 0.6rem;
+  color: #4ade80;
+  margin-bottom: 1rem;
+`;
+
+const BlockchainLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #a5b4fc;
+  ${Mono};
+  font-size: 0.58rem;
+  text-decoration: none;
+  margin-top: 0.75rem;
+  opacity: 0.8;
+  transition: opacity 0.2s, color 0.2s;
+
+  &:hover { opacity: 1; color: #818cf8; text-decoration: underline; }
+`;
+
+const StatusIcon = styled(motion.div)`
+  font-size: 3rem;
+  margin-bottom: 1rem;
+
+  &.valid { color: #4ade80; filter: drop-shadow(0 0 16px rgba(74, 222, 128, 0.6)); }
+  &.invalid { color: #ef4444; filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.5)); }
+  &.checking { color: ${HOLO}; filter: drop-shadow(0 0 16px ${HOLO}88); }
+  &.claimed { color: #fbbf24; filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.5)); }
 `;
 
 const ActionButton = styled(motion.button)`
+  position: relative;
   background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
   border: none;
-  padding: 1rem 2rem;
-  border-radius: 12px;
+  padding: 0.95rem 2rem;
+  border-radius: 4px;
   color: white;
-  font-family: 'Designer', sans-serif;
-  font-size: 1.1rem;
+  font-family: var(--font-primary, 'Designer'), sans-serif;
+  ${Mono};
+  font-size: 0.8rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  margin-top: 1rem;
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  margin-top: 0.85rem;
+  box-shadow: 0 0 24px rgba(79, 70, 229, 0.35);
+
+  &:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 `;
 
 const SecondaryButton = styled(motion.button)`
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  color: white;
-  font-size: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 0.7rem 1.4rem;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  ${Mono};
+  font-size: 0.65rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.75rem;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
+  margin-top: 0.7rem;
+
+  &:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
 `;
 
 const ButtonGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
   width: 100%;
   align-items: center;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
 `;
 
-const ShareButton = styled(motion.button)`
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  color: white;
-  font-size: 0.95rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-`;
+const ShareButton = styled(SecondaryButton)``;
 
 const OwnershipDetailsBox = styled.div`
-  background: linear-gradient(135deg, rgba(0, 30, 60, 0.9), rgba(0, 50, 80, 0.7));
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  border-radius: 12px;
-  padding: 1.25rem;
-  margin: 1.5rem 0;
+  background: linear-gradient(135deg, rgba(0, 30, 60, 0.75), rgba(0, 50, 80, 0.45));
+  border: 1px solid rgba(74, 222, 128, 0.28);
+  border-radius: 4px;
+  padding: 1.1rem 1.25rem;
+  margin: 1.25rem 0 0;
   width: 100%;
+  max-width: 460px;
   text-align: left;
 `;
 
@@ -238,108 +472,71 @@ const DetailsRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  
-  &:last-child {
-    border-bottom: none;
-  }
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  &:last-child { border-bottom: none; }
 `;
 
 const DetailsLabel = styled.span`
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  ${Mono};
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.4);
 `;
 
 const DetailsValue = styled.span`
-  font-size: 0.9rem;
-  color: #fff;
-  font-family: ${props => props.mono ? "'Courier New', monospace" : 'inherit'};
-  
-  &.highlight {
-    color: #4ade80;
-    font-weight: 600;
-  }
-`;
-
-const OwnerInfo = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  border-radius: 12px;
-  padding: 1rem;
-  margin: 1rem 0;
-  width: 100%;
-`;
-
-const OwnerLabel = styled.p`
   font-size: 0.85rem;
-  color: #4ade80;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  justify-content: center;
-`;
+  color: #fff;
+  text-align: right;
+  font-family: ${props => props.mono ? "'Courier New', monospace" : 'inherit'};
 
-const OwnerAddress = styled.p`
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  color: white;
-  word-break: break-all;
-`;
-
-const ClaimDate = styled.p`
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin-top: 0.5rem;
+  &.highlight { color: #4ade80; font-weight: 600; }
 `;
 
 const ErrorMessage = styled.div`
-  color: #ef4444;
-  font-size: 0.9rem;
+  color: #fca5a5;
+  ${Mono};
+  font-size: 0.62rem;
+  line-height: 1.6;
   margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 8px;
-  text-align: center;
+  padding: 0.7rem 1rem;
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 2px solid #ef4444;
+  text-align: left;
+  max-width: 420px;
 `;
 
 const ClaimInput = styled.input`
   width: 100%;
   max-width: 340px;
   padding: 0.9rem 1.1rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
   color: white;
   font-size: 1rem;
   text-align: center;
-  letter-spacing: ${props => props.$code ? '0.3em' : 'normal'};
+  letter-spacing: ${props => props.$code ? '0.4em' : 'normal'};
   font-family: ${props => props.$code ? "'Courier New', monospace" : 'inherit'};
-  margin-top: 0.75rem;
+  margin-top: 0.6rem;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.35);
-    letter-spacing: normal;
-  }
-
-  &:focus {
-    border-color: #4f46e5;
-  }
+  &::placeholder { color: rgba(255, 255, 255, 0.28); letter-spacing: normal; }
+  &:focus { border-color: ${HOLO}; box-shadow: 0 0 18px ${HOLO}33; }
 `;
 
 const SentNote = styled.p`
-  font-size: 0.85rem;
+  ${Mono};
+  font-size: 0.6rem;
   color: #4ade80;
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
 `;
 
-// Ownership details component
+// ============================================================
+// SUBCOMPONENTS
+// ============================================================
 const OwnershipDetails = ({ edition, totalEditions, claimedAt, walletAddress, tokenId }) => {
     const formatAddress = (addr) => {
         if (!addr) return 'Unknown';
@@ -401,18 +598,13 @@ const OwnershipDetails = ({ edition, totalEditions, claimedAt, walletAddress, to
     );
 };
 
-
-const ProductDetails = ({ product, serial, showBadge = false, tokenId = null }) => {
+const ProductDetails = ({ product, showBadge = false, tokenId = null }) => {
     if (!product) return null;
 
     return (
         <>
-            {product.imageUrl && <ProductImage src={product.imageUrl} alt={product.name} />}
             <ProductName>{product.name}</ProductName>
             <SeriesLabel>Series: {SERIES_NAME}</SeriesLabel>
-            {product.edition && (
-                <EditionInfo>Edition #{product.edition} of {product.totalEditions || '500'}</EditionInfo>
-            )}
             {showBadge && (
                 <VerificationBadge>
                     <FaCertificate /> Authentic Product
@@ -420,7 +612,7 @@ const ProductDetails = ({ product, serial, showBadge = false, tokenId = null }) 
             )}
             {tokenId && (
                 <BlockchainLink
-                    href={`https://polygonscan.com/token/${import.meta.env.VITE_NFT_CONTRACT_ADDRESS || '0x4785DBa85de01B0DB84269F3fd471dDd8461623C'}?a=${tokenId}`}
+                    href={`https://polygonscan.com/token/${NFT_CONTRACT}?a=${tokenId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                 >
@@ -431,6 +623,9 @@ const ProductDetails = ({ product, serial, showBadge = false, tokenId = null }) 
     );
 };
 
+// ============================================================
+// PAGE
+// ============================================================
 export default function VerifyPage() {
     const { serial } = useParams();
     const navigate = useNavigate();
@@ -450,6 +645,23 @@ export default function VerifyPage() {
     const [claimCode, setClaimCode] = useState('');
     const [codeSent, setCodeSent] = useState(false);
     const [sendingCode, setSendingCode] = useState(false);
+
+    // The figure stays a wireframe ghost until ownership actually belongs to
+    // the person looking at it. Everything else — invalid, unclaimed, claimed
+    // by a stranger — keeps it locked in hologram.
+    //
+    // 'delivering' counts as owned: the claim transaction already committed
+    // server-side, so materialization starts the moment CLAIM succeeds. The
+    // on-chain transfer confirmation that follows only decides which copy the
+    // console shows — it should never gate the reveal (that poll is what made
+    // the animation feel like it started 10+ seconds late).
+    const isOwnedByViewer = status === 'ownership_verified'
+        || status === 'delivering'
+        || (status === 'verified_claimed' && isCurrentOwner);
+    const [hasMaterialized, setHasMaterialized] = useState(false);
+
+    const meta = STATUS_META[status] || STATUS_META.verifying;
+    const tone = meta.tone;
 
     // Sync wallet address
     useEffect(() => {
@@ -689,63 +901,152 @@ export default function VerifyPage() {
         return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
     };
 
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '';
-        return new Date(dateStr).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+    const handleShare = async (text) => {
+        const url = window.location.href;
+        if (navigator.share) {
+            await navigator.share({ title: `${product?.name || 'Crownmania Collectible'} - Verified`, text, url });
+        } else {
+            await navigator.clipboard.writeText(url);
+            alert('Link copied to clipboard!');
+        }
     };
 
+    const goToVault = () => {
+        navigate('/');
+        setTimeout(() => {
+            const vault = document.getElementById('vault');
+            if (vault) vault.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    };
+
+    const shortSerial = useMemo(() => (serial && serial.length > 22 ? `${serial.slice(0, 10)}…${serial.slice(-8)}` : serial), [serial]);
+    const edition = deliveryInfo?.edition || claimResult?.edition || product?.edition;
+    const totalEditions = deliveryInfo?.totalEditions || claimResult?.totalEditions || product?.totalEditions || 500;
+
     return (
-        <VerifyContainer>
-            <ContentCard
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
-            >
+        <Shell>
+            {/* ============ HOLOGRAM STAGE ============ */}
+            <Stage $tone={tone}>
+                <StageGrid $tone={tone} />
+
+                <CanvasSlot>
+                    {/* The figure is decorative — if WebGL is missing or the
+                        model fails, the claim flow below must still work. */}
+                    <ErrorBoundary fallback={null}>
+                        <Suspense fallback={
+                            <StageFallback>
+                                <FaCube />
+                                <span>Initialising projector…</span>
+                            </StageFallback>
+                        }>
+                            <VaultModelViewer
+                                isUnlocked
+                                hologram={!isOwnedByViewer}
+                                holoColor={HOLO}
+                                holoCharge={status === 'claiming'}
+                                showStage
+                                cameraDistance={13.5}
+                                autoRotateSpeed={isOwnedByViewer ? 4.5 : 2.4}
+                                onMaterialized={() => setHasMaterialized(true)}
+                            />
+                        </Suspense>
+                    </ErrorBoundary>
+                </CanvasSlot>
+
+                <Overlay>
+                    <Corner $pos="tl" $tone={tone} />
+                    <Corner $pos="tr" $tone={tone} />
+                    <Corner $pos="bl" $tone={tone} />
+                    <Corner $pos="br" $tone={tone} />
+
+                    {!isOwnedByViewer && <ScanBar />}
+
+                    <StageTop>
+                        <span>CROWNMANIA · AUTHENTICATION UPLINK</span>
+                        <StatusChip $tone={tone}>{meta.label}</StatusChip>
+                    </StageTop>
+
+                    <Telemetry $side="left">
+                        <TelemetryItem $tone={tone}>
+                            <span>Serial</span>
+                            <strong>{shortSerial || '—'}</strong>
+                        </TelemetryItem>
+                        <TelemetryItem>
+                            <span>Series</span>
+                            <strong>{SERIES_NAME}</strong>
+                        </TelemetryItem>
+                        <TelemetryItem>
+                            <span>Edition</span>
+                            <strong>{edition ? `#${edition} / ${totalEditions}` : '— / ' + totalEditions}</strong>
+                        </TelemetryItem>
+                    </Telemetry>
+
+                    <Telemetry $side="right">
+                        <TelemetryItem>
+                            <span>Chain</span>
+                            <strong>Polygon</strong>
+                        </TelemetryItem>
+                        <TelemetryItem>
+                            <span>Render</span>
+                            <strong>{isOwnedByViewer ? (hasMaterialized ? 'Physical' : 'Materializing') : status === 'claiming' ? 'Charging' : 'Wireframe Proxy'}</strong>
+                        </TelemetryItem>
+                        <TelemetryItem $tone={tone}>
+                            <span>Integrity</span>
+                            <strong>{status === 'invalid' ? 'Failed' : status === 'verifying' ? 'Checking' : 'Passed'}</strong>
+                        </TelemetryItem>
+                    </Telemetry>
+
+                    <Readout $tone={tone}>{meta.readout}</Readout>
+                    {meta.busy && <ProgressRail $tone={tone} />}
+                </Overlay>
+            </Stage>
+
+            {/* ============ STEP RAIL ============ */}
+            <StepRail>
+                {STEPS.map((label, i) => (
+                    <Step
+                        key={label}
+                        $tone={tone}
+                        $state={i + 1 === meta.step ? 'active' : i + 1 < meta.step ? 'done' : 'todo'}
+                    >
+                        {String(i + 1).padStart(2, '0')} {label}
+                    </Step>
+                ))}
+            </StepRail>
+
+            {/* ============ CONSOLE ============ */}
+            <Console>
                 <AnimatePresence mode="wait">
                     {/* VERIFYING STATE */}
                     {status === 'verifying' && (
-                        <StateContainer
-                            key="verifying"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                        >
-                            <StatusIcon className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
+                        <StateContainer key="verifying" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                            <StatusIcon className="checking" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}>
                                 <FaShieldAlt />
                             </StatusIcon>
                             <Title>Verifying Authenticity</Title>
                             <Message>Securing blockchain records and authenticating your product.</Message>
-                            <SerialDisplay>{serial}</SerialDisplay>
                         </StateContainer>
                     )}
 
                     {/* VERIFIED UNCLAIMED - Not logged in */}
                     {status === 'verified_unclaimed' && !walletAddress && (
-                        <StateContainer
-                            key="verified_unclaimed_no_wallet"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                        >
+                        <StateContainer key="verified_unclaimed_no_wallet" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <StatusIcon className="valid" initial={{ scale: 0 }} animate={{ scale: 1 }}>
                                 <FaCheckCircle />
                             </StatusIcon>
                             <Title>Verification Successful</Title>
-                            <ProductDetails product={product} serial={serial} showBadge />
+                            <ProductDetails product={product} showBadge />
                             <Message>
-                                Your CrownMania collectible is ready. Connect your wallet to claim ownership.
+                                Your CrownMania collectible is authentic. Sign in to bind it to your wallet —
+                                the figure stays a wireframe proxy until ownership is claimed.
                             </Message>
                             <ActionButton
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
                                 onClick={handleConnectWallet}
-                                disabled={isWeb3Loading}
+                                disabled={isWeb3Loading || !isInitialized}
                             >
-                                <FaWallet /> {isWeb3Loading ? 'SECURIING WALLET...' : 'SIGN IN TO CLAIM'}
+                                <FaWallet /> {isWeb3Loading ? 'SECURING WALLET…' : 'SIGN IN TO CLAIM'}
                             </ActionButton>
                             {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
                         </StateContainer>
@@ -753,17 +1054,12 @@ export default function VerifyPage() {
 
                     {/* VERIFIED UNCLAIMED - Logged in (Ready to claim) */}
                     {status === 'verified_unclaimed' && walletAddress && (
-                        <StateContainer
-                            key="verified_unclaimed_ready"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                        >
+                        <StateContainer key="verified_unclaimed_ready" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <StatusIcon className="valid">
                                 <FaCheckCircle />
                             </StatusIcon>
                             <Title>Ready to Claim</Title>
-                            <ProductDetails product={product} serial={serial} showBadge />
+                            <ProductDetails product={product} showBadge />
                             {!codeSent ? (
                                 <>
                                     <Message>
@@ -777,12 +1073,12 @@ export default function VerifyPage() {
                                         autoComplete="email"
                                     />
                                     <ActionButton
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
+                                        whileHover={{ scale: 1.04 }}
+                                        whileTap={{ scale: 0.96 }}
                                         onClick={handleSendCode}
                                         disabled={sendingCode || !claimEmail.trim()}
                                     >
-                                        {sendingCode ? 'SENDING CODE...' : 'SEND VERIFICATION CODE'} <FaArrowRight />
+                                        {sendingCode ? 'SENDING CODE…' : 'SEND VERIFICATION CODE'} <FaArrowRight />
                                     </ActionButton>
                                 </>
                             ) : (
@@ -798,16 +1094,14 @@ export default function VerifyPage() {
                                         onChange={(e) => setClaimCode(e.target.value.replace(/\D/g, ''))}
                                     />
                                     <ActionButton
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
+                                        whileHover={{ scale: 1.04 }}
+                                        whileTap={{ scale: 0.96 }}
                                         onClick={handleClaim}
                                         disabled={claimCode.length !== 6}
                                     >
                                         CLAIM NOW <FaArrowRight />
                                     </ActionButton>
-                                    <SecondaryButton
-                                        onClick={() => { setCodeSent(false); setClaimCode(''); }}
-                                    >
+                                    <SecondaryButton onClick={() => { setCodeSent(false); setClaimCode(''); }}>
                                         Use a different email
                                     </SecondaryButton>
                                 </>
@@ -818,35 +1112,23 @@ export default function VerifyPage() {
 
                     {/* CLAIMING STATE */}
                     {status === 'claiming' && (
-                        <StateContainer
-                            key="claiming"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                        >
+                        <StateContainer key="claiming" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <StatusIcon className="checking" animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>
                                 <FaShieldAlt />
                             </StatusIcon>
                             <Title>Securing Ownership</Title>
-                            <Message>Minting your digital collectible on the blockchain...</Message>
-                            <SerialDisplay>{serial}</SerialDisplay>
+                            <Message>Minting your digital collectible on the blockchain…</Message>
                         </StateContainer>
                     )}
 
                     {/* DELIVERING STATE — waiting for on-chain transfer */}
                     {status === 'delivering' && (
-                        <StateContainer
-                            key="delivering"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                        >
+                        <StateContainer key="delivering" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <StatusIcon className="checking" animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>
                                 <FaShieldAlt />
                             </StatusIcon>
                             <Title>Claim Successful</Title>
                             <Message>Your digital collectible is being delivered to your wallet on-chain. This usually takes under a minute.</Message>
-                            <SerialDisplay>{serial}</SerialDisplay>
                         </StateContainer>
                     )}
 
@@ -880,12 +1162,14 @@ export default function VerifyPage() {
                                 }, 300);
                             }}
                         >
-                            <StatusIcon className="valid" initial={{ scale: 0 }} animate={{ scale: 1.2 }} transition={{ type: "spring" }}>
+                            <StatusIcon className="valid" initial={{ scale: 0 }} animate={{ scale: 1.15 }} transition={{ type: 'spring' }}>
                                 <FaCheckCircle />
                             </StatusIcon>
-                            <Title>CONGRATULATIONS</Title>
-                            <Message style={{ color: "#ffd700", fontWeight: "bold" }}>Ownership Verified Successfully</Message>
-                            <ProductDetails product={product} serial={serial} showBadge />
+                            <Title>Congratulations</Title>
+                            <Message style={{ color: '#ffd700', fontWeight: 'bold', marginBottom: '1rem' }}>
+                                Ownership Verified — your figure is fully rendered.
+                            </Message>
+                            <ProductDetails product={product} showBadge tokenId={deliveryInfo?.tokenId || claimResult?.tokenId} />
                             <OwnershipDetails
                                 edition={deliveryInfo?.edition || claimResult?.edition}
                                 totalEditions={deliveryInfo?.totalEditions || claimResult?.totalEditions}
@@ -894,7 +1178,7 @@ export default function VerifyPage() {
                                 tokenId={deliveryInfo?.tokenId || claimResult?.tokenId}
                             />
                             {deliveryTimedOut && (
-                                <Message style={{ fontSize: '0.85rem', opacity: 0.8 }}>
+                                <Message style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '1rem' }}>
                                     On-chain delivery is taking longer than usual — it completes automatically, no action needed.
                                 </Message>
                             )}
@@ -908,34 +1192,12 @@ export default function VerifyPage() {
                                 </BlockchainLink>
                             )}
                             <ButtonGroup>
-                                <ActionButton
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => {
-                                        navigate('/');
-                                        setTimeout(() => {
-                                            const vault = document.getElementById('vault');
-                                            if (vault) vault.scrollIntoView({ behavior: 'smooth' });
-                                        }, 100);
-                                    }}
-                                >
+                                <ActionButton whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={goToVault}>
                                     ENTER THE VAULT <FaArrowRight />
                                 </ActionButton>
                                 <ShareButton
                                     whileHover={{ scale: 1.02 }}
-                                    onClick={async () => {
-                                        const url = window.location.href;
-                                        if (navigator.share) {
-                                            await navigator.share({
-                                                title: `${product?.name || 'Crownmania Collectible'} - Verified`,
-                                                text: 'Check out my verified Crownmania collectible!',
-                                                url
-                                            });
-                                        } else {
-                                            await navigator.clipboard.writeText(url);
-                                            alert('Link copied to clipboard!');
-                                        }
-                                    }}
+                                    onClick={() => handleShare('Check out my verified Crownmania collectible!')}
                                 >
                                     <FaShare /> SHARE ACHIEVEMENT
                                 </ShareButton>
@@ -945,19 +1207,16 @@ export default function VerifyPage() {
 
                     {/* VERIFIED BUT ALREADY CLAIMED */}
                     {status === 'verified_claimed' && (
-                        <StateContainer
-                            key="verified_claimed"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                        >
-                            <StatusIcon className="claimed">
+                        <StateContainer key="verified_claimed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                            <StatusIcon className={isCurrentOwner ? 'valid' : 'claimed'}>
                                 <FaCheckCircle />
                             </StatusIcon>
-                            <Title>Already Claimed</Title>
-                            <ProductDetails product={product} serial={serial} />
+                            <Title>{isCurrentOwner ? 'Your Collectible' : 'Already Claimed'}</Title>
+                            <ProductDetails product={product} />
                             <Message>
-                                This product has already been claimed by wallet:
+                                {isCurrentOwner
+                                    ? 'This article is bound to your wallet.'
+                                    : 'This product has already been claimed by wallet:'}
                                 <br />
                                 <code style={{ fontSize: '0.9rem', color: '#fbbf24' }}>
                                     {claimInfo?.claimedBy ? formatAddress(claimInfo.claimedBy) : 'Unknown'}
@@ -965,17 +1224,7 @@ export default function VerifyPage() {
                             </Message>
                             <ButtonGroup>
                                 {isCurrentOwner ? (
-                                    <ActionButton
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => {
-                                            navigate('/');
-                                            setTimeout(() => {
-                                                const vault = document.getElementById('vault');
-                                                if (vault) vault.scrollIntoView({ behavior: 'smooth' });
-                                            }, 100);
-                                        }}
-                                    >
+                                    <ActionButton whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={goToVault}>
                                         View in Vault <FaArrowRight />
                                     </ActionButton>
                                 ) : (
@@ -985,19 +1234,7 @@ export default function VerifyPage() {
                                 )}
                                 <ShareButton
                                     whileHover={{ scale: 1.02 }}
-                                    onClick={async () => {
-                                        const url = window.location.href;
-                                        if (navigator.share) {
-                                            await navigator.share({
-                                                title: `${product?.name || 'Crownmania Collectible'} - Verified`,
-                                                text: 'This Crownmania collectible is verified authentic!',
-                                                url
-                                            });
-                                        } else {
-                                            await navigator.clipboard.writeText(url);
-                                            alert('Link copied to clipboard!');
-                                        }
-                                    }}
+                                    onClick={() => handleShare('This Crownmania collectible is verified authentic!')}
                                 >
                                     <FaShare /> Share Verification
                                 </ShareButton>
@@ -1007,26 +1244,21 @@ export default function VerifyPage() {
 
                     {/* INVALID STATE */}
                     {status === 'invalid' && (
-                        <StateContainer
-                            key="invalid"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                        >
+                        <StateContainer key="invalid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <StatusIcon className="invalid">
                                 <FaTimesCircle />
                             </StatusIcon>
                             <Title>Invalid Product</Title>
                             <Message>
-                                The serial number provided could not be verified. Please check and try again.
+                                {errorMessage || 'The serial number provided could not be verified. Please check and try again.'}
                             </Message>
-                            <ActionButton onClick={() => navigate('/')}>
+                            <ActionButton whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={() => navigate('/')}>
                                 TRY AGAIN
                             </ActionButton>
                         </StateContainer>
                     )}
                 </AnimatePresence>
-            </ContentCard>
-        </VerifyContainer>
+            </Console>
+        </Shell>
     );
 }
